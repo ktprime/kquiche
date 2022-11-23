@@ -231,7 +231,7 @@ void QuicCryptoStream::NeuterStreamDataOfEncryptionLevel(
   // to replace the following code.
   QuicIntervalSet<QuicStreamOffset> to_ack = send_buffer->bytes_acked();
   if (send_buffer->stream_offset())
-  to_ack.Complement(0, send_buffer->stream_offset());
+    to_ack.Complement(0, send_buffer->stream_offset());
   for (const auto& interval : to_ack) {
     QuicByteCount newly_acked_length = 0;
     if (!interval.Empty())
@@ -246,7 +246,7 @@ void QuicCryptoStream::OnStreamDataConsumed(QuicByteCount bytes_consumed) {
         << "Stream data consumed when CRYPTO frames should be in use";
   }
   if (bytes_consumed > 0) {
-    bytes_consumed_[session()->connection()->encryption_level()].Add(
+    bytes_consumed_[session()->connection()->encryption_level()].AddOptimizedForAppend(
         stream_bytes_written(), stream_bytes_written() + bytes_consumed);
   }
   QuicStream::OnStreamDataConsumed(bytes_consumed);
