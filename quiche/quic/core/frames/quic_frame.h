@@ -38,7 +38,7 @@
 
 #ifndef QUIC_FRAME_DEBUG
 #if !defined(NDEBUG) || defined(ADDRESS_SANITIZER)
-#define QUIC_FRAME_DEBUG 1
+#define QUIC_FRAME_DEBUG 0
 #else  // !defined(NDEBUG) || defined(ADDRESS_SANITIZER)
 #define QUIC_FRAME_DEBUG 0
 #endif  // !defined(NDEBUG) || defined(ADDRESS_SANITIZER)

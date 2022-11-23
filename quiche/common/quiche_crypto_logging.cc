@@ -28,6 +28,7 @@ void ClearOpenSslErrors() {
   }
 }
 
+#if 0 //oblivious_http_client.h
 absl::Status SslErrorAsStatus(absl::string_view msg) {
   std::string message;
   absl::StrAppend(&message, msg, "OpenSSL error: ");
@@ -38,5 +39,6 @@ absl::Status SslErrorAsStatus(absl::string_view msg) {
   }
   return absl::InternalError(message);
 }
+#endif
 
 }  // namespace quiche

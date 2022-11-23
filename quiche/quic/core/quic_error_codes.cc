@@ -296,10 +296,12 @@ const char* QuicErrorCodeToString(QuicErrorCode error) {
 std::string QuicIetfTransportErrorCodeString(QuicIetfTransportErrorCodes c) {
   if (c >= CRYPTO_ERROR_FIRST && c <= CRYPTO_ERROR_LAST) {
     const int tls_error = static_cast<int>(c - CRYPTO_ERROR_FIRST);
+#if QUIC_TLS_SESSION
     const char* tls_error_description = SSL_alert_desc_string_long(tls_error);
     if (strcmp("unknown", tls_error_description) != 0) {
       return absl::StrCat("CRYPTO_ERROR(", tls_error_description, ")");
     }
+#endif
     return absl::StrCat("CRYPTO_ERROR(unknown(", tls_error, "))");
   }
 

@@ -29,7 +29,7 @@ inline constexpr uint64_t kNumMicrosPerSecond =
 // Default number of connections for N-connection emulation.
 inline constexpr uint32_t kDefaultNumConnections = 2;
 // Default initial maximum size in bytes of a QUIC packet.
-inline constexpr QuicByteCount kDefaultMaxPacketSize = 1250;
+inline constexpr QuicByteCount kDefaultMaxPacketSize = 1250 + 100;
 // Default initial maximum size in bytes of a QUIC packet for servers.
 inline constexpr QuicByteCount kDefaultServerMaxPacketSize = 1000;
 // Maximum transmission unit on Ethernet.
@@ -200,7 +200,7 @@ inline constexpr int kPtoRttvarMultiplier = 2;
 // TCP RFC calls for 1 second RTO however Linux differs from this default and
 // define the minimum RTO to 200ms, we will use the same until we have data to
 // support a higher or lower value.
-inline constexpr const int64_t kMinRetransmissionTimeMs = 200;
+inline constexpr int64_t kMinRetransmissionTimeMs = 100;
 // The delayed ack time must not be greater than half the min RTO.
 static_assert(kDefaultDelayedAckTimeMs <= kMinRetransmissionTimeMs / 2,
               "Delayed ack time must be less than or equal half the MinRTO");

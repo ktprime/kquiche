@@ -244,6 +244,7 @@ void QuicSentPacketManager::ApplyConnectionOptions(
 void QuicSentPacketManager::ResumeConnectionState(
     const CachedNetworkParameters& cached_network_params,
     bool max_bandwidth_resumption) {
+#if QUIC_SERVER_SESSION
   QuicBandwidth bandwidth = QuicBandwidth::FromBytesPerSecond(
       max_bandwidth_resumption
           ? cached_network_params.max_bandwidth_estimate_bytes_per_second()
@@ -259,6 +260,7 @@ void QuicSentPacketManager::ResumeConnectionState(
   // connection with the same network path between client and server.
   params.is_rtt_trusted = true;
   AdjustNetworkParameters(params);
+#endif
 }
 
 void QuicSentPacketManager::AdjustNetworkParameters(
@@ -325,7 +327,7 @@ void QuicSentPacketManager::PostProcessNewlyAckedPackets(
 
   sustained_bandwidth_recorder_.RecordEstimate(
       send_algorithm_->InRecovery(), send_algorithm_->InSlowStart(),
-      send_algorithm_->BandwidthEstimate(), ack_receive_time, clock_->WallNow(),
+      send_algorithm_->BandwidthEstimate(), ack_receive_time, clock_->ApproximateNow(),
       rtt_stats_.smoothed_rtt());
 
   // Anytime we are making forward progress and have a new RTT estimate, reset

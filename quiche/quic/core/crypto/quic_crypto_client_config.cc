@@ -58,17 +58,32 @@ void RecordDiskCacheServerConfigState(
 
 QuicCryptoClientConfig::QuicCryptoClientConfig(
     std::unique_ptr<ProofVerifier> proof_verifier)
-    : QuicCryptoClientConfig(std::move(proof_verifier), nullptr) {}
+    : QuicCryptoClientConfig(std::move(proof_verifier), nullptr, false) {}
 
 QuicCryptoClientConfig::QuicCryptoClientConfig(
     std::unique_ptr<ProofVerifier> proof_verifier,
-    std::unique_ptr<SessionCache> session_cache)
-    : proof_verifier_(std::move(proof_verifier)),
-      session_cache_(std::move(session_cache)),
-      ssl_ctx_(TlsClientConnection::CreateSslCtx(
-          !GetQuicFlag(quic_disable_client_tls_zero_rtt))) {
+    std::unique_ptr<SessionCache> session_cache, bool tls_session)
+    : proof_verifier_(std::move(proof_verifier))
+#ifdef QUIC_TLS_SESSION //hybchanged
+      ,session_cache_(std::move(session_cache))
+      ,ssl_ctx_(tls_session ? TlsClientConnection::CreateSslCtx(
+          !GetQuicFlag(quic_disable_client_tls_zero_rtt)) : nullptr)
+#endif
+{
   QUICHE_DCHECK(proof_verifier_.get());
   SetDefaults();
+}
+
+QuicCryptoClientConfig::QuicCryptoClientConfig(
+    std::unique_ptr<ProofVerifier> proof_verifier, bool tsl_session)
+    : proof_verifier_(std::move(proof_verifier))
+#ifdef QUIC_TLS_SESSION //hybchanged
+    ,ssl_ctx_(tsl_session ? TlsClientConnection::CreateSslCtx(
+        !GetQuicFlag(quic_disable_client_tls_zero_rtt)) : nullptr)
+#endif
+{
+    QUICHE_DCHECK(proof_verifier_.get());
+    SetDefaults();
 }
 
 QuicCryptoClientConfig::~QuicCryptoClientConfig() {}
@@ -385,7 +400,12 @@ void QuicCryptoClientConfig::FillInchoateClientHello(
         out_params,
     CryptoHandshakeMessage* out) const {
   out->set_tag(kCHLO);
-  out->set_minimum_size(1);
+  //hybchanged for early quic version
+  if (pad_inchoate_hello_) {
+      out->set_minimum_size(kClientHelloMinimumSize);
+  } else {
+      out->set_minimum_size(1);
+  }
 
   // Server name indication. We only send SNI if it's a valid domain name, as
   // per the spec.
@@ -463,7 +483,16 @@ QuicErrorCode QuicCryptoClientConfig::FillClientHello(
   FillInchoateClientHello(server_id, preferred_version, cached, rand,
                           /* demand_x509_proof= */ true, out_params, out);
 
-  out->set_minimum_size(1);
+  if (pad_full_hello_) {
+      out->set_minimum_size(kClientHelloMinimumSize);
+  } else {
+      out->set_minimum_size(1);
+  }
+  //add new feature hybchanged
+  if (no_encrypt_tag_ >> 32 != 0)
+      out->SetStringPiece(no_encrypt_tag_ >> 32, std::to_string((int)no_encrypt_tag_));
+  if (client_type_tag_ != 0)
+      out->SetStringPiece(client_type_tag_ >> 32, std::to_string((int)client_type_tag_));
 
   const CryptoHandshakeMessage* scfg = cached->GetServerConfig();
   if (!scfg) {
@@ -502,7 +531,21 @@ QuicErrorCode QuicCryptoClientConfig::FillClientHello(
     *error_details = "Unsupported AEAD or KEXS";
     return QUIC_CRYPTO_NO_SUPPORT;
   }
-  out->SetVector(kAEAD, QuicTagVector{out_params->aead});
+
+  //hybchanged
+  if (0 /*&& GetQuicFlag(FLAGS_quic_use_unencrypted_transmission)**/) {
+      if (std::find(their_aeads.begin(), their_aeads.end(), kTEXT) != their_aeads.end()) {
+          out->SetVector(kAEAD, QuicTagVector{ kTEXT });
+      }
+      else {
+          out->SetVector(kAEAD, QuicTagVector{ out_params->aead });
+          //SetQuicFlag(FLAGS_quic_use_unencrypted_transmission, false);
+      }
+  }
+  else {
+      out->SetVector(kAEAD, QuicTagVector{ out_params->aead });
+  }
+
   out->SetVector(kKEXS, QuicTagVector{out_params->key_exchange});
 
   absl::string_view public_value;
@@ -632,11 +675,15 @@ QuicErrorCode QuicCryptoClientConfig::CacheNewServerConfig(
   bool has_proof = message.GetStringPiece(kPROF, &proof);
   bool has_cert = message.GetStringPiece(kCertificateTag, &cert_bytes);
   if (has_proof && has_cert) {
+#if USE_SRC_ZLIB == 0
+    std::vector<std::string> certs = {"Dummy cert"};
+#else
     std::vector<std::string> certs;
     if (!CertCompressor::DecompressChain(cert_bytes, cached_certs, &certs)) {
       *error_details = "Certificate data invalid";
       return QUIC_INVALID_CRYPTO_MESSAGE_PARAMETER;
     }
+#endif
 
     message.GetStringPiece(kCertificateSCTTag, &cert_sct);
     cached->SetProof(certs, cert_sct, chlo_hash, proof);
@@ -771,10 +818,11 @@ ProofVerifier* QuicCryptoClientConfig::proof_verifier() const {
   return proof_verifier_.get();
 }
 
+#ifdef QUIC_TLS_SESSION //hybchanged
 SessionCache* QuicCryptoClientConfig::session_cache() const {
   return session_cache_.get();
 }
-
+#endif
 ClientProofSource* QuicCryptoClientConfig::proof_source() const {
   return proof_source_.get();
 }
@@ -784,7 +832,13 @@ void QuicCryptoClientConfig::set_proof_source(
   proof_source_ = std::move(proof_source);
 }
 
-SSL_CTX* QuicCryptoClientConfig::ssl_ctx() const { return ssl_ctx_.get(); }
+SSL_CTX* QuicCryptoClientConfig::ssl_ctx() const {
+#ifdef QUIC_TLS_SESSION //hybchanged
+  return ssl_ctx_.get();
+#else
+  return nullptr;
+#endif
+}
 
 void QuicCryptoClientConfig::InitializeFrom(
     const QuicServerId& server_id, const QuicServerId& canonical_server_id,

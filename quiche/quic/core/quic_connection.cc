@@ -3384,6 +3384,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
       //
       // writer_->WritePacket transfers buffer ownership back to the writer.
       packet->release_encrypted_buffer = nullptr;
+      per_packet_options_->transmission_type = packet->transmission_type;
       result = writer_->WritePacket(packet->encrypted_buffer, encrypted_length,
                                     self_address().host(), send_to_address,
                                     per_packet_options_);

@@ -56,7 +56,7 @@ class QUICHE_EXPORT FatalLogSink : public NoopLogSink {
  public:
   ABSL_ATTRIBUTE_NORETURN ~FatalLogSink() {
     std::cerr << str() << std::endl;
-    std::cerr << quiche::QuicheStackTraceImpl() << std::endl;
+    //std::cerr << quiche::QuicheStackTraceImpl() << std::endl;
     abort();
   }
 };
@@ -67,7 +67,7 @@ class QUICHE_EXPORT CheckLogSink : public NoopLogSink {
   ~CheckLogSink() {
     if (!condition_) {
       std::cerr << "Check failed: " << str() << std::endl;
-      std::cerr << quiche::QuicheStackTraceImpl() << std::endl;
+      std::cerr << "quiche::QuicheStackTraceImpl()" << std::endl;
       abort();
     }
   }

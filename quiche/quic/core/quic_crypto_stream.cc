@@ -230,9 +230,11 @@ void QuicCryptoStream::NeuterStreamDataOfEncryptionLevel(
   // TODO(nharper): Consider adding a Clear() method to QuicStreamSendBuffer
   // to replace the following code.
   QuicIntervalSet<QuicStreamOffset> to_ack = send_buffer->bytes_acked();
+  if (send_buffer->stream_offset())
   to_ack.Complement(0, send_buffer->stream_offset());
   for (const auto& interval : to_ack) {
     QuicByteCount newly_acked_length = 0;
+    if (!interval.Empty())
     send_buffer->OnStreamDataAcked(
         interval.min(), interval.max() - interval.min(), &newly_acked_length);
   }

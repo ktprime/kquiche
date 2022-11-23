@@ -455,7 +455,7 @@ class QUIC_EXPORT_PRIVATE QuicConnectionHelperInterface {
   virtual quiche::QuicheBufferAllocator* GetStreamSendBufferAllocator() = 0;
 };
 
-class QUIC_EXPORT_PRIVATE QuicConnection
+class QUIC_EXPORT_PRIVATE QuicConnection final
     : public QuicFramerVisitorInterface,
       public QuicBlockedWriterInterface,
       public QuicPacketCreator::DelegateInterface,
@@ -625,6 +625,8 @@ class QUIC_EXPORT_PRIVATE QuicConnection
   void SetSelfAddress(QuicSocketAddress address) {
     default_path_.self_address = address;
   }
+  //hybchanged
+  void SetPeerAddress(QuicSocketAddress address) { direct_peer_address_ = address; }
 
   // The version of the protocol this connection is using.
   QuicTransportVersion transport_version() const {

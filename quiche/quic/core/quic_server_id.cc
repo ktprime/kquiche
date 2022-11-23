@@ -17,6 +17,7 @@
 
 namespace quic {
 
+#if 0
 // static
 absl::optional<QuicServerId> QuicServerId::ParseFromHostPortString(
     absl::string_view host_port_string) {
@@ -56,6 +57,7 @@ absl::optional<QuicServerId> QuicServerId::ParseFromHostPortString(
   return QuicServerId(std::move(hostname),
                       static_cast<uint16_t>(parsed_port_number));
 }
+#endif
 
 QuicServerId::QuicServerId() : QuicServerId("", 0, false) {}
 

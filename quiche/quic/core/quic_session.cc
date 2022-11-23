@@ -1672,6 +1672,7 @@ void QuicSession::OnTlsHandshakeComplete() {
 bool QuicSession::MaybeSendAddressToken() {
   QUICHE_DCHECK(perspective_ == Perspective::IS_SERVER &&
                 connection()->version().HasIetfQuicFrames());
+#if QUIC_SERVER_SESSION
   absl::optional<CachedNetworkParameters> cached_network_params =
       GenerateCachedNetworkParameters();
 
@@ -1692,6 +1693,7 @@ bool QuicSession::MaybeSendAddressToken() {
   if (cached_network_params.has_value()) {
     connection()->OnSendConnectionState(*cached_network_params);
   }
+#endif
   return true;
 }
 
@@ -1802,6 +1804,8 @@ void QuicSession::UpdateStreamPriority(
     QuicStreamId id, const spdy::SpdyStreamPrecedence& new_precedence) {
   write_blocked_streams()->UpdateStreamPriority(id, new_precedence);
 }
+
+QuicConfig* QuicSession::config() { return &config_; }
 
 void QuicSession::ActivateStream(std::unique_ptr<QuicStream> stream) {
   QuicStreamId stream_id = stream->id();
@@ -2651,6 +2655,7 @@ bool QuicSession::ValidateToken(absl::string_view token) {
   }
   const bool valid = GetCryptoStream()->ValidateAddressToken(
       absl::string_view(token.data() + 1, token.length() - 1));
+#if QUIC_SERVER_SESSION
   if (valid) {
     const CachedNetworkParameters* cached_network_params =
         GetCryptoStream()->PreviousCachedNetworkParams();
@@ -2659,6 +2664,7 @@ bool QuicSession::ValidateToken(absl::string_view token) {
       connection()->OnReceiveConnectionState(*cached_network_params);
     }
   }
+#endif
   return valid;
 }
 

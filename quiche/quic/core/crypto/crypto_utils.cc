@@ -749,7 +749,11 @@ const char* CryptoUtils::HandshakeFailureReasonToString(
 // static
 std::string CryptoUtils::EarlyDataReasonToString(
     ssl_early_data_reason_t reason) {
+#ifdef QUIC_TLS_SESSION //hybchanged
   const char* reason_string = SSL_early_data_reason_string(reason);
+#else
+  const char* reason_string = std::to_string((int)reason).data();
+#endif
   if (reason_string != nullptr) {
     return std::string("ssl_early_data_") + reason_string;
   }
@@ -777,7 +781,7 @@ bool CryptoUtils::GetSSLCapabilities(const SSL* ssl,
                                      size_t* capabilities_len) {
   uint8_t* buffer;
   bssl::ScopedCBB cbb;
-
+#ifdef QUIC_TLS_SESSION //hybchanged
   if (!CBB_init(cbb.get(), 128) ||
       !SSL_serialize_capabilities(ssl, cbb.get()) ||
       !CBB_finish(cbb.get(), &buffer, capabilities_len)) {
@@ -785,6 +789,7 @@ bool CryptoUtils::GetSSLCapabilities(const SSL* ssl,
   }
 
   *capabilities = bssl::UniquePtr<uint8_t>(buffer);
+#endif
   return true;
 }
 
