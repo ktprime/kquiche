@@ -248,7 +248,7 @@ class QUIC_EXPORT_PRIVATE QuicConnectionVisitorInterface {
 // Interface which gets callbacks from the QuicConnection at interesting
 // points.  Implementations must not mutate the state of the connection
 // as a result of these callbacks.
-class QUIC_EXPORT_PRIVATE QuicConnectionDebugVisitor
+class QUIC_EXPORT_PRIVATE QuicConnectionDebugVisitor final
     : public QuicSentPacketManager::DebugDelegate {
  public:
   ~QuicConnectionDebugVisitor() override {}
@@ -505,20 +505,20 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   void ApplyConnectionOptions(const QuicTagVector& connection_options);
 
   // Called by the session when sending connection state to the client.
-  virtual void OnSendConnectionState(
+  void OnSendConnectionState(
       const CachedNetworkParameters& cached_network_params);
 
   // Called by the session when receiving connection state from the client.
-  virtual void OnReceiveConnectionState(
+  void OnReceiveConnectionState(
       const CachedNetworkParameters& cached_network_params);
 
   // Called by the Session when the client has provided CachedNetworkParameters.
-  virtual void ResumeConnectionState(
+  void ResumeConnectionState(
       const CachedNetworkParameters& cached_network_params,
       bool max_bandwidth_resumption);
 
   // Called by the Session when a max pacing rate for the connection is needed.
-  virtual void SetMaxPacingRate(QuicBandwidth max_pacing_rate);
+  void SetMaxPacingRate(QuicBandwidth max_pacing_rate);
 
   // Allows the client to adjust network parameters based on external
   // information.
@@ -534,12 +534,12 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   void OnConfigNegotiated();
 
   // Returns the max pacing rate for the connection.
-  virtual QuicBandwidth MaxPacingRate() const;
+  QuicBandwidth MaxPacingRate() const;
 
   // Sends crypto handshake messages of length |write_length| to the peer in as
   // few packets as possible. Returns the number of bytes consumed from the
   // data.
-  virtual size_t SendCryptoData(EncryptionLevel level, size_t write_length,
+  size_t SendCryptoData(EncryptionLevel level, size_t write_length,
                                 QuicStreamOffset offset);
 
   // Send the data of length |write_length| to the peer in as few packets as
@@ -547,26 +547,26 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // indicating if the fin bit was consumed.  This does not indicate the data
   // has been sent on the wire: it may have been turned into a packet and queued
   // if the socket was unexpectedly blocked.
-  virtual QuicConsumedData SendStreamData(QuicStreamId id, size_t write_length,
+  QuicConsumedData SendStreamData(QuicStreamId id, size_t write_length,
                                           QuicStreamOffset offset,
                                           StreamSendingState state);
 
   // Send |frame| to the peer. Returns true if frame is consumed, false
   // otherwise.
-  virtual bool SendControlFrame(const QuicFrame& frame);
+  bool SendControlFrame(const QuicFrame& frame);
 
   // Called when stream |id| is reset because of |error|.
-  virtual void OnStreamReset(QuicStreamId id, QuicRstStreamErrorCode error);
+  void OnStreamReset(QuicStreamId id, QuicRstStreamErrorCode error);
 
   // Closes the connection.
   // |connection_close_behavior| determines whether or not a connection close
   // packet is sent to the peer.
-  virtual void CloseConnection(
+  void CloseConnection(
       QuicErrorCode error, const std::string& details,
       ConnectionCloseBehavior connection_close_behavior);
   // Closes the connection, specifying the wire error code |ietf_error|
   // explicitly.
-  virtual void CloseConnection(
+  void CloseConnection(
       QuicErrorCode error, QuicIetfTransportErrorCodes ietf_error,
       const std::string& details,
       ConnectionCloseBehavior connection_close_behavior);
@@ -584,7 +584,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // the peer.
   // In a client, the packet may be "stray" and have a different connection ID
   // than that of this connection.
-  virtual void ProcessUdpPacket(const QuicSocketAddress& self_address,
+  void ProcessUdpPacket(const QuicSocketAddress& self_address,
                                 const QuicSocketAddress& peer_address,
                                 const QuicReceivedPacket& packet);
 
@@ -599,7 +599,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
 
   // Called when the caller thinks it's worth a try to write.
   // TODO(fayang): consider unifying this with QuicSession::OnCanWrite.
-  virtual void OnCanWrite();
+  void OnCanWrite();
 
   // Called when an error occurs while attempting to write a packet to the
   // network.
@@ -713,7 +713,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
                             IsHandshake handshake) override;
   const QuicFrames MaybeBundleAckOpportunistically() override;
   QuicPacketBuffer GetPacketBuffer() override;
-  void OnSerializedPacket(SerializedPacket packet) override;
+  void OnSerializedPacket(SerializedPacket& packet) override;
   void OnUnrecoverableError(QuicErrorCode error,
                             const std::string& error_details) override;
   SerializedPacketFate GetSerializedPacketFate(
@@ -987,7 +987,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // be written to the probing writer. If connection is V99, a padded IETF QUIC
   // PATH_CHALLENGE packet is transmitted; if not V99, a Google QUIC padded PING
   // packet is transmitted.
-  virtual bool SendConnectivityProbingPacket(
+  bool SendConnectivityProbingPacket(
       QuicPacketWriter* probing_writer, const QuicSocketAddress& peer_address);
 
   // Disable MTU discovery on this connection.
@@ -1008,7 +1008,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // Tries to send |message| and returns the message status.
   // If |flush| is false, this will return a MESSAGE_STATUS_BLOCKED
   // when the connection is deemed unwritable.
-  virtual MessageStatus SendMessage(QuicMessageId message_id,
+  MessageStatus SendMessage(QuicMessageId message_id,
                                     absl::Span<quiche::QuicheMemSlice> message,
                                     bool flush);
 
@@ -1023,7 +1023,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
 
   void SetUnackedMapInitialCapacity();
 
-  virtual int GetUnackedMapInitialCapacity() const {
+  int GetUnackedMapInitialCapacity() const {
     return kDefaultUnackedPacketsInitialCapacity;
   }
 
@@ -1167,7 +1167,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // Returns true if ack_alarm_ is set.
   bool HasPendingAcks() const;
 
-  virtual void OnUserAgentIdKnown(const std::string& user_agent_id);
+  void OnUserAgentIdKnown(const std::string& user_agent_id);
 
   // If now is close to idle timeout, returns true and sends a connectivity
   // probing packet to test the connection for liveness. Otherwise, returns
@@ -1236,11 +1236,11 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
 
   // Returns one server connection ID that associates the current session in the
   // session map.
-  virtual QuicConnectionId GetOneActiveServerConnectionId() const;
+  QuicConnectionId GetOneActiveServerConnectionId() const;
 
   // Returns all server connection IDs that have not been removed from the
   // session map.
-  virtual std::vector<QuicConnectionId> GetActiveServerConnectionIds() const;
+  std::vector<QuicConnectionId> GetActiveServerConnectionIds() const;
 
   bool validate_client_address() const { return validate_client_addresses_; }
 
@@ -1278,7 +1278,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
 
   // Send a packet to the peer, and takes ownership of the packet if the packet
   // cannot be written immediately.
-  virtual void SendOrQueuePacket(SerializedPacket packet);
+  void SendOrQueuePacket(SerializedPacket& packet);
 
   // Called after a packet is received from a new effective peer address and is
   // decrypted. Starts validation of effective peer's address change. Calls
@@ -1286,7 +1286,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   void StartEffectivePeerMigration(AddressChangeType type);
 
   // Called when a effective peer address migration is validated.
-  virtual void OnEffectivePeerMigrationValidated(bool is_migration_linkable);
+  void OnEffectivePeerMigrationValidated(bool is_migration_linkable);
 
   // Get the effective peer address from the packet being processed. For proxied
   // connections, effective peer address is the address of the endpoint behind
@@ -1305,7 +1305,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   //      drive effective peer migration.
   //   b) An uninitialized address, meaning the effective peer address does not
   //      change.
-  virtual QuicSocketAddress GetEffectivePeerAddressFromCurrentPacket() const;
+  QuicSocketAddress GetEffectivePeerAddressFromCurrentPacket() const;
 
   // Selects and updates the version of the protocol being used by selecting a
   // version from |available_versions| which is also supported. Returns true if
@@ -1329,16 +1329,16 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // for example, when the server is tearing down. Given
   // SendConnectionClosePacket() does not close connection, multiple connection
   // close packets could be sent to the peer.
-  virtual void SendConnectionClosePacket(QuicErrorCode error,
+  void SendConnectionClosePacket(QuicErrorCode error,
                                          QuicIetfTransportErrorCodes ietf_error,
                                          const std::string& details);
 
   // Returns true if the packet should be discarded and not sent.
-  virtual bool ShouldDiscardPacket(EncryptionLevel encryption_level);
+  bool ShouldDiscardPacket(EncryptionLevel encryption_level);
 
   // Notify various components(Session etc.) that this connection has been
   // migrated.
-  virtual void OnConnectionMigration();
+  void OnConnectionMigration();
 
   // Return whether the packet being processed is a connectivity probing.
   // A packet is a connectivity probing if it is a padded ping packet with self

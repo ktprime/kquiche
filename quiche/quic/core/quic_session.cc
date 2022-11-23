@@ -569,7 +569,7 @@ bool QuicSession::CheckStreamNotBusyLooping(QuicStream* stream,
     // arbitrary, more than a few to cover a few test-only false
     // positives.
     if (stream->busy_counter() > 20) {
-      QUIC_LOG(ERROR) << ENDPOINT << "Detected busy loop on stream id "
+      QUIC_LOG(WARNING) << ENDPOINT << "Detected busy loop on stream id "
                       << stream->id() << " stream_bytes_written "
                       << stream->stream_bytes_written() << " fin "
                       << stream->fin_sent();
@@ -1523,7 +1523,7 @@ void QuicSession::OnNewSessionFlowControlWindow(QuicStreamOffset new_window) {
         "flow control send window: ",
         new_window,
         ", which is below currently used: ", flow_controller_.bytes_sent());
-    QUIC_LOG(ERROR) << error_details;
+    QUIC_LOG(WARNING) << error_details;
     connection_->CloseConnection(
         QUIC_ZERO_RTT_UNRETRANSMITTABLE, error_details,
         ConnectionCloseBehavior::SEND_CONNECTION_CLOSE_PACKET);
@@ -1549,7 +1549,7 @@ void QuicSession::OnNewSessionFlowControlWindow(QuicStreamOffset new_window) {
                                : "",
         "new session max data ", new_window,
         " decreases current limit: ", flow_controller_.send_window_offset());
-    QUIC_LOG(ERROR) << error_details;
+    QUIC_LOG(WARNING) << error_details;
     connection_->CloseConnection(
         was_zero_rtt_rejected_ ? QUIC_ZERO_RTT_REJECTION_LIMIT_REDUCED
                                : QUIC_ZERO_RTT_RESUMPTION_LIMIT_REDUCED,
@@ -1892,7 +1892,7 @@ QuicStreamCount QuicSession::GetAdvertisedMaxIncomingBidirectionalStreams()
 }
 
 QuicStream* QuicSession::GetOrCreateStream(const QuicStreamId stream_id) {
-  QUICHE_DCHECK(!pending_stream_map_.contains(stream_id));
+  QUICHE_DCHECK(!pending_stream_map_.count(stream_id));
   if (QuicUtils::IsCryptoStreamId(transport_version(), stream_id)) {
     return GetMutableCryptoStream();
   }
@@ -2048,7 +2048,7 @@ bool QuicSession::IsOpenStream(QuicStreamId id) {
   if (it != stream_map_.end()) {
     return !it->second->IsZombie();
   }
-  if (pending_stream_map_.contains(id) ||
+  if (pending_stream_map_.count(id) ||
       QuicUtils::IsCryptoStreamId(transport_version(), id)) {
     // Stream is active
     return true;

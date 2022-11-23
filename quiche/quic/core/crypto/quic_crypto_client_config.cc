@@ -75,7 +75,7 @@ QuicCryptoClientConfig::QuicCryptoClientConfig(
 }
 
 QuicCryptoClientConfig::QuicCryptoClientConfig(
-    std::unique_ptr<ProofVerifier> proof_verifier, bool tsl_session)
+    std::unique_ptr<ProofVerifier> proof_verifier, bool tsl_session) 
     : proof_verifier_(std::move(proof_verifier))
 #ifdef QUIC_TLS_SESSION //hybchanged
     ,ssl_ctx_(tsl_session ? TlsClientConnection::CreateSslCtx(
@@ -488,8 +488,9 @@ QuicErrorCode QuicCryptoClientConfig::FillClientHello(
   } else {
       out->set_minimum_size(1);
   }
-  //add new feature hybchanged
-  if (no_encrypt_tag_ >> 32 != 0)
+
+  //add by hybchanged
+  if (no_encrypt_tag_ != 0)
       out->SetStringPiece(no_encrypt_tag_ >> 32, std::to_string((int)no_encrypt_tag_));
   if (client_type_tag_ != 0)
       out->SetStringPiece(client_type_tag_ >> 32, std::to_string((int)client_type_tag_));
@@ -601,6 +602,7 @@ QuicErrorCode QuicCryptoClientConfig::FillClientHello(
   //   out_params->hkdf_input_suffix
   //   out_params->initial_crypters
   out_params->hkdf_input_suffix.clear();
+  out_params->hkdf_input_suffix.reserve(kMaxIncomingPacketSize);
   out_params->hkdf_input_suffix.append(connection_id.data(),
                                        connection_id.length());
   const QuicData& client_hello_serialized = out->GetSerialized();

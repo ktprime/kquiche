@@ -22,6 +22,7 @@
 #include "quiche/common/platform/api/quiche_logging.h"
 #include "quiche/common/quiche_circular_deque.h"
 #include "quiche/spdy/core/spdy_protocol.h"
+#include "base/containers/hash_table.hpp"
 
 namespace http2 {
 
@@ -310,7 +311,7 @@ class QUICHE_EXPORT PriorityWriteScheduler
   // Use std::unique_ptr, because absl::flat_hash_map does not have pointer
   // stability, but ReadyList stores pointers to the StreamInfo objects.
   using StreamInfoMap =
-      absl::flat_hash_map<StreamIdType, std::unique_ptr<StreamInfo>>;
+      emhash::HashMap<StreamIdType, std::unique_ptr<StreamInfo>>;
 
   // Erases `info` from `ready_list`, returning true if found (and erased), or
   // false otherwise. Decrements `num_ready_streams_` if an entry is erased.

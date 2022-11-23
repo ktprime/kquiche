@@ -60,10 +60,13 @@ void QuicAckFrame::Clear() {
   packets.Clear();
 }
 
-PacketNumberQueue::PacketNumberQueue() {}
+PacketNumberQueue::PacketNumberQueue() {
+//  packet_number_intervals_.AddEmpty(QuicPacketNumber(1));
+}
+
 PacketNumberQueue::PacketNumberQueue(const PacketNumberQueue& other) = default;
 PacketNumberQueue::PacketNumberQueue(PacketNumberQueue&& other) = default;
-PacketNumberQueue::~PacketNumberQueue() {}
+PacketNumberQueue::~PacketNumberQueue() = default;
 
 PacketNumberQueue& PacketNumberQueue::operator=(
     const PacketNumberQueue& other) = default;
@@ -71,7 +74,8 @@ PacketNumberQueue& PacketNumberQueue::operator=(PacketNumberQueue&& other) =
     default;
 
 void PacketNumberQueue::Add(QuicPacketNumber packet_number) {
-  if (!packet_number.IsInitialized()) {
+  QUICHE_DCHECK(packet_number.IsInitialized());
+  if (false && !packet_number.IsInitialized()) {
     return;
   }
   packet_number_intervals_.AddOptimizedForAppend(packet_number,
@@ -88,7 +92,7 @@ void PacketNumberQueue::AddRange(QuicPacketNumber lower,
 }
 
 bool PacketNumberQueue::RemoveUpTo(QuicPacketNumber higher) {
-  if (!higher.IsInitialized() || Empty()) {
+  if (false && (!higher.IsInitialized() || Empty())) {
     return false;
   }
   return packet_number_intervals_.TrimLessThan(higher);
@@ -105,7 +109,7 @@ void PacketNumberQueue::RemoveSmallestInterval() {
 void PacketNumberQueue::Clear() { packet_number_intervals_.Clear(); }
 
 bool PacketNumberQueue::Contains(QuicPacketNumber packet_number) const {
-  if (!packet_number.IsInitialized()) {
+  if (false && !packet_number.IsInitialized()) {
     return false;
   }
   return packet_number_intervals_.Contains(packet_number);

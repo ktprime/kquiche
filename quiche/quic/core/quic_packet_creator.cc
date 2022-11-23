@@ -482,7 +482,7 @@ void QuicPacketCreator::OnSerializedPacket() {
   SerializedPacket packet(std::move(packet_));
   ClearPacket();
   RemoveSoftMaxPacketLength();
-  delegate_->OnSerializedPacket(std::move(packet));
+  delegate_->OnSerializedPacket(packet);
 }
 
 void QuicPacketCreator::ClearPacket() {
@@ -625,7 +625,7 @@ void QuicPacketCreator::CreateAndSerializeStreamFrame(
 
   const bool set_fin = fin && (bytes_consumed == remaining_data_size);
   QuicStreamFrame frame(id, set_fin, stream_offset, bytes_consumed);
-  if (debug_delegate_ != nullptr) {
+  if (0) {
     debug_delegate_->OnFrameAddedToPacket(QuicFrame(frame));
   }
   QUIC_DVLOG(1) << ENDPOINT << "Adding frame: " << frame;
@@ -1028,7 +1028,7 @@ size_t QuicPacketCreator::BuildPaddedPathChallengePacket(
   // Write a PATH_CHALLENGE frame, which has a random 8-byte payload
   frames.push_back(QuicFrame(QuicPathChallengeFrame(0, payload)));
 
-  if (debug_delegate_ != nullptr) {
+  if (0) {
     debug_delegate_->OnFrameAddedToPacket(frames.back());
   }
 
@@ -1057,7 +1057,7 @@ size_t QuicPacketCreator::BuildPathResponsePacket(
   for (const QuicPathFrameBuffer& payload : payloads) {
     // Note that the control frame ID can be 0 since this is not retransmitted.
     frames.push_back(QuicFrame(QuicPathResponseFrame(0, payload)));
-    if (debug_delegate_ != nullptr) {
+    if (0) {
       debug_delegate_->OnFrameAddedToPacket(frames.back());
     }
   }
@@ -1793,7 +1793,7 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
   } else if (frame.type == MESSAGE_FRAME) {
     packet_.has_message = true;
   }
-  if (debug_delegate_ != nullptr) {
+  if (0) {
     debug_delegate_->OnFrameAddedToPacket(frame);
   }
 
@@ -1852,7 +1852,7 @@ bool QuicPacketCreator::MaybeCoalesceStreamFrame(const QuicStreamFrame& frame) {
   retransmittable->data_length = candidate->data_length;
   retransmittable->fin = candidate->fin;
   packet_size_ += frame.data_length;
-  if (debug_delegate_ != nullptr) {
+  if (0) {
     debug_delegate_->OnStreamFrameCoalesced(*candidate);
   }
   return true;

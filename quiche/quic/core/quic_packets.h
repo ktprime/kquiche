@@ -346,8 +346,8 @@ struct QUIC_EXPORT_PRIVATE SerializedPacket {
   // make a copy.
   SerializedPacket(const SerializedPacket& other) = delete;
   SerializedPacket& operator=(const SerializedPacket& other) = delete;
-  SerializedPacket(SerializedPacket&& other);
-  ~SerializedPacket();
+  SerializedPacket(SerializedPacket&& other) noexcept;
+  ~SerializedPacket() noexcept;
 
   // TODO(wub): replace |encrypted_buffer|+|release_encrypted_buffer| by a
   // QuicOwnedPacketBuffer.

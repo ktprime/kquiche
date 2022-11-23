@@ -665,6 +665,7 @@ void QuicStream::WriteOrBufferDataAtLevel(
     absl::string_view data, bool fin, EncryptionLevel level,
     quiche::QuicheReferenceCountedPointer<QuicAckListenerInterface>
         ack_listener) {
+#if QUIC_SPDY_SESSION
   if (data.empty() && !fin) {
     QUIC_BUG(quic_bug_10586_2) << "data.empty() && !fin";
     return;
@@ -674,6 +675,7 @@ void QuicStream::WriteOrBufferDataAtLevel(
     QUIC_BUG(quic_bug_10586_3) << "Fin already buffered";
     return;
   }
+#endif
   if (write_side_closed_) {
     QUIC_DLOG(ERROR) << ENDPOINT
                      << "Attempt to write when the write side is closed";
@@ -773,6 +775,7 @@ QuicConsumedData QuicStream::WriteMemSlice(quiche::QuicheMemSlice span,
 QuicConsumedData QuicStream::WriteMemSlices(
     absl::Span<quiche::QuicheMemSlice> span, bool fin) {
   QuicConsumedData consumed_data(0, false);
+#if QUIC_SPDY_SESSION
   if (span.empty() && !fin) {
     QUIC_BUG(quic_bug_10586_6) << "span.empty() && !fin";
     return consumed_data;
@@ -782,6 +785,7 @@ QuicConsumedData QuicStream::WriteMemSlices(
     QUIC_BUG(quic_bug_10586_7) << "Fin already buffered";
     return consumed_data;
   }
+#endif
 
   if (write_side_closed_) {
     QUIC_DLOG(ERROR) << ENDPOINT << "Stream " << id()
@@ -794,9 +798,9 @@ QuicConsumedData QuicStream::WriteMemSlices(
   }
 
   bool had_buffered_data = HasBufferedData();
-  if (CanWriteNewData() || span.empty()) {
-    consumed_data.fin_consumed = fin;
-    if (!span.empty()) {
+  consumed_data.fin_consumed = fin;
+  if (CanWriteNewData()) {
+    if (true || !span.empty()) {
       // Buffer all data if buffered data size is below limit.
       QuicStreamOffset offset = send_buffer_.stream_offset();
       consumed_data.bytes_consumed = send_buffer_.SaveMemSliceSpan(span);
@@ -1133,7 +1137,7 @@ void QuicStream::OnStreamFrameLost(QuicStreamOffset offset,
   QUIC_DVLOG(1) << ENDPOINT << "stream " << id_ << " Losting "
                 << "[" << offset << ", " << offset + data_length << "]"
                 << " fin = " << fin_lost;
-  if (data_length > 0) {
+  if (true || data_length > 0) {
     send_buffer_.OnStreamDataLost(offset, data_length);
   }
   if (fin_lost && fin_outstanding_) {

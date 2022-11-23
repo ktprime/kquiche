@@ -76,7 +76,7 @@ std::vector<uint8_t> HkdfExpandLabel(const EVP_MD* prf,
       // Zero length |Context|.
       !CBB_add_u8(quic_hkdf_label.get(), 0) ||
       !CBB_flush(quic_hkdf_label.get())) {
-    QUIC_LOG(ERROR) << "Building HKDF label failed";
+    QUIC_LOG(WARNING) << "Building HKDF label failed";
     return std::vector<uint8_t>();
   }
   std::vector<uint8_t> out;
@@ -84,7 +84,7 @@ std::vector<uint8_t> HkdfExpandLabel(const EVP_MD* prf,
   if (!HKDF_expand(out.data(), out_len, prf, secret.data(), secret.size(),
                    CBB_data(quic_hkdf_label.get()),
                    CBB_len(quic_hkdf_label.get()))) {
-    QUIC_LOG(ERROR) << "Running HKDF-Expand-Label failed";
+    QUIC_LOG(WARNING) << "Running HKDF-Expand-Label failed";
     return std::vector<uint8_t>();
   }
   return out;
@@ -752,7 +752,8 @@ std::string CryptoUtils::EarlyDataReasonToString(
 #ifdef QUIC_TLS_SESSION //hybchanged
   const char* reason_string = SSL_early_data_reason_string(reason);
 #else
-  const char* reason_string = std::to_string((int)reason).data();
+  const auto error_str = std::to_string((int)reason);
+  const char* reason_string = error_str.data();
 #endif
   if (reason_string != nullptr) {
     return std::string("ssl_early_data_") + reason_string;
@@ -779,9 +780,9 @@ std::string CryptoUtils::HashHandshakeMessage(
 bool CryptoUtils::GetSSLCapabilities(const SSL* ssl,
                                      bssl::UniquePtr<uint8_t>* capabilities,
                                      size_t* capabilities_len) {
+#ifdef QUIC_TLS_SESSION //hybchanged
   uint8_t* buffer;
   bssl::ScopedCBB cbb;
-#ifdef QUIC_TLS_SESSION //hybchanged
   if (!CBB_init(cbb.get(), 128) ||
       !SSL_serialize_capabilities(ssl, cbb.get()) ||
       !CBB_finish(cbb.get(), &buffer, capabilities_len)) {

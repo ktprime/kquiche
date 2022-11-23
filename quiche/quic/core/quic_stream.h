@@ -39,6 +39,12 @@
 #include "quiche/common/platform/api/quiche_reference_counted.h"
 #include "quiche/spdy/core/spdy_protocol.h"
 
+#ifdef QUIC_SPDY_SESSION
+#define _virtua virtual
+#else
+#define _virtua
+#endif
+
 namespace quic {
 
 namespace test {
@@ -199,7 +205,7 @@ class QUIC_EXPORT_PRIVATE QuicStream
 
   // Called by the session when the connection becomes writeable to allow the
   // stream to write any pending data.
-  virtual void OnCanWrite();
+  _virtua void OnCanWrite();
 
   // Called by the session when the endpoint receives a RST_STREAM from the
   // peer.
@@ -262,7 +268,7 @@ class QUIC_EXPORT_PRIVATE QuicStream
   void set_busy_counter(size_t busy_counter) { busy_counter_ = busy_counter; }
 
   // Adjust the flow control window according to new offset in |frame|.
-  virtual void OnWindowUpdateFrame(const QuicWindowUpdateFrame& frame);
+  _virtua void OnWindowUpdateFrame(const QuicWindowUpdateFrame& frame);
 
   int num_frames_received() const;
   int num_duplicate_frames_received() const;
@@ -307,7 +313,7 @@ class QUIC_EXPORT_PRIVATE QuicStream
   // OnFinRead()) (which may happen during the call of StopReading()).
   // TODO(dworley): There should be machinery to send a RST_STREAM/NO_ERROR and
   // stop sending stream-level flow-control updates when this end sends FIN.
-  virtual void StopReading();
+  _virtua void StopReading();
 
   // Sends as much of |data| to the connection on the application encryption
   // level as the connection will consume, and then buffers any remaining data
@@ -335,7 +341,7 @@ class QUIC_EXPORT_PRIVATE QuicStream
   // Called when data [offset, offset + data_length) is acked. |fin_acked|
   // indicates whether the fin is acked. Returns true and updates
   // |newly_acked_length| if any new stream data (including fin) gets acked.
-  virtual bool OnStreamFrameAcked(QuicStreamOffset offset,
+  _virtua bool OnStreamFrameAcked(QuicStreamOffset offset,
                                   QuicByteCount data_length, bool fin_acked,
                                   QuicTime::Delta ack_delay_time,
                                   QuicTime receive_timestamp,
@@ -343,13 +349,13 @@ class QUIC_EXPORT_PRIVATE QuicStream
 
   // Called when data [offset, offset + data_length) was retransmitted.
   // |fin_retransmitted| indicates whether fin was retransmitted.
-  virtual void OnStreamFrameRetransmitted(QuicStreamOffset offset,
+  _virtua void OnStreamFrameRetransmitted(QuicStreamOffset offset,
                                           QuicByteCount data_length,
                                           bool fin_retransmitted);
 
   // Called when data [offset, offset + data_length) is considered as lost.
   // |fin_lost| indicates whether the fin is considered as lost.
-  virtual void OnStreamFrameLost(QuicStreamOffset offset,
+  _virtua void OnStreamFrameLost(QuicStreamOffset offset,
                                  QuicByteCount data_length, bool fin_lost);
 
   // Called to retransmit outstanding portion in data [offset, offset +
@@ -373,7 +379,7 @@ class QUIC_EXPORT_PRIVATE QuicStream
 
   // Returns true if any stream data is lost (including fin) and needs to be
   // retransmitted.
-  virtual bool HasPendingRetransmission() const;
+  _virtua bool HasPendingRetransmission() const;
 
   // Returns true if any portion of data [offset, offset + data_length) is
   // outstanding or fin is outstanding (if |fin| is true). Returns false
@@ -385,7 +391,7 @@ class QUIC_EXPORT_PRIVATE QuicStream
 
   // Handle received StopSending frame. Returns true if the processing finishes
   // gracefully.
-  virtual bool OnStopSending(QuicResetStreamError error);
+  _virtua bool OnStopSending(QuicResetStreamError error);
 
   // Returns true if the stream is static.
   bool is_static() const { return is_static_; }
@@ -413,7 +419,7 @@ class QUIC_EXPORT_PRIVATE QuicStream
  protected:
   // Called when data of [offset, offset + data_length] is buffered in send
   // buffer.
-  virtual void OnDataBuffered(
+  _virtua void OnDataBuffered(
       QuicStreamOffset /*offset*/, QuicByteCount /*data_length*/,
       const quiche::QuicheReferenceCountedPointer<QuicAckListenerInterface>&
       /*ack_listener*/) {}
@@ -444,7 +450,7 @@ class QUIC_EXPORT_PRIVATE QuicStream
 
   // This is called when stream tries to retransmit data after deadline_. Make
   // this virtual so that subclasses can implement their own logics.
-  virtual void OnDeadlinePassed();
+  _virtua void OnDeadlinePassed();
 
   // Called to set fin_sent_. This is only used by Google QUIC while body is
   // empty.
@@ -467,7 +473,7 @@ class QUIC_EXPORT_PRIVATE QuicStream
   // Close the write side of the socket.  Further writes will fail.
   // Can be called by the subclass or internally.
   // Does not send a FIN.  May cause the stream to be closed.
-  virtual void CloseWriteSide();
+  _virtua void CloseWriteSide();
 
   void set_rst_received(bool rst_received) { rst_received_ = rst_received; }
   void set_stream_error(QuicResetStreamError error) { stream_error_ = error; }
@@ -489,7 +495,7 @@ class QUIC_EXPORT_PRIVATE QuicStream
   // Called when the write side of the stream is closed, and all of the outgoing
   // data has been acknowledged.  This corresponds to the "Data Recvd" state of
   // RFC 9000.
-  virtual void OnWriteSideInDataRecvdState() {}
+  _virtua void OnWriteSideInDataRecvdState() {}
 
   // Return the current flow control send window in bytes.
   absl::optional<QuicByteCount> GetSendWindow() const;

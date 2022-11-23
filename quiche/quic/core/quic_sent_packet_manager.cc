@@ -211,7 +211,7 @@ void QuicSentPacketManager::SetFromConfig(const QuicConfig& config) {
     network_change_visitor_->OnCongestionChange();
   }
 
-  if (debug_delegate_ != nullptr) {
+  if (0) {
     DebugDelegate::SendParameters parameters;
     parameters.congestion_control_type =
         send_algorithm_->GetCongestionControlType();
@@ -287,7 +287,7 @@ void QuicSentPacketManager::AdjustNetworkParameters(
     pacing_sender_.SetBurstTokens(kConservativeUnpacedBurst);
   }
   send_algorithm_->AdjustNetworkParameters(params);
-  if (debug_delegate_ != nullptr) {
+  if (0) {
     debug_delegate_->OnAdjustNetworkParameters(
         bandwidth, rtt.IsZero() ? rtt_stats_.MinOrInitialRtt() : rtt, old_cwnd,
         send_algorithm_->GetCongestionWindow());
@@ -344,7 +344,7 @@ void QuicSentPacketManager::PostProcessNewlyAckedPackets(
     consecutive_crypto_retransmission_count_ = 0;
   }
 
-  if (debug_delegate_ != nullptr) {
+  if (0) {
     debug_delegate_->OnIncomingAck(
         ack_packet_number, ack_decrypted_level, ack_frame, ack_receive_time,
         LargestAcked(ack_frame), rtt_updated, GetLeastUnacked());
@@ -369,7 +369,7 @@ void QuicSentPacketManager::MaybeInvokeCongestionEvent(
     send_algorithm_->OnCongestionEvent(rtt_updated, prior_in_flight, event_time,
                                        packets_acked_, packets_lost_);
   }
-  if (debug_delegate_ != nullptr && !overshooting_detected &&
+  if (0 && !overshooting_detected &&
       stats_->overshooting_detected_with_network_parameters_adjusted) {
     debug_delegate_->OnOvershootingDetected();
   }
@@ -532,7 +532,7 @@ void QuicSentPacketManager::RecordOneSpuriousRetransmission(
     const QuicTransmissionInfo& info) {
   stats_->bytes_spuriously_retransmitted += info.bytes_sent;
   ++stats_->packets_spuriously_retransmitted;
-  if (debug_delegate_ != nullptr) {
+  if (0) {
     debug_delegate_->OnSpuriousPacketRetransmission(info.transmission_type,
                                                     info.bytes_sent);
   }
@@ -895,7 +895,7 @@ void QuicSentPacketManager::InvokeLossDetection(QuicTime time) {
     QuicTransmissionInfo* info =
         unacked_packets_.GetMutableTransmissionInfo(packet.packet_number);
     ++stats_->packets_lost;
-    if (debug_delegate_ != nullptr) {
+    if (0) {
       debug_delegate_->OnPacketLoss(packet.packet_number,
                                     info->encryption_level, LOSS_RETRANSMISSION,
                                     time);
@@ -1314,7 +1314,7 @@ void QuicSentPacketManager::OnApplicationLimited() {
     pacing_sender_.OnApplicationLimited();
   }
   send_algorithm_->OnApplicationLimited(unacked_packets_.bytes_in_flight());
-  if (debug_delegate_ != nullptr) {
+  if (0) {
     debug_delegate_->OnApplicationLimited();
   }
 }
