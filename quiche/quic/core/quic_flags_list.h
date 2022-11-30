@@ -7,8 +7,6 @@
 #ifdef QUIC_FLAG
 
 QUIC_FLAG(quic_restart_flag_quic_offload_pacing_to_usps2, false)
-
-QUIC_FLAG(quic_restart_flag_quic_use_hash_quic_codepoint, true)
 // A testonly reloadable flag that will always default to false.
 QUIC_FLAG(quic_reloadable_flag_quic_testonly_default_false, false)
 // A testonly reloadable flag that will always default to true.
@@ -21,8 +19,6 @@ QUIC_FLAG(quic_restart_flag_quic_testonly_default_true, true)
 QUIC_FLAG(quic_reloadable_flag_quic_no_write_control_frame_upon_connection_close, true)
 // If true, QUIC will default enable MTU discovery at server, with a target of 1450 bytes.
 QUIC_FLAG(quic_reloadable_flag_quic_enable_mtu_discovery_at_server, false)
-// If true, QuicConnectionContext will track the decrypted payload and the offset of the current frame, for debugging.
-QUIC_FLAG(quic_reloadable_flag_quic_add_process_packet_context, true)
 // If true, QuicCryptoServerConfig::ParseConfigProtobuf will treat an empty SCID as the same as non-existent.
 QUIC_FLAG(quic_restart_flag_quic_return_error_on_empty_scid, true)
 // If true, QuicGsoBatchWriter will support release time if it is available and the process has the permission to do so.
@@ -31,6 +27,8 @@ QUIC_FLAG(quic_restart_flag_quic_support_release_time_for_gso, false)
 QUIC_FLAG(quic_reloadable_flag_quic_can_send_ack_frequency, true)
 // If true, allow client to enable BBRv2 on server via connection option \'B2ON\'.
 QUIC_FLAG(quic_reloadable_flag_quic_allow_client_enabled_bbr_v2, true)
+// If true, an endpoint does not detect path degrading or blackholing until handshake gets confirmed.
+QUIC_FLAG(quic_reloadable_flag_quic_no_path_degrading_before_handshake_confirmed, true)
 // If true, combine two WriteOrBufferData to one while writing headers.
 QUIC_FLAG(quic_reloadable_flag_quic_one_write_for_headers, true)
 // If true, default-enable 5RTO blachole detection.
@@ -57,8 +55,6 @@ QUIC_FLAG(quic_reloadable_flag_quic_discard_initial_packet_with_key_dropped, tru
 QUIC_FLAG(quic_reloadable_flag_quic_donot_pto_stream_data_before_handshake_confirmed, true)
 // If true, do not issue a new connection ID that has been claimed by another connection.
 QUIC_FLAG(quic_reloadable_flag_quic_check_cid_collision_when_issue_new_cid, true)
-// If true, do not mark stream connection level write blocked if its write side has been closed.
-QUIC_FLAG(quic_reloadable_flag_quic_donot_mark_stream_write_blocked_if_write_side_closed, true)
 // If true, enable server retransmittable on wire PING.
 QUIC_FLAG(quic_reloadable_flag_quic_enable_server_on_wire_ping, true)
 // If true, flush pending frames as well as pending padding bytes on connection migration.
@@ -81,8 +77,6 @@ QUIC_FLAG(quic_restart_flag_quic_enable_sending_bandwidth_estimate_when_network_
 QUIC_FLAG(quic_reloadable_flag_quic_conservative_bursts, false)
 // If true, use BBRv2 as the default congestion controller. Takes precedence over --quic_default_to_bbr.
 QUIC_FLAG(quic_reloadable_flag_quic_default_to_bbr_v2, false)
-// If true, use PING manager to manage the PING alarm.
-QUIC_FLAG(quic_reloadable_flag_quic_use_ping_manager2, true)
 // If true, use new connection ID in connection migration.
 QUIC_FLAG(quic_reloadable_flag_quic_connection_migration_use_new_cid_v2, true)
 // If true, use next_connection_id_sequence_number to validate retired cid number.
@@ -91,8 +85,6 @@ QUIC_FLAG(quic_reloadable_flag_quic_check_retire_cid_with_next_cid_sequence_numb
 QUIC_FLAG(quic_reloadable_flag_quic_priority_update_structured_headers_parser, false)
 // If true, uses conservative cwnd gain and pacing gain when cwnd gets bootstrapped.
 QUIC_FLAG(quic_reloadable_flag_quic_conservative_cwnd_and_pacing_gains, false)
-// Instead of assuming an incoming connection ID length for short headers, ask each time.
-QUIC_FLAG(quic_reloadable_flag_quic_ask_for_short_header_connection_id_length2, true)
 // When true, defaults to BBR congestion control instead of Cubic.
 QUIC_FLAG(quic_reloadable_flag_quic_default_to_bbr, false)
 // When true, support draft-ietf-quic-v2-01

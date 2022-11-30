@@ -7160,6 +7160,9 @@ TEST_P(QuicConnectionTest, PathDegradingDetectionForNonCryptoPackets) {
   EXPECT_TRUE(connection_.connected());
   EXPECT_FALSE(connection_.PathDegradingDetectionInProgress());
   EXPECT_FALSE(connection_.IsPathDegrading());
+  EXPECT_CALL(visitor_, GetHandshakeState())
+      .WillRepeatedly(Return(HANDSHAKE_CONFIRMED));
+  connection_.OnHandshakeComplete();
 
   const char data[] = "data";
   size_t data_size = strlen(data);
@@ -7245,6 +7248,9 @@ TEST_P(QuicConnectionTest, RetransmittableOnWireSetsPingAlarm) {
   EXPECT_FALSE(connection_.PathDegradingDetectionInProgress());
   EXPECT_FALSE(connection_.IsPathDegrading());
   EXPECT_FALSE(connection_.GetPingAlarm()->IsSet());
+  EXPECT_CALL(visitor_, GetHandshakeState())
+      .WillRepeatedly(Return(HANDSHAKE_CONFIRMED));
+  connection_.OnHandshakeComplete();
 
   const char data[] = "data";
   size_t data_size = strlen(data);
@@ -7290,7 +7296,7 @@ TEST_P(QuicConnectionTest, RetransmittableOnWireSetsPingAlarm) {
 
   // Now there's a retransmittable packet (PING) on the wire, so the path
   // degrading alarm should be set.
-  EXPECT_TRUE(connection_.PathDegradingDetectionInProgress());
+  ASSERT_TRUE(connection_.PathDegradingDetectionInProgress());
   delay = QuicConnectionPeer::GetSentPacketManager(&connection_)
               ->GetPathDegradingDelay();
   EXPECT_EQ(delay, connection_.GetBlackholeDetectorAlarm()->deadline() -
@@ -7337,8 +7343,7 @@ TEST_P(QuicConnectionTest, ServerRetransmittableOnWire) {
 }
 
 TEST_P(QuicConnectionTest, RetransmittableOnWireSendFirstPacket) {
-  if (!GetQuicReloadableFlag(quic_use_ping_manager2) ||
-      !VersionHasIetfQuicFrames(connection_.version().transport_version)) {
+  if (!VersionHasIetfQuicFrames(connection_.version().transport_version)) {
     return;
   }
   EXPECT_CALL(visitor_, ShouldKeepConnectionAlive())
@@ -7383,8 +7388,7 @@ TEST_P(QuicConnectionTest, RetransmittableOnWireSendFirstPacket) {
 }
 
 TEST_P(QuicConnectionTest, RetransmittableOnWireSendRandomBytes) {
-  if (!GetQuicReloadableFlag(quic_use_ping_manager2) ||
-      !VersionHasIetfQuicFrames(connection_.version().transport_version)) {
+  if (!VersionHasIetfQuicFrames(connection_.version().transport_version)) {
     return;
   }
   EXPECT_CALL(visitor_, ShouldKeepConnectionAlive())
@@ -7432,8 +7436,7 @@ TEST_P(QuicConnectionTest, RetransmittableOnWireSendRandomBytes) {
 
 TEST_P(QuicConnectionTest,
        RetransmittableOnWireSendRandomBytesWithWriterBlocked) {
-  if (!GetQuicReloadableFlag(quic_use_ping_manager2) ||
-      !VersionHasIetfQuicFrames(connection_.version().transport_version)) {
+  if (!VersionHasIetfQuicFrames(connection_.version().transport_version)) {
     return;
   }
   EXPECT_CALL(visitor_, ShouldKeepConnectionAlive())
@@ -7487,6 +7490,9 @@ TEST_P(QuicConnectionTest, NoPathDegradingDetectionIfPathIsDegrading) {
   EXPECT_TRUE(connection_.connected());
   EXPECT_FALSE(connection_.PathDegradingDetectionInProgress());
   EXPECT_FALSE(connection_.IsPathDegrading());
+  EXPECT_CALL(visitor_, GetHandshakeState())
+      .WillRepeatedly(Return(HANDSHAKE_CONFIRMED));
+  connection_.OnHandshakeComplete();
 
   const char data[] = "data";
   size_t data_size = strlen(data);
@@ -7546,6 +7552,23 @@ TEST_P(QuicConnectionTest, NoPathDegradingDetectionIfPathIsDegrading) {
   EXPECT_TRUE(connection_.IsPathDegrading());
 }
 
+TEST_P(QuicConnectionTest, NoPathDegradingDetectionBeforeHandshakeConfirmed) {
+  EXPECT_TRUE(connection_.connected());
+  EXPECT_FALSE(connection_.PathDegradingDetectionInProgress());
+  EXPECT_FALSE(connection_.IsPathDegrading());
+  EXPECT_CALL(visitor_, GetHandshakeState())
+      .WillRepeatedly(Return(HANDSHAKE_COMPLETE));
+
+  connection_.SendStreamDataWithString(1, "data", 0, NO_FIN);
+  if (GetQuicReloadableFlag(
+          quic_no_path_degrading_before_handshake_confirmed) &&
+      connection_.SupportsMultiplePacketNumberSpaces()) {
+    EXPECT_FALSE(connection_.PathDegradingDetectionInProgress());
+  } else {
+    EXPECT_TRUE(connection_.PathDegradingDetectionInProgress());
+  }
+}
+
 // This test verifies that the connection unmarks path as degrarding and spins
 // the timer to detect future path degrading when forward progress is made
 // after path has been marked degrading.
@@ -7553,6 +7576,9 @@ TEST_P(QuicConnectionTest, UnmarkPathDegradingOnForwardProgress) {
   EXPECT_TRUE(connection_.connected());
   EXPECT_FALSE(connection_.PathDegradingDetectionInProgress());
   EXPECT_FALSE(connection_.IsPathDegrading());
+  EXPECT_CALL(visitor_, GetHandshakeState())
+      .WillRepeatedly(Return(HANDSHAKE_CONFIRMED));
+  connection_.OnHandshakeComplete();
 
   const char data[] = "data";
   size_t data_size = strlen(data);
@@ -9445,7 +9471,9 @@ TEST_P(QuicConnectionTest, CloseConnectionAfter6ClientPTOs) {
   }
   EXPECT_CALL(*send_algorithm_, SetFromConfig(_, _));
   connection_.SetFromConfig(config);
-  if (GetQuicReloadableFlag(quic_default_enable_5rto_blackhole_detection2)) {
+  if (GetQuicReloadableFlag(quic_default_enable_5rto_blackhole_detection2) ||
+      GetQuicReloadableFlag(
+          quic_no_path_degrading_before_handshake_confirmed)) {
     EXPECT_CALL(visitor_, GetHandshakeState())
         .WillRepeatedly(Return(HANDSHAKE_CONFIRMED));
   }
@@ -9495,7 +9523,9 @@ TEST_P(QuicConnectionTest, CloseConnectionAfter7ClientPTOs) {
   }
   EXPECT_CALL(*send_algorithm_, SetFromConfig(_, _));
   connection_.SetFromConfig(config);
-  if (GetQuicReloadableFlag(quic_default_enable_5rto_blackhole_detection2)) {
+  if (GetQuicReloadableFlag(quic_default_enable_5rto_blackhole_detection2) ||
+      GetQuicReloadableFlag(
+          quic_no_path_degrading_before_handshake_confirmed)) {
     EXPECT_CALL(visitor_, GetHandshakeState())
         .WillRepeatedly(Return(HANDSHAKE_CONFIRMED));
   }
@@ -9544,7 +9574,9 @@ TEST_P(QuicConnectionTest, CloseConnectionAfter8ClientPTOs) {
   config.SetConnectionOptionsToSend(connection_options);
   EXPECT_CALL(*send_algorithm_, SetFromConfig(_, _));
   connection_.SetFromConfig(config);
-  if (GetQuicReloadableFlag(quic_default_enable_5rto_blackhole_detection2)) {
+  if (GetQuicReloadableFlag(quic_default_enable_5rto_blackhole_detection2) ||
+      GetQuicReloadableFlag(
+          quic_no_path_degrading_before_handshake_confirmed)) {
     EXPECT_CALL(visitor_, GetHandshakeState())
         .WillRepeatedly(Return(HANDSHAKE_CONFIRMED));
   }
@@ -10642,7 +10674,8 @@ TEST_P(QuicConnectionTest, ClientOnlyBlackholeDetectionClient) {
   EXPECT_CALL(*send_algorithm_, SetFromConfig(_, _));
   connection_.SetFromConfig(config);
   EXPECT_CALL(visitor_, GetHandshakeState())
-      .WillRepeatedly(Return(HANDSHAKE_COMPLETE));
+      .WillRepeatedly(Return(HANDSHAKE_CONFIRMED));
+  connection_.OnHandshakeComplete();
   EXPECT_FALSE(connection_.GetBlackholeDetectorAlarm()->IsSet());
   // Send stream data.
   SendStreamDataToPeer(
@@ -10694,7 +10727,9 @@ TEST_P(QuicConnectionTest, MadeForwardProgressOnDiscardingKeys) {
   connection_options.push_back(k5RTO);
   config.SetConnectionOptionsToSend(connection_options);
   QuicConfigPeer::SetNegotiated(&config, true);
-  if (GetQuicReloadableFlag(quic_default_enable_5rto_blackhole_detection2)) {
+  if (GetQuicReloadableFlag(quic_default_enable_5rto_blackhole_detection2) ||
+      GetQuicReloadableFlag(
+          quic_no_path_degrading_before_handshake_confirmed)) {
     EXPECT_CALL(visitor_, GetHandshakeState())
         .WillRepeatedly(Return(HANDSHAKE_COMPLETE));
   }
@@ -10708,10 +10743,20 @@ TEST_P(QuicConnectionTest, MadeForwardProgressOnDiscardingKeys) {
   connection_.SetFromConfig(config);
 
   connection_.SendCryptoDataWithString("foo", 0, ENCRYPTION_HANDSHAKE);
-  EXPECT_TRUE(connection_.BlackholeDetectionInProgress());
+  if (GetQuicReloadableFlag(
+          quic_no_path_degrading_before_handshake_confirmed)) {
+    // No blackhole detection before handshake confirmed.
+    EXPECT_FALSE(connection_.BlackholeDetectionInProgress());
+  } else {
+    EXPECT_TRUE(connection_.BlackholeDetectionInProgress());
+  }
   // Discard handshake keys.
+  EXPECT_CALL(visitor_, GetHandshakeState())
+      .WillRepeatedly(Return(HANDSHAKE_CONFIRMED));
   connection_.OnHandshakeComplete();
-  if (GetQuicReloadableFlag(quic_default_enable_5rto_blackhole_detection2)) {
+  if (GetQuicReloadableFlag(quic_default_enable_5rto_blackhole_detection2) ||
+      GetQuicReloadableFlag(
+          quic_no_path_degrading_before_handshake_confirmed)) {
     // Verify blackhole detection stops.
     EXPECT_FALSE(connection_.BlackholeDetectionInProgress());
   } else {
@@ -11232,7 +11277,7 @@ TEST_P(QuicConnectionTest, DuplicateAckCausesLostPackets) {
   connection_.NeuterUnencryptedPackets();
   connection_.OnHandshakeComplete();
   EXPECT_CALL(visitor_, GetHandshakeState())
-      .WillRepeatedly(Return(HANDSHAKE_COMPLETE));
+      .WillRepeatedly(Return(HANDSHAKE_CONFIRMED));
 
   std::string data(1200, 'a');
   // Send data packets 1 - 5.
@@ -15419,7 +15464,7 @@ TEST_P(QuicConnectionTest, SendMultipleConnectionCloses) {
   connection_.RemoveEncrypter(ENCRYPTION_INITIAL);
   connection_.RemoveEncrypter(ENCRYPTION_HANDSHAKE);
   EXPECT_CALL(visitor_, GetHandshakeState())
-      .WillRepeatedly(Return(HANDSHAKE_COMPLETE));
+      .WillRepeatedly(Return(HANDSHAKE_CONFIRMED));
 
   SendStreamDataToPeer(1, "foo", 0, NO_FIN, nullptr);
   ASSERT_TRUE(connection_.BlackholeDetectionInProgress());
