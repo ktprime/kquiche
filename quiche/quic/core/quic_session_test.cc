@@ -1063,7 +1063,8 @@ TEST_P(QuicSessionTestServer, TestBatchedWrites) {
   // Now let stream 4 do the 2nd of its 3 writes, but add a block for a high
   // priority stream 6.  4 should be preempted.  6 will write but *not* block so
   // will cede back to 4.
-  stream6->SetPriority(spdy::SpdyStreamPrecedence(kV3HighestPriority));
+  stream6->SetPriority(QuicStreamPriority{
+      kV3HighestPriority, QuicStreamPriority::kDefaultIncremental});
   EXPECT_CALL(*stream4, OnCanWrite())
       .WillOnce(Invoke([this, stream4, stream6]() {
         session_.SendLargeFakeData(stream4, 6000);
@@ -2084,6 +2085,23 @@ TEST_P(QuicSessionTestClient, AvailableBidirectionalStreamsClient) {
   // And 5 should be not available.
   EXPECT_FALSE(QuicSessionPeer::IsStreamAvailable(
       &session_, GetNthClientInitiatedBidirectionalId(1)));
+}
+
+TEST_P(QuicSessionTestClient, NewStreamCreationResumesMultiPortProbing) {
+  session_.config()->SetConnectionOptionsToSend({kRVCM});
+  session_.config()->SetClientConnectionOptions({kMPQC});
+  session_.Initialize();
+  connection_->CreateConnectionIdManager();
+  connection_->SetDefaultEncryptionLevel(ENCRYPTION_FORWARD_SECURE);
+  connection_->OnHandshakeComplete();
+  session_.OnConfigNegotiated();
+
+  if (!connection_->connection_migration_use_new_cid()) {
+    return;
+  }
+
+  EXPECT_CALL(*connection_, MaybeProbeMultiPortPath());
+  session_.CreateOutgoingBidirectionalStream();
 }
 
 TEST_P(QuicSessionTestClient, InvalidSessionFlowControlWindowInHandshake) {

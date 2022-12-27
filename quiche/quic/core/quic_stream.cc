@@ -108,12 +108,6 @@ QuicByteCount GetReceivedFlowControlWindow(QuicSession* session,
 
 }  // namespace
 
-// static
-const SpdyPriority QuicStream::kDefaultPriority;
-
-// static
-const int QuicStream::kDefaultUrgency;
-
 PendingStream::PendingStream(QuicStreamId id, QuicSession* session)
     : id_(id),
       version_(session->version()),
@@ -342,7 +336,6 @@ QuicStream::QuicStream(QuicStreamId id, QuicSession* session,
       id_(id),
       session_(session),
       stream_delegate_(session),
-      precedence_(CalculateDefaultPriority(session)),
       stream_bytes_read_(stream_bytes_read),
       stream_error_(QuicResetStreamError::NoError()),
       connection_error_(QUIC_NO_ERROR),
@@ -384,7 +377,7 @@ QuicStream::QuicStream(QuicStreamId id, QuicSession* session,
     CloseWriteSide();
   }
   if (type_ != CRYPTO) {
-    stream_delegate_->RegisterStreamPriority(id, is_static_, precedence_);
+    stream_delegate_->RegisterStreamPriority(id, is_static_, priority_);
   }
 }
 
@@ -635,16 +628,14 @@ void QuicStream::OnUnrecoverableError(QuicErrorCode error,
   stream_delegate_->OnStreamError(error, ietf_error, details);
 }
 
-const spdy::SpdyStreamPrecedence& QuicStream::precedence() const {
-  return precedence_;
-}
+const QuicStreamPriority& QuicStream::priority() const { return priority_; }
 
-void QuicStream::SetPriority(const spdy::SpdyStreamPrecedence& precedence) {
-  precedence_ = precedence;
+void QuicStream::SetPriority(const QuicStreamPriority& priority) {
+  priority_ = priority;
 
   MaybeSendPriorityUpdateFrame();
 
-  stream_delegate_->UpdateStreamPriority(id(), precedence);
+  stream_delegate_->UpdateStreamPriority(id(), priority);
 }
 
 void QuicStream::WriteOrBufferData(
@@ -1428,15 +1419,6 @@ void QuicStream::UpdateReceiveWindowSize(QuicStreamOffset size) {
     return;
   }
   flow_controller_->UpdateReceiveWindowSize(size);
-}
-
-// static
-spdy::SpdyStreamPrecedence QuicStream::CalculateDefaultPriority(
-    const QuicSession* session) {
-  return spdy::SpdyStreamPrecedence(
-      VersionUsesHttp3(session->transport_version())
-          ? kDefaultUrgency
-          : QuicStream::kDefaultPriority);
 }
 
 absl::optional<QuicByteCount> QuicStream::GetSendWindow() const {

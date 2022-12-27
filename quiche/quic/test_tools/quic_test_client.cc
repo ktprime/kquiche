@@ -18,6 +18,7 @@
 #include "quiche/quic/core/quic_default_clock.h"
 #include "quiche/quic/core/quic_packet_writer_wrapper.h"
 #include "quiche/quic/core/quic_server_id.h"
+#include "quiche/quic/core/quic_stream_priority.h"
 #include "quiche/quic/core/quic_utils.h"
 #include "quiche/quic/platform/api/quic_flags.h"
 #include "quiche/quic/platform/api/quic_logging.h"
@@ -267,7 +268,7 @@ void MockableQuicClient::UseWriter(QuicPacketWriterWrapper* writer) {
 void MockableQuicClient::set_peer_address(const QuicSocketAddress& address) {
   mockable_network_helper()->set_peer_address(address);
   if (client_session() != nullptr) {
-    client_session()->AddKnownServerAddress(address);
+    client_session()->connection()->AddKnownServerAddress(address);
   }
 }
 
@@ -543,7 +544,7 @@ QuicSpdyClientStream* QuicTestClient::GetOrCreateStream() {
     SetLatestCreatedStream(client_->CreateClientStream());
     if (latest_created_stream_) {
       latest_created_stream_->SetPriority(
-          spdy::SpdyStreamPrecedence(priority_));
+          QuicStreamPriority{priority_, /* incremental = */ false});
     }
   }
 

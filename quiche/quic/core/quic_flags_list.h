@@ -34,7 +34,7 @@ QUIC_FLAG(quic_reloadable_flag_quic_one_write_for_headers, true)
 // If true, default-enable 5RTO blachole detection.
 QUIC_FLAG(quic_reloadable_flag_quic_default_enable_5rto_blackhole_detection2, true)
 // If true, delay setting of stateless reset token until session initialization.
-QUIC_FLAG(quic_reloadable_flag_quic_delay_setting_stateless_reset_token, false)
+QUIC_FLAG(quic_reloadable_flag_quic_delay_setting_stateless_reset_token, true)
 // If true, disable QUIC version Q043.
 QUIC_FLAG(quic_reloadable_flag_quic_disable_version_q043, false)
 // If true, disable QUIC version Q046.
@@ -63,6 +63,8 @@ QUIC_FLAG(quic_reloadable_flag_quic_flush_pending_frames_and_padding_bytes_on_mi
 QUIC_FLAG(quic_reloadable_flag_quic_remove_connection_migration_connection_option_v2, false)
 // If true, include stream information in idle timeout connection close detail.
 QUIC_FLAG(quic_reloadable_flag_quic_add_stream_info_to_idle_close_detail, true)
+// If true, lowers the minimum packet size to that in the spec.
+QUIC_FLAG(quic_restart_flag_quic_allow_smaller_packets, false)
 // If true, quic server will send ENABLE_CONNECT_PROTOCOL setting and and endpoint will validate required request/response headers and extended CONNECT mechanism and update code counts of valid/invalid headers.
 QUIC_FLAG(quic_reloadable_flag_quic_verify_request_headers_2, true)
 // If true, reject or send error response code upon receiving invalid request or response headers. This flag depends on --gfe2_reloadable_flag_quic_verify_request_headers_2.
@@ -82,13 +84,15 @@ QUIC_FLAG(quic_reloadable_flag_quic_connection_migration_use_new_cid_v2, true)
 // If true, use next_connection_id_sequence_number to validate retired cid number.
 QUIC_FLAG(quic_reloadable_flag_quic_check_retire_cid_with_next_cid_sequence_number, true)
 // If true, use quiche/common/structured_headers in QuicReceiveControlStream::OnPriorityUpdateFrame().
-QUIC_FLAG(quic_reloadable_flag_quic_priority_update_structured_headers_parser, false)
+QUIC_FLAG(quic_reloadable_flag_quic_priority_update_structured_headers_parser, true)
 // If true, uses conservative cwnd gain and pacing gain when cwnd gets bootstrapped.
 QUIC_FLAG(quic_reloadable_flag_quic_conservative_cwnd_and_pacing_gains, false)
 // When true, defaults to BBR congestion control instead of Cubic.
 QUIC_FLAG(quic_reloadable_flag_quic_default_to_bbr, false)
-// When true, support draft-ietf-quic-v2-01
-QUIC_FLAG(quic_reloadable_flag_quic_enable_version_2_draft_01, false)
+// When true, support draft-ietf-quic-v2-08
+QUIC_FLAG(quic_reloadable_flag_quic_enable_version_2_draft_08, false)
+// When true, the BB2U copt causes BBR2 to wait two rounds with out draining the queue before exiting PROBE_UP and BB2S has the same effect in STARTUP.
+QUIC_FLAG(quic_reloadable_flag_quic_bbr2_probe_two_rounds, true)
 // When true, the BBHI copt causes QUIC BBRv2 to use a simpler algorithm for raising inflight_hi in PROBE_UP.
 QUIC_FLAG(quic_reloadable_flag_quic_bbr2_simplify_inflight_hi, true)
 // When true, the BBR4 copt sets the extra_acked window to 20 RTTs and BBR5 sets it to 40 RTTs.

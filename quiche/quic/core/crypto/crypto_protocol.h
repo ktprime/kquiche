@@ -108,8 +108,7 @@ const QuicTag kBBRA = TAG('B', 'B', 'R', 'A');   // Starts a new ack aggregation
 const QuicTag kBBRB = TAG('B', 'B', 'R', 'B');   // Use send rate in BBR's
                                                  // MaxAckHeightTracker
 const QuicTag kBBRS = TAG('B', 'B', 'R', 'S');   // DEPRECATED
-const QuicTag kBBQ1 = TAG('B', 'B', 'Q', '1');   // BBR with lower 2.77 STARTUP
-                                                 // pacing and CWND gain.
+const QuicTag kBBQ1 = TAG('B', 'B', 'Q', '1');   // DEPRECATED
 const QuicTag kBBQ2 = TAG('B', 'B', 'Q', '2');   // BBRv2 with 2.885 STARTUP and
                                                  // DRAIN CWND gain.
 const QuicTag kBBQ3 = TAG('B', 'B', 'Q', '3');   // BBR with ack aggregation
@@ -162,9 +161,7 @@ const QuicTag kBSAO = TAG('B', 'S', 'A', 'O');   // Avoid Overestimation in
                                                  // aggregation
 const QuicTag kB2DL = TAG('B', '2', 'D', 'L');   // Increase inflight_hi based
                                                  // on delievered, not inflight.
-const QuicTag kB201 = TAG('B', '2', '0', '1');   // In PROBE_UP, check if cwnd
-                                                 // limited before aggregation
-                                                 // epoch, instead of ack event.
+const QuicTag kB201 = TAG('B', '2', '0', '1');   // DEPRECATED
 const QuicTag kB202 = TAG('B', '2', '0', '2');   // Do not exit PROBE_UP if
                                                  // inflight dips below 1.25*BW.
 const QuicTag kB203 = TAG('B', '2', '0', '3');   // Ignore inflight_hi until
@@ -176,6 +173,12 @@ const QuicTag kB205 = TAG('B', '2', '0', '5');   // Add extra acked to CWND in
 const QuicTag kB206 = TAG('B', '2', '0', '6');   // Exit STARTUP after 2 losses.
 const QuicTag kB207 = TAG('B', '2', '0', '7');   // Exit STARTUP on persistent
                                                  // queue
+const QuicTag kBB2U = TAG('B', 'B', '2', 'U');   // Exit PROBE_UP on
+                                                 // min_bytes_in_flight for two
+                                                 // rounds in a row.
+const QuicTag kBB2S = TAG('B', 'B', '2', 'S');   // Exit STARTUP on
+                                                 // min_bytes_in_flight for two
+                                                 // rounds in a row.
 const QuicTag kNTLP = TAG('N', 'T', 'L', 'P');   // No tail loss probe
 const QuicTag k1TLP = TAG('1', 'T', 'L', 'P');   // 1 tail loss probe
 const QuicTag k1RTO = TAG('1', 'R', 'T', 'O');   // Send 1 packet upon RTO
@@ -278,6 +281,8 @@ const QuicTag kELDT = TAG('E', 'L', 'D', 'T');   // Enable Loss Detection Tuning
 // --quic_remove_connection_migration_connection_option_v2 is deprecated.
 const QuicTag kRVCM = TAG('R', 'V', 'C', 'M');   // Validate the new address
                                                  // upon client address change.
+
+const QuicTag kSPAD = TAG('S', 'P', 'A', 'D');   // Use server preferred address
 
 // Optional support of truncated Connection IDs.  If sent by a peer, the value
 // is the minimum number of bytes allowed for the connection ID sent to the

@@ -26,6 +26,7 @@
 #include "quiche/quic/core/qpack/qpack_receive_stream.h"
 #include "quiche/quic/core/qpack/qpack_send_stream.h"
 #include "quiche/quic/core/quic_session.h"
+#include "quiche/quic/core/quic_stream_priority.h"
 #include "quiche/quic/core/quic_time.h"
 #include "quiche/quic/core/quic_types.h"
 #include "quiche/quic/core/quic_versions.h"
@@ -180,7 +181,8 @@ class QUIC_EXPORT_PRIVATE QuicSpdySession
 
   // Called when an HTTP/3 PRIORITY_UPDATE frame has been received for a request
   // stream.  Returns false and closes connection if |stream_id| is invalid.
-  bool OnPriorityUpdateForRequestStream(QuicStreamId stream_id, int urgency);
+  bool OnPriorityUpdateForRequestStream(QuicStreamId stream_id,
+                                        QuicStreamPriority priority);
 
   // Called when an HTTP/3 ACCEPT_CH frame has been received.
   // This method will only be called for client sessions.
@@ -213,8 +215,8 @@ class QUIC_EXPORT_PRIVATE QuicSpdySession
                        int weight, bool exclusive);
 
   // Writes an HTTP/3 PRIORITY_UPDATE frame to the peer.
-  void WriteHttp3PriorityUpdate(QuicStreamId stream_id, int urgency,
-                                bool incremental);
+  void WriteHttp3PriorityUpdate(QuicStreamId stream_id,
+                                QuicStreamPriority priority);
 
   // Process received HTTP/3 GOAWAY frame.  When sent from server to client,
   // |id| is a stream ID.  When sent from client to server, |id| is a push ID.
@@ -622,7 +624,8 @@ class QUIC_EXPORT_PRIVATE QuicSpdySession
 
   // Priority values received in PRIORITY_UPDATE frames for streams that are not
   // open yet.
-  absl::flat_hash_map<QuicStreamId, int> buffered_stream_priorities_;
+  absl::flat_hash_map<QuicStreamId, QuicStreamPriority>
+      buffered_stream_priorities_;
 
   // An integer used for live check. The indicator is assigned a value in
   // constructor. As long as it is not the assigned value, that would indicate

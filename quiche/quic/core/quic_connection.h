@@ -234,9 +234,6 @@ class QUIC_EXPORT_PRIVATE QuicConnectionVisitorInterface {
   // Return false if the crypto stream fail to generate one.
   virtual bool MaybeSendAddressToken() = 0;
 
-  // Whether the server address is known to the connection.
-  virtual bool IsKnownServerAddress(const QuicSocketAddress& address) const = 0;
-
   // When bandwidth update alarms.
   virtual void OnBandwidthUpdateTimeout() = 0;
 
@@ -493,6 +490,8 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
     size_t num_multi_port_probe_failures_when_path_not_degrading = 0;
     // number of multi-port probe failure when path is degrading
     size_t num_multi_port_probe_failures_when_path_degrading = 0;
+    // number of total multi-port path creations in a connection
+    size_t num_multi_port_paths_created = 0;
   };
 
   // Sets connection parameters from the supplied |config|.
@@ -764,7 +763,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
 
   // Probe the existing alternative path. Does not create a new alternative
   // path. This method is the callback for |multi_port_probing_alarm_|.
-  void ProbeMultiPortPath();
+  virtual void MaybeProbeMultiPortPath();
 
   // Accessors
   void set_visitor(QuicConnectionVisitorInterface* visitor) {
@@ -807,7 +806,6 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   QuicByteCount max_packet_length() const;
   void SetMaxPacketLength(QuicByteCount length);
 
-  bool multi_port_enabled() const { return multi_port_enabled_; }
   size_t mtu_probe_count() const { return mtu_probe_count_; }
 
   bool connected() const { return connected_; }
@@ -1263,6 +1261,10 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   static QuicTime::Delta CalculateNetworkBlackholeDelay(
       QuicTime::Delta blackhole_delay, QuicTime::Delta path_degrading_delay,
       QuicTime::Delta pto_delay);
+
+  void DisableLivenessTesting() { liveness_testing_disabled_ = true; }
+
+  void AddKnownServerAddress(const QuicSocketAddress& address);
 
  protected:
   // Calls cancel() on all the alarms owned by this connection.
@@ -1897,6 +1899,9 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   EncryptionLevel GetEncryptionLevelToSendPingForSpace(
       PacketNumberSpace space) const;
 
+  // Returns true if |address| is known server address.
+  bool IsKnownServerAddress(const QuicSocketAddress& address) const;
+
   QuicConnectionContext context_;
 
   QuicFramer framer_;
@@ -2248,6 +2253,9 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // If true, send connection close packet on INVALID_VERSION.
   bool send_connection_close_for_invalid_version_ = false;
 
+  // If true, disable liveness testing.
+  bool liveness_testing_disabled_ = false;
+
   QuicPingManager ping_manager_;
 
   // Records first serialized 1-RTT packet.
@@ -2255,13 +2263,18 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
 
   std::unique_ptr<QuicPathValidationContext> multi_port_path_context_;
 
-  bool multi_port_enabled_ = false;
-
   QuicTime::Delta multi_port_probing_interval_;
 
   std::unique_ptr<MultiPortStats> multi_port_stats_;
 
   RetransmittableOnWireBehavior retransmittable_on_wire_behavior_ = DEFAULT;
+
+  // Server addresses that are known to the client.
+  std::vector<QuicSocketAddress> known_server_addresses_;
+
+  // Stores received server preferred address in transport param. Client side
+  // only.
+  QuicSocketAddress server_preferred_address_;
 
   // If true, throttle sending if next created packet will exceed amplification
   // limit.

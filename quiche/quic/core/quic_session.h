@@ -35,6 +35,7 @@
 #include "quiche/quic/core/quic_path_validator.h"
 #include "quiche/quic/core/quic_stream.h"
 #include "quiche/quic/core/quic_stream_frame_data_producer.h"
+#include "quiche/quic/core/quic_stream_priority.h"
 #include "quiche/quic/core/quic_types.h"
 #include "quiche/quic/core/quic_write_blocked_list.h"
 #include "quiche/quic/core/session_notifier_interface.h"
@@ -173,10 +174,6 @@ class QUIC_EXPORT_PRIVATE QuicSession
   void BeforeConnectionCloseSent() override {}
   bool ValidateToken(absl::string_view token) override;
   bool MaybeSendAddressToken() override;
-  bool IsKnownServerAddress(
-      const QuicSocketAddress& /*address*/) const override {
-    return false;
-  }
   void OnBandwidthUpdateTimeout() override {}
   std::unique_ptr<QuicPathValidationContext> CreateContextForMultiPortPath()
       override {
@@ -326,15 +323,13 @@ class QUIC_EXPORT_PRIVATE QuicSession
                      QuicIetfTransportErrorCodes ietf_error,
                      std::string error_details) override;
   // Sets priority in the write blocked list.
-  void RegisterStreamPriority(
-      QuicStreamId id, bool is_static,
-      const spdy::SpdyStreamPrecedence& precedence) override;
+  void RegisterStreamPriority(QuicStreamId id, bool is_static,
+                              const QuicStreamPriority& priority) override;
   // Clears priority from the write blocked list.
   void UnregisterStreamPriority(QuicStreamId id, bool is_static) override;
   // Updates priority on the write blocked list.
-  void UpdateStreamPriority(
-      QuicStreamId id,
-      const spdy::SpdyStreamPrecedence& new_precedence) override;
+  void UpdateStreamPriority(QuicStreamId id,
+                            const QuicStreamPriority& new_priority) override;
 
   // Called by streams when they want to write data to the peer.
   // Returns a pair with the number of bytes consumed from data, and a boolean
@@ -648,6 +643,8 @@ class QUIC_EXPORT_PRIVATE QuicSession
   using ZombieStreamMap =
     std::map<QuicStreamId, std::unique_ptr<QuicStream>>;
 
+  std::string on_closed_frame_string() const;
+
   // Creates a new stream to handle a peer-initiated stream.
   // Caller does not own the returned stream.
   // Returns nullptr and does error handling if the stream can not be created.
@@ -788,7 +785,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
 
   // Call SetPriority() on stream id |id| and return true if stream is active.
   bool MaybeSetStreamPriority(QuicStreamId stream_id,
-                              const spdy::SpdyStreamPrecedence& precedence);
+                              const QuicStreamPriority& priority);
 
   void SetLossDetectionTuner(
       std::unique_ptr<LossDetectionTunerInterface> tuner) {

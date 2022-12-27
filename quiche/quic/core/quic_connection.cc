@@ -176,7 +176,7 @@ class MultiPortProbingAlarmDelegate : public QuicConnectionAlarmDelegate {
   void OnAlarm() override {
     QUICHE_DCHECK(connection_->connected());
     QUIC_DLOG(INFO) << "Alternative path probing alarm fired";
-    connection_->ProbeMultiPortPath();
+    connection_->MaybeProbeMultiPortPath();
   }
 };
 
@@ -241,6 +241,58 @@ bool ContainsNonProbingFrame(const SerializedPacket& packet) {
   }
   return false;
 }
+
+// This context stores the path info from client address to server preferred
+// address while client is validating this address.
+class ServerPreferredAddressPathValidationContext
+    : public QuicPathValidationContext {
+ public:
+  ServerPreferredAddressPathValidationContext(
+      const QuicSocketAddress& server_preferred_address,
+      QuicConnection* connection)
+      : QuicPathValidationContext(connection->self_address(),
+                                  server_preferred_address),
+        connection_(connection) {}
+
+  QuicPacketWriter* WriterToUse() override { return connection_->writer(); }
+
+ private:
+  QuicConnection* connection_;
+};
+
+// Client migrates to server preferred address on path validation suceeds.
+// Otherwise, client cleans up alternative path.
+class ServerPreferredAddressResultDelegate
+    : public QuicPathValidator::ResultDelegate {
+ public:
+  explicit ServerPreferredAddressResultDelegate(QuicConnection* connection)
+      : connection_(connection) {}
+  void OnPathValidationSuccess(
+      std::unique_ptr<QuicPathValidationContext> context,
+      QuicTime /*start_time*/) override {
+    QUIC_DLOG(INFO) << "Server preferred address: " << context->peer_address()
+                    << " validated. Migrating path, self_address: "
+                    << context->self_address()
+                    << ", peer_address: " << context->peer_address();
+    const bool success = connection_->MigratePath(context->self_address(),
+                                                  context->peer_address(),
+                                                  context->WriterToUse(),
+                                                  /*owns_writer*/ false);
+    QUIC_BUG_IF(failed to migrate to server preferred address, !success)
+        << "Failed to migrate to server preferred address: "
+        << context->peer_address() << " after successful validation";
+  }
+
+  void OnPathValidationFailure(
+      std::unique_ptr<QuicPathValidationContext> context) override {
+    QUIC_DLOG(INFO) << "Failed to validate server preferred address : "
+                    << context->peer_address();
+    connection_->OnPathValidationFailureAtClient(/*is_multi_port=*/false);
+  }
+
+ private:
+  QuicConnection* connection_;
+};
 
 }  // namespace
 
@@ -383,6 +435,9 @@ QuicConnection::QuicConnection(
       QUIC_RELOADABLE_FLAG_COUNT(quic_disable_server_blackhole_detection);
       blackhole_detection_disabled_ = true;
     }
+  }
+  if (perspective_ == Perspective::IS_CLIENT) {
+    AddKnownServerAddress(initial_peer_address);
   }
   packet_creator_.SetDefaultPeerAddress(initial_peer_address);
 }
@@ -655,6 +710,19 @@ void QuicConnection::SetFromConfig(const QuicConfig& config) {
   connection_migration_use_new_cid_ =
       validate_client_addresses_ &&
       GetQuicReloadableFlag(quic_connection_migration_use_new_cid_v2);
+
+  if (connection_migration_use_new_cid_ &&
+      config.HasReceivedPreferredAddressConnectionIdAndToken() &&
+      config.HasClientRequestedIndependentOption(kSPAD, perspective_)) {
+    if (self_address().host().IsIPv4() &&
+        config.HasReceivedIPv4AlternateServerAddress()) {
+      server_preferred_address_ = config.ReceivedIPv4AlternateServerAddress();
+    } else if (self_address().host().IsIPv6() &&
+               config.HasReceivedIPv6AlternateServerAddress()) {
+      server_preferred_address_ = config.ReceivedIPv6AlternateServerAddress();
+    }
+    AddKnownServerAddress(server_preferred_address_);
+  }
   if (config.HasReceivedMaxPacketSize()) {
     peer_max_packet_size_ = config.ReceivedMaxPacketSize();
     packet_creator_.SetMaxPacketLength(
@@ -673,17 +741,17 @@ void QuicConnection::SetFromConfig(const QuicConfig& config) {
     UpdateReleaseTimeIntoFuture();
   }
 
-  multi_port_enabled_ =
+  if (perspective_ == Perspective::IS_CLIENT &&
       connection_migration_use_new_cid_ &&
-      config.HasClientSentConnectionOption(kMPQC, perspective_);
-  if (multi_port_enabled_) {
+      config.HasClientRequestedIndependentOption(kMPQC, perspective_)) {
     multi_port_stats_ = std::make_unique<MultiPortStats>();
   }
 }
 
 bool QuicConnection::MaybeTestLiveness() {
   QUICHE_DCHECK_EQ(perspective_, Perspective::IS_CLIENT);
-  if (encryption_level_ != ENCRYPTION_FORWARD_SECURE) {
+  if (liveness_testing_disabled_ ||
+      encryption_level_ != ENCRYPTION_FORWARD_SECURE) {
     return false;
   }
   const QuicTime idle_network_deadline =
@@ -705,6 +773,15 @@ bool QuicConnection::MaybeTestLiveness() {
   if (!sent_packet_manager_.IsLessThanThreePTOs(timeout)) {
     return false;
   }
+  QUIC_LOG_EVERY_N_SEC(INFO, 60)
+      << "Testing liveness, idle_network_timeout: "
+      << idle_network_detector_.idle_network_timeout()
+      << ", timeout: " << timeout
+      << ", Pto delay: " << sent_packet_manager_.GetPtoDelay()
+      << ", smoothed_rtt: "
+      << sent_packet_manager_.GetRttStats()->smoothed_rtt()
+      << ", mean deviation: "
+      << sent_packet_manager_.GetRttStats()->mean_deviation();
   SendConnectivityProbingPacket(writer_, peer_address());
   return true;
 }
@@ -1204,12 +1281,18 @@ bool QuicConnection::OnPacketHeader(const QuicPacketHeader& header) {
   if (perspective_ == Perspective::IS_CLIENT) {
     if (!GetLargestReceivedPacket().IsInitialized() ||
         header.packet_number > GetLargestReceivedPacket()) {
-      // Update direct_peer_address_ and default path peer_address immediately
-      // for client connections.
-      // TODO(fayang): only change peer addresses in application data packet
-      // number space.
-      UpdatePeerAddress(last_received_packet_info_.source_address);
-      default_path_.peer_address = GetEffectivePeerAddressFromCurrentPacket();
+      if (version().HasIetfQuicFrames()) {
+        // Client processes packets from any known server address. Client only
+        // updates peer address on initialization and/or to validated server
+        // preferred address.
+      } else {
+        // Update direct_peer_address_ and default path peer_address immediately
+        // for client connections.
+        // TODO(fayang): only change peer addresses in application data packet
+        // number space.
+        UpdatePeerAddress(last_received_packet_info_.source_address);
+        default_path_.peer_address = GetEffectivePeerAddressFromCurrentPacket();
+      }
     }
   } else {
     // At server, remember the address change type of effective_peer_address
@@ -1994,7 +2077,7 @@ bool QuicConnection::OnNewConnectionIdFrame(
   if (!OnNewConnectionIdFrameInner(frame)) {
     return false;
   }
-  if (perspective_ == Perspective::IS_CLIENT && multi_port_enabled_) {
+  if (multi_port_stats_ != nullptr) {
     MaybeCreateMultiPortPath();
   }
   return true;
@@ -2642,6 +2725,9 @@ void QuicConnection::ProcessUdpPacket(const QuicSocketAddress& self_address,
   }
 
   if (!direct_peer_address_.IsInitialized()) {
+    if (perspective_ == Perspective::IS_CLIENT) {
+      AddKnownServerAddress(last_received_packet_info_.source_address);
+    }
     UpdatePeerAddress(last_received_packet_info_.source_address);
   }
 
@@ -2885,10 +2971,7 @@ bool QuicConnection::ProcessValidatedPacket(const QuicPacketHeader& header) {
       direct_peer_address_.IsInitialized() &&
       last_received_packet_info_.source_address.IsInitialized() &&
       direct_peer_address_ != last_received_packet_info_.source_address &&
-      !visitor_->IsKnownServerAddress(
-          last_received_packet_info_.source_address)) {
-    // TODO(haoyuewang) Revisit this when preferred_address transport parameter
-    // is used on the client side.
+      !IsKnownServerAddress(last_received_packet_info_.source_address)) {
     // Discard packets received from unseen server addresses.
     return false;
   }
@@ -3926,18 +4009,35 @@ void QuicConnection::OnHandshakeComplete() {
   // Re-arm ack alarm.
   ack_alarm_->Update(uber_received_packet_manager_.GetEarliestAckTimeout(),
                      kAlarmGranularity);
+  if (server_preferred_address_.IsInitialized()) {
+    QUICHE_DCHECK_EQ(Perspective::IS_CLIENT, perspective_);
+    // Validate received server preferred address.
+    auto context =
+        std::make_unique<ServerPreferredAddressPathValidationContext>(
+            server_preferred_address_, this);
+    auto result_delegate =
+        std::make_unique<ServerPreferredAddressResultDelegate>(this);
+    ValidatePath(std::move(context), std::move(result_delegate));
+  }
 }
 
 void QuicConnection::MaybeCreateMultiPortPath() {
   QUICHE_DCHECK_EQ(Perspective::IS_CLIENT, perspective_);
+  QUIC_BUG_IF(quic_bug_12714_20, path_validator_.HasPendingPathValidation())
+      << "Pending validation exists when multi-port path is created.";
+  if (multi_port_stats_->num_multi_port_paths_created >=
+      kMaxNumMultiPortPaths) {
+    return;
+  }
   auto path_context = visitor_->CreateContextForMultiPortPath();
-  if (!path_context || path_validator_.HasPendingPathValidation()) {
+  if (!path_context) {
     return;
   }
   auto multi_port_validation_result_delegate =
       std::make_unique<MultiPortPathValidationResultDelegate>(this);
   multi_port_probing_alarm_->Cancel();
   multi_port_path_context_ = nullptr;
+  multi_port_stats_->num_multi_port_paths_created++;
   ValidatePath(std::move(path_context),
                std::move(multi_port_validation_result_delegate));
 }
@@ -3987,6 +4087,14 @@ EncryptionLevel QuicConnection::GetEncryptionLevelToSendPingForSpace(
       QUICHE_DCHECK(false);
       return NUM_ENCRYPTION_LEVELS;
   }
+}
+
+bool QuicConnection::IsKnownServerAddress(
+    const QuicSocketAddress& address) const {
+  QUICHE_DCHECK(address.IsInitialized());
+  return std::find(known_server_addresses_.cbegin(),
+                   known_server_addresses_.cend(),
+                   address) != known_server_addresses_.cend();
 }
 
 void QuicConnection::OnRetransmissionTimeout() {
@@ -4496,6 +4604,7 @@ void QuicConnection::CancelAllAlarms() {
   process_undecryptable_packets_alarm_->PermanentCancel();
   discard_previous_one_rtt_keys_alarm_->PermanentCancel();
   discard_zero_rtt_decryption_keys_alarm_->PermanentCancel();
+  multi_port_probing_alarm_->PermanentCancel();
   blackhole_detector_.StopDetection(/*permanent=*/true);
   idle_network_detector_.StopDetection();
 }
@@ -5293,6 +5402,9 @@ void QuicConnection::CheckIfApplicationLimited() {
 bool QuicConnection::UpdatePacketContent(QuicFrameType type) {
   last_received_packet_info_.frames.push_back(type);
   if (version().HasIetfQuicFrames()) {
+    if (perspective_ == Perspective::IS_CLIENT) {
+      return connected_;
+    }
     if (!QuicUtils::IsProbingFrame(type)) {
       MaybeStartIetfPeerMigration();
       return connected_;
@@ -5303,8 +5415,7 @@ bool QuicConnection::UpdatePacketContent(QuicFrameType type) {
                       last_received_packet_info_.source_address)) {
       return connected_;
     }
-    if (perspective_ == Perspective::IS_SERVER &&
-        type == PATH_CHALLENGE_FRAME &&
+    if (type == PATH_CHALLENGE_FRAME &&
         !IsAlternativePath(last_received_packet_info_.destination_address,
                            current_effective_peer_address)) {
       QUIC_DVLOG(1)
@@ -5670,7 +5781,13 @@ void QuicConnection::SendAllPendingAcks() {
                           packet_creator_.max_packet_length()))
           << "Writer not blocked and not throttled by amplification factor, "
              "but ACK not flushed for packet space:"
-          << i;
+          << PacketNumberSpaceToString(static_cast<PacketNumberSpace>(i))
+          << ", connected: " << connected_
+          << ", fill_coalesced_packet: " << fill_coalesced_packet_
+          << ", has_soft_max_packet_length: "
+          << packet_creator_.HasSoftMaxPacketLength()
+          << ", max_packet_length: " << packet_creator_.max_packet_length()
+          << ", pending frames: " << packet_creator_.GetPendingFramesInfo();
       break;
     }
     ResetAckStates();
@@ -6296,6 +6413,14 @@ QuicTime::Delta QuicConnection::CalculateNetworkBlackholeDelay(
   return std::max(min_delay, blackhole_delay);
 }
 
+void QuicConnection::AddKnownServerAddress(const QuicSocketAddress& address) {
+  QUICHE_DCHECK(perspective_ == Perspective::IS_CLIENT);
+  if (!address.IsInitialized() || IsKnownServerAddress(address)) {
+    return;
+  }
+  known_server_addresses_.push_back(address);
+}
+
 bool QuicConnection::ShouldDetectBlackhole() const {
   if (!connected_ || blackhole_detection_disabled_) {
     return false;
@@ -6644,7 +6769,10 @@ bool QuicConnection::MigratePath(const QuicSocketAddress& self_address,
                                peer_address_change_type == NO_CHANGE);
   SetSelfAddress(self_address);
   UpdatePeerAddress(peer_address);
-  SetQuicPacketWriter(writer, owns_writer);
+  default_path_.peer_address = peer_address;
+  if (writer_ != writer) {
+    SetQuicPacketWriter(writer, owns_writer);
+  }
   MaybeClearQueuedPacketsOnPathChange();
   OnSuccessfulMigration(is_port_change);
   return true;
@@ -6890,13 +7018,15 @@ void QuicConnection::OnMultiPortPathProbingSuccess(
   }
 }
 
-void QuicConnection::ProbeMultiPortPath() {
+void QuicConnection::MaybeProbeMultiPortPath() {
   if (!connected_ || path_validator_.HasPendingPathValidation() ||
       !multi_port_path_context_ ||
       alternative_path_.self_address !=
           multi_port_path_context_->self_address() ||
       alternative_path_.peer_address !=
-          multi_port_path_context_->peer_address()) {
+          multi_port_path_context_->peer_address() ||
+      !visitor_->ShouldKeepConnectionAlive() ||
+      multi_port_probing_alarm_->IsSet()) {
     return;
   }
   auto multi_port_validation_result_delegate =

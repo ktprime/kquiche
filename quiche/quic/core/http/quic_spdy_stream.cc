@@ -37,7 +37,6 @@
 #include "quiche/spdy/core/spdy_protocol.h"
 
 using spdy::Http2HeaderBlock;
-using spdy::SpdyPriority;
 
 namespace quic {
 
@@ -190,8 +189,7 @@ QuicSpdyStream::QuicSpdyStream(QuicStreamId id, QuicSpdySession* spdy_session,
                HttpDecoderOptionsForBidiStream(spdy_session)),
       sequencer_offset_(0),
       is_decoder_processing_input_(false),
-      ack_listener_(nullptr),
-      last_sent_urgency_(kDefaultUrgency) {
+      ack_listener_(nullptr) {
   QUICHE_DCHECK_EQ(session()->connection(), spdy_session->connection());
   QUICHE_DCHECK_EQ(transport_version(), spdy_session->transport_version());
   QUICHE_DCHECK(!QuicUtils::IsCryptoStreamId(transport_version(), id));
@@ -225,8 +223,7 @@ QuicSpdyStream::QuicSpdyStream(PendingStream* pending,
       decoder_(http_decoder_visitor_.get()),
       sequencer_offset_(sequencer()->NumBytesConsumed()),
       is_decoder_processing_input_(false),
-      ack_listener_(nullptr),
-      last_sent_urgency_(kDefaultUrgency) {
+      ack_listener_(nullptr) {
   QUICHE_DCHECK_EQ(session()->connection(), spdy_session->connection());
   QUICHE_DCHECK_EQ(transport_version(), spdy_session->transport_version());
   QUICHE_DCHECK(!QuicUtils::IsCryptoStreamId(transport_version(), id()));
@@ -505,7 +502,8 @@ void QuicSpdyStream::OnStreamHeadersPriority(
     const spdy::SpdyStreamPrecedence& precedence) {
   QUICHE_DCHECK_EQ(Perspective::IS_SERVER,
                    session()->connection()->perspective());
-  SetPriority(precedence);
+  SetPriority(QuicStreamPriority{precedence.spdy3_priority(),
+                                 QuicStreamPriority::kDefaultIncremental});
 }
 
 void QuicSpdyStream::OnStreamHeaderList(bool fin, size_t frame_len,
@@ -587,15 +585,12 @@ void QuicSpdyStream::MaybeSendPriorityUpdateFrame() {
     return;
   }
 
-  // Value between 0 and 7, inclusive.  Lower value means higher priority.
-  const int urgency = precedence().spdy3_priority();
-  if (last_sent_urgency_ == urgency) {
+  if (last_sent_priority_ == priority()) {
     return;
   }
-  last_sent_urgency_ = urgency;
+  last_sent_priority_ = priority();
 
-  spdy_session_->WriteHttp3PriorityUpdate(id(), urgency,
-                                          /* incremental = */ false);
+  spdy_session_->WriteHttp3PriorityUpdate(id(), priority());
 }
 
 void QuicSpdyStream::OnHeadersTooLarge() { Reset(QUIC_HEADERS_TOO_LARGE); }
@@ -707,7 +702,8 @@ void QuicSpdyStream::OnPriorityFrame(
     const spdy::SpdyStreamPrecedence& precedence) {
   QUICHE_DCHECK_EQ(Perspective::IS_SERVER,
                    session()->connection()->perspective());
-  SetPriority(precedence);
+  SetPriority(QuicStreamPriority{precedence.spdy3_priority(),
+                                 QuicStreamPriority::kDefaultIncremental});
 }
 
 void QuicSpdyStream::OnStreamReset(const QuicRstStreamFrame& frame) {
@@ -1152,7 +1148,8 @@ size_t QuicSpdyStream::WriteHeadersImpl(
         ack_listener) {
   if (!VersionUsesHttp3(transport_version())) {
     return spdy_session_->WriteHeadersOnHeadersStream(
-        id(), std::move(header_block), fin, precedence(),
+        id(), std::move(header_block), fin,
+        spdy::SpdyStreamPrecedence(priority().urgency),
         std::move(ack_listener));
   }
 

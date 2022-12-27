@@ -16,7 +16,6 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "quiche/quic/core/crypto/crypto_protocol.h"
-#include "quiche/quic/core/crypto/null_encrypter.h"
 #include "quiche/quic/core/frames/quic_stream_frame.h"
 #include "quiche/quic/core/frames/quic_streams_blocked_frame.h"
 #include "quiche/quic/core/http/http_constants.h"
@@ -30,6 +29,7 @@
 #include "quiche/quic/core/quic_error_codes.h"
 #include "quiche/quic/core/quic_packets.h"
 #include "quiche/quic/core/quic_stream.h"
+#include "quiche/quic/core/quic_stream_priority.h"
 #include "quiche/quic/core/quic_types.h"
 #include "quiche/quic/core/quic_utils.h"
 #include "quiche/quic/core/quic_versions.h"
@@ -92,7 +92,7 @@ class TestCryptoStream : public QuicCryptoStream, public QuicCryptoHandshaker {
     encryption_established_ = true;
     session()->connection()->SetEncrypter(
         ENCRYPTION_ZERO_RTT,
-        std::make_unique<NullEncrypter>(session()->perspective()));
+        std::make_unique<TaggingEncrypter>(ENCRYPTION_ZERO_RTT));
   }
 
   void OnHandshakeMessage(const CryptoHandshakeMessage& /*message*/) override {
@@ -128,7 +128,7 @@ class TestCryptoStream : public QuicCryptoStream, public QuicCryptoHandshaker {
     EXPECT_THAT(error, IsQuicNoError());
     session()->OnNewEncryptionKeyAvailable(
         ENCRYPTION_FORWARD_SECURE,
-        std::make_unique<NullEncrypter>(session()->perspective()));
+        std::make_unique<TaggingEncrypter>(ENCRYPTION_FORWARD_SECURE));
     session()->OnConfigNegotiated();
     if (session()->connection()->version().handshake_protocol ==
         PROTOCOL_TLS1_3) {
@@ -271,7 +271,7 @@ class TestSession : public QuicSpdySession {
         writev_consumes_all_data_(false) {
     this->connection()->SetEncrypter(
         ENCRYPTION_FORWARD_SECURE,
-        std::make_unique<NullEncrypter>(connection->perspective()));
+        std::make_unique<TaggingEncrypter>(ENCRYPTION_FORWARD_SECURE));
     if (this->connection()->version().SupportsAntiAmplificationLimit()) {
       QuicConnectionPeer::SetAddressValidated(this->connection());
     }
@@ -898,7 +898,8 @@ TEST_P(QuicSpdySessionTestServer, TestBatchedWrites) {
   // Now let stream 4 do the 2nd of its 3 writes, but add a block for a high
   // priority stream 6.  4 should be preempted.  6 will write but *not* block so
   // will cede back to 4.
-  stream6->SetPriority(spdy::SpdyStreamPrecedence(kV3HighestPriority));
+  stream6->SetPriority(QuicStreamPriority{
+      kV3HighestPriority, QuicStreamPriority::kDefaultIncremental});
   EXPECT_CALL(*stream4, OnCanWrite())
       .WillOnce(Invoke([this, stream4, stream6]() {
         session_.SendLargeFakeData(stream4, 6000);
@@ -2175,8 +2176,10 @@ TEST_P(QuicSpdySessionTestServer, OnPriorityFrame) {
   TestStream* stream = session_.CreateIncomingStream(stream_id);
   session_.OnPriorityFrame(stream_id,
                            spdy::SpdyStreamPrecedence(kV3HighestPriority));
-  EXPECT_EQ(spdy::SpdyStreamPrecedence(kV3HighestPriority),
-            stream->precedence());
+
+  EXPECT_EQ((QuicStreamPriority{kV3HighestPriority,
+                                QuicStreamPriority::kDefaultIncremental}),
+            stream->priority());
 }
 
 TEST_P(QuicSpdySessionTestServer, OnPriorityUpdateFrame) {
@@ -2220,15 +2223,17 @@ TEST_P(QuicSpdySessionTestServer, OnPriorityUpdateFrame) {
 
   // PRIORITY_UPDATE frame arrives after stream creation.
   TestStream* stream1 = session_.CreateIncomingStream(stream_id1);
-  EXPECT_EQ(QuicStream::kDefaultUrgency,
-            stream1->precedence().spdy3_priority());
+  EXPECT_EQ((QuicStreamPriority{QuicStreamPriority::kDefaultUrgency,
+                                QuicStreamPriority::kDefaultIncremental}),
+            stream1->priority());
   EXPECT_CALL(debug_visitor, OnPriorityUpdateFrameReceived(priority_update1));
   session_.OnStreamFrame(data3);
-  EXPECT_EQ(2u, stream1->precedence().spdy3_priority());
+  EXPECT_EQ((QuicStreamPriority{2u, QuicStreamPriority::kDefaultIncremental}),
+            stream1->priority());
 
   // PRIORITY_UPDATE frame for second request stream.
   const QuicStreamId stream_id2 = GetNthClientInitiatedBidirectionalId(1);
-  PriorityUpdateFrame priority_update2{stream_id2, "u=2"};
+  PriorityUpdateFrame priority_update2{stream_id2, "u=5, i"};
   std::string serialized_priority_update2 =
       HttpEncoder::SerializePriorityUpdateFrame(priority_update2);
   QuicStreamFrame stream_frame3(receive_control_stream_id,
@@ -2241,7 +2246,11 @@ TEST_P(QuicSpdySessionTestServer, OnPriorityUpdateFrame) {
   session_.OnStreamFrame(stream_frame3);
   // Priority is applied upon stream construction.
   TestStream* stream2 = session_.CreateIncomingStream(stream_id2);
-  EXPECT_EQ(2u, stream2->precedence().spdy3_priority());
+  if (GetQuicReloadableFlag(quic_priority_update_structured_headers_parser)) {
+    EXPECT_EQ((QuicStreamPriority{5u, true}), stream2->priority());
+  } else {
+    EXPECT_EQ((QuicStreamPriority{5u, false}), stream2->priority());
+  }
 }
 
 TEST_P(QuicSpdySessionTestServer, OnInvalidPriorityUpdateFrame) {

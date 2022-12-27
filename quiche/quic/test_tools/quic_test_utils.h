@@ -503,11 +503,6 @@ class MockQuicConnectionVisitor : public QuicConnectionVisitorInterface {
   MOCK_METHOD(std::unique_ptr<QuicPathValidationContext>,
               CreateContextForMultiPortPath, (), (override));
 
-  bool IsKnownServerAddress(
-      const QuicSocketAddress& /*address*/) const override {
-    return false;
-  }
-
   void OnBandwidthUpdateTimeout() override {}
 };
 
@@ -636,6 +631,7 @@ class MockQuicConnection : public QuicConnection {
   MOCK_METHOD(bool, SendConnectivityProbingPacket,
               (QuicPacketWriter*, const QuicSocketAddress& peer_address),
               (override));
+  MOCK_METHOD(void, MaybeProbeMultiPortPath, (), (override));
 
   MOCK_METHOD(void, OnSendConnectionState, (const CachedNetworkParameters&),
               (override));
@@ -1965,8 +1961,6 @@ class TestPacketWriter : public QuicPacketWriter {
     return final_bytes_of_previous_packet_;
   }
 
-  void use_tagging_decrypter() { use_tagging_decrypter_ = true; }
-
   uint32_t packets_write_attempts() const { return packets_write_attempts_; }
 
   uint32_t flush_attempts() const { return flush_attempts_; }
@@ -2025,7 +2019,6 @@ class TestPacketWriter : public QuicPacketWriter {
   uint32_t bytes_buffered_ = 0;
   uint32_t final_bytes_of_last_packet_ = 0;
   uint32_t final_bytes_of_previous_packet_ = 0;
-  bool use_tagging_decrypter_ = false;
   uint32_t packets_write_attempts_ = 0;
   uint32_t connection_close_packets_ = 0;
   MockClock* clock_ = nullptr;
