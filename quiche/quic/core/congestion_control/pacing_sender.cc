@@ -39,16 +39,14 @@ void PacingSender::OnCongestionEvent(bool rtt_updated,
                                      QuicByteCount bytes_in_flight,
                                      QuicTime event_time,
                                      const AckedPacketVector& acked_packets,
-                                     const LostPacketVector& lost_packets,
-                                     QuicPacketCount num_ect,
-                                     QuicPacketCount num_ce) {
+                                     const LostPacketVector& lost_packets) {
   QUICHE_DCHECK(sender_ != nullptr);
   if (!lost_packets.empty()) {
     // Clear any burst tokens when entering recovery.
     burst_tokens_ = 0;
   }
   sender_->OnCongestionEvent(rtt_updated, bytes_in_flight, event_time,
-                             acked_packets, lost_packets, num_ect, num_ce);
+                             acked_packets, lost_packets);
 }
 
 void PacingSender::OnPacketSent(
@@ -134,7 +132,7 @@ QuicTime::Delta PacingSender::TimeUntilSend(
     return QuicTime::Delta::Infinite();
   }
 
-  if (burst_tokens_ > 0 || bytes_in_flight == 0 || lumpy_tokens_ > 0) {
+  if ((lumpy_tokens_ | burst_tokens_) > 0 || bytes_in_flight == 0) {
     // Don't pace if we have burst tokens available or leaving quiescence.
     QUIC_DVLOG(1) << "Sending packet now. burst_tokens:" << burst_tokens_
                   << ", bytes_in_flight:" << bytes_in_flight

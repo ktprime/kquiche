@@ -49,27 +49,27 @@ class QUIC_EXPORT_PRIVATE GeneralLossAlgorithm : public LossDetectionInterface {
 
   void OnConfigNegotiated() override {
     QUICHE_DCHECK(false)
-        << "Unexpected call to GeneralLossAlgorithm::OnConfigNegotiated";
+        ;//<< "Unexpected call to GeneralLossAlgorithm::OnConfigNegotiated";
   }
 
   void OnMinRttAvailable() override {
     QUICHE_DCHECK(false)
-        << "Unexpected call to GeneralLossAlgorithm::OnMinRttAvailable";
+        ;//<< "Unexpected call to GeneralLossAlgorithm::OnMinRttAvailable";
   }
 
   void OnUserAgentIdKnown() override {
     QUICHE_DCHECK(false)
-        << "Unexpected call to GeneralLossAlgorithm::OnUserAgentIdKnown";
+        ;//<< "Unexpected call to GeneralLossAlgorithm::OnUserAgentIdKnown";
   }
 
   void OnConnectionClosed() override {
     QUICHE_DCHECK(false)
-        << "Unexpected call to GeneralLossAlgorithm::OnConnectionClosed";
+        ;//<< "Unexpected call to GeneralLossAlgorithm::OnConnectionClosed";
   }
 
   void OnReorderingDetected() override {
     QUICHE_DCHECK(false)
-        << "Unexpected call to GeneralLossAlgorithm::OnReorderingDetected";
+        ;//<< "Unexpected call to GeneralLossAlgorithm::OnReorderingDetected";
   }
 
   void Initialize(PacketNumberSpace packet_number_space,

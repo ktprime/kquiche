@@ -91,17 +91,18 @@ float TcpCubicSenderBytes::RenoBeta() const {
 void TcpCubicSenderBytes::OnCongestionEvent(
     bool rtt_updated, QuicByteCount prior_in_flight, QuicTime event_time,
     const AckedPacketVector& acked_packets,
-    const LostPacketVector& lost_packets, QuicPacketCount /*num_ect*/,
-    QuicPacketCount /*num_ce*/) {
-  if (rtt_updated && InSlowStart() &&
+    const LostPacketVector& lost_packets) {
+  if (InSlowStart() && rtt_updated &&
       hybrid_slow_start_.ShouldExitSlowStart(
           rtt_stats_->latest_rtt(), rtt_stats_->min_rtt(),
           GetCongestionWindow() / kDefaultTCPMSS)) {
     ExitSlowstart();
   }
+  if (lost_packets.size()) {
   for (const LostPacket& lost_packet : lost_packets) {
     OnPacketLost(lost_packet.packet_number, lost_packet.bytes_lost,
                  prior_in_flight);
+  }
   }
   for (const AckedPacket& acked_packet : acked_packets) {
     OnPacketAcked(acked_packet.packet_number, acked_packet.bytes_acked,
@@ -150,7 +151,7 @@ void TcpCubicSenderBytes::OnPacketSent(
 }
 
 bool TcpCubicSenderBytes::CanSend(QuicByteCount bytes_in_flight) {
-  if (!no_prr_ && InRecovery()) {
+  if (InRecovery() && !no_prr_) {
     // PRR is used when in recovery.
     return prr_.CanSend(GetCongestionWindow(), bytes_in_flight,
                         GetSlowStartThreshold());
@@ -185,7 +186,7 @@ QuicBandwidth TcpCubicSenderBytes::BandwidthEstimate() const {
 }
 
 bool TcpCubicSenderBytes::InSlowStart() const {
-  return GetCongestionWindow() < GetSlowStartThreshold();
+  return congestion_window_ < slowstart_threshold_;
 }
 
 bool TcpCubicSenderBytes::IsCwndLimited(QuicByteCount bytes_in_flight) const {
@@ -200,7 +201,7 @@ bool TcpCubicSenderBytes::IsCwndLimited(QuicByteCount bytes_in_flight) const {
 }
 
 bool TcpCubicSenderBytes::InRecovery() const {
-  return largest_acked_packet_number_.IsInitialized() &&
+  return //largest_acked_packet_number_.IsInitialized() &&
          largest_sent_at_last_cutback_.IsInitialized() &&
          largest_acked_packet_number_ <= largest_sent_at_last_cutback_;
 }
@@ -253,7 +254,7 @@ void TcpCubicSenderBytes::OnPacketLost(QuicPacketNumber packet_number,
                                        QuicByteCount prior_in_flight) {
   // TCP NewReno (RFC6582) says that once a loss occurs, any losses in packets
   // already sent should be treated as a single loss event, since it's expected.
-  if (largest_sent_at_last_cutback_.IsInitialized() &&
+  if (//largest_sent_at_last_cutback_.IsInitialized() &&
       packet_number <= largest_sent_at_last_cutback_) {
     if (last_cutback_exited_slowstart_) {
       ++stats_->slowstart_packets_lost;

@@ -41,7 +41,7 @@ const size_t kGainCycleLength = sizeof(kPacingGain) / sizeof(kPacingGain[0]);
 const QuicRoundTripCount kBandwidthWindowSize = kGainCycleLength + 2;
 
 // The time after which the current min_rtt value expires.
-const QuicTime::Delta kMinRttExpiry = QuicTime::Delta::FromSeconds(10);
+const QuicTime::Delta kMinRttExpiry = QuicTime::Delta::FromSeconds(5);
 // The minimum time the connection can spend in PROBE_RTT mode.
 const QuicTime::Delta kProbeRttTime = QuicTime::Delta::FromMilliseconds(200);
 // If the bandwidth does not increase by the factor of |kStartupGrowthTarget|
@@ -327,9 +327,7 @@ void BbrSender::OnCongestionEvent(bool /*rtt_updated*/,
                                   QuicByteCount prior_in_flight,
                                   QuicTime event_time,
                                   const AckedPacketVector& acked_packets,
-                                  const LostPacketVector& lost_packets,
-                                  QuicPacketCount /*num_ect*/,
-                                  QuicPacketCount /*num_ce*/) {
+                                  const LostPacketVector& lost_packets) {
   const QuicByteCount total_bytes_acked_before = sampler_.total_bytes_acked();
   const QuicByteCount total_bytes_lost_before = sampler_.total_bytes_lost();
 

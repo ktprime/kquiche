@@ -39,7 +39,7 @@ LossDetectionInterface::DetectionStats GeneralLossAlgorithm::DetectLosses(
   DetectionStats detection_stats;
 
   loss_detection_timeout_ = QuicTime::Zero();
-  if (!packets_acked.empty() && least_in_flight_.IsInitialized() &&
+  if (!packets_acked.empty() &&// least_in_flight_.IsInitialized() &&
       packets_acked.front().packet_number == least_in_flight_) {
     if (packets_acked.back().packet_number == largest_newly_acked &&
         least_in_flight_ + packets_acked.size() - 1 == largest_newly_acked) {
@@ -63,7 +63,7 @@ LossDetectionInterface::DetectionStats GeneralLossAlgorithm::DetectLosses(
 
   QuicPacketNumber packet_number = unacked_packets.GetLeastUnacked();
   auto it = unacked_packets.begin();
-  if (least_in_flight_.IsInitialized() && least_in_flight_ >= packet_number) {
+  if (/*least_in_flight_.IsInitialized() &&**/ least_in_flight_ >= packet_number) {
     if (least_in_flight_ > unacked_packets.largest_sent_packet() + 1) {
       QUIC_BUG(quic_bug_10430_1) << "least_in_flight: " << least_in_flight_
                                  << " is greater than largest_sent_packet + 1: "

@@ -23,7 +23,7 @@ void RoundTripCounter::OnPacketSent(QuicPacketNumber packet_number) {
 }
 
 bool RoundTripCounter::OnPacketsAcked(QuicPacketNumber last_acked_packet) {
-  if (!end_of_round_trip_.IsInitialized() ||
+  if (//!end_of_round_trip_.IsInitialized() ||
       last_acked_packet > end_of_round_trip_) {
     round_trip_count_++;
     end_of_round_trip_ = last_sent_packet_;
@@ -42,6 +42,9 @@ MinRttFilter::MinRttFilter(QuicTime::Delta initial_min_rtt,
       min_rtt_timestamp_(initial_min_rtt_timestamp) {}
 
 void MinRttFilter::Update(QuicTime::Delta sample_rtt, QuicTime now) {
+  if (sample_rtt <= QuicTime::Delta::Zero()) {
+    return;
+  }
   if (sample_rtt < min_rtt_ || min_rtt_timestamp_ == QuicTime::Zero()) {
     min_rtt_ = sample_rtt;
     min_rtt_timestamp_ = now;
@@ -49,6 +52,9 @@ void MinRttFilter::Update(QuicTime::Delta sample_rtt, QuicTime now) {
 }
 
 void MinRttFilter::ForceUpdate(QuicTime::Delta sample_rtt, QuicTime now) {
+  if (sample_rtt <= QuicTime::Delta::Zero()) {
+    return;
+  }
   min_rtt_ = sample_rtt;
   min_rtt_timestamp_ = now;
 }

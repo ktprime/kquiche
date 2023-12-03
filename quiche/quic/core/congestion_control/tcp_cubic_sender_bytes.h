@@ -31,7 +31,7 @@ namespace test {
 class TcpCubicSenderBytesPeer;
 }  // namespace test
 
-class QUIC_EXPORT_PRIVATE TcpCubicSenderBytes : public SendAlgorithmInterface {
+class QUIC_EXPORT_PRIVATE TcpCubicSenderBytes final: public SendAlgorithmInterface {
  public:
   TcpCubicSenderBytes(const QuicClock* clock, const RttStats* rtt_stats,
                       bool reno, QuicPacketCount initial_tcp_congestion_window,
@@ -54,9 +54,7 @@ class QUIC_EXPORT_PRIVATE TcpCubicSenderBytes : public SendAlgorithmInterface {
   void OnCongestionEvent(bool rtt_updated, QuicByteCount prior_in_flight,
                          QuicTime event_time,
                          const AckedPacketVector& acked_packets,
-                         const LostPacketVector& lost_packets,
-                         QuicPacketCount num_ect,
-                         QuicPacketCount num_ce) override;
+                         const LostPacketVector& lost_packets) override;
   void OnPacketSent(QuicTime sent_time, QuicByteCount bytes_in_flight,
                     QuicPacketNumber packet_number, QuicByteCount bytes,
                     HasRetransmittableData is_retransmittable) override;
@@ -74,8 +72,6 @@ class QUIC_EXPORT_PRIVATE TcpCubicSenderBytes : public SendAlgorithmInterface {
   std::string GetDebugState() const override;
   void OnApplicationLimited(QuicByteCount bytes_in_flight) override;
   void PopulateConnectionStats(QuicConnectionStats* /*stats*/) const override {}
-  bool SupportsECT0() const override { return false; }
-  bool SupportsECT1() const override { return false; }
   // End implementation of SendAlgorithmInterface.
 
   QuicByteCount min_congestion_window() const { return min_congestion_window_; }

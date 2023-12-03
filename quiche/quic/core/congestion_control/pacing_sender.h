@@ -53,8 +53,7 @@ class QUIC_EXPORT_PRIVATE PacingSender {
   void OnCongestionEvent(bool rtt_updated, QuicByteCount bytes_in_flight,
                          QuicTime event_time,
                          const AckedPacketVector& acked_packets,
-                         const LostPacketVector& lost_packets,
-                         QuicPacketCount num_ect, QuicPacketCount num_ce);
+                         const LostPacketVector& lost_packets);
 
   void OnPacketSent(QuicTime sent_time, QuicByteCount bytes_in_flight,
                     QuicPacketNumber packet_number, QuicByteCount bytes,

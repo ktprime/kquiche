@@ -54,7 +54,7 @@ void HybridSlowStart::StartReceiveRound(QuicPacketNumber last_sent) {
 }
 
 bool HybridSlowStart::IsEndOfRound(QuicPacketNumber ack) const {
-  return !end_packet_number_.IsInitialized() || end_packet_number_ <= ack;
+  return /*!end_packet_number_.IsInitialized() || */ end_packet_number_ <= ack;
 }
 
 bool HybridSlowStart::ShouldExitSlowStart(QuicTime::Delta latest_rtt,

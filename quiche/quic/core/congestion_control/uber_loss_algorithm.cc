@@ -37,7 +37,7 @@ LossDetectionInterface::DetectionStats UberLossAlgorithm::DetectLosses(
     const QuicPacketNumber largest_acked =
         unacked_packets.GetLargestAckedOfPacketNumberSpace(
             static_cast<PacketNumberSpace>(i));
-    if (!largest_acked.IsInitialized() ||
+    if (//!largest_acked.IsInitialized() ||
         unacked_packets.GetLeastUnacked() > largest_acked) {
       // Skip detecting losses if no packet has been received for this packet
       // number space or the least_unacked is greater than largest_acked.
