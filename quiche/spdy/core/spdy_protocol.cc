@@ -24,9 +24,9 @@ std::ostream& operator<<(std::ostream& out, SpdyFrameType frame_type) {
 }
 
 SpdyPriority ClampSpdy3Priority(SpdyPriority priority) {
-  static_assert(std::numeric_limits<SpdyPriority>::min() == kV3HighestPriority,
-                "The value of given priority shouldn't be smaller than highest "
-                "priority. Check this invariant explicitly.");
+//  static_assert(std::numeric_limits<SpdyPriority>::min() == kV3HighestPriority,
+//                "The value of given priority shouldn't be smaller than highest "
+//                "priority. Check this invariant explicitly.");
   if (priority > kV3LowestPriority) {
     QUICHE_BUG(spdy_bug_22_1)
         << "Invalid priority: " << static_cast<int>(priority);

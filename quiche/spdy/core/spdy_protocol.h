@@ -207,8 +207,8 @@ typedef uint8_t SpdyPriority;
 
 // Lowest and Highest here refer to SPDY priorities as described in
 // https://www.chromium.org/spdy/spdy-protocol/spdy-protocol-draft3-1#TOC-2.3.3-Stream-priority
-const SpdyPriority kV3HighestPriority = 0;
-const SpdyPriority kV3LowestPriority = 7;
+const SpdyPriority kV3HighestPriority = 2;
+const SpdyPriority kV3LowestPriority = 4;
 
 // Returns SPDY 3.x priority value clamped to the valid range of [0, 7].
 QUICHE_EXPORT SpdyPriority ClampSpdy3Priority(SpdyPriority priority);
@@ -987,7 +987,7 @@ class QUICHE_EXPORT SpdySerializedFrame {
   SpdySerializedFrame(char* data, size_t size, bool owns_buffer)
       : frame_(data), size_(size), owns_buffer_(owns_buffer) {}
 
-  SpdySerializedFrame(SpdySerializedFrame&& other)
+  SpdySerializedFrame(SpdySerializedFrame&& other) noexcept
       : frame_(other.frame_),
         size_(other.size_),
         owns_buffer_(other.owns_buffer_) {
@@ -997,7 +997,7 @@ class QUICHE_EXPORT SpdySerializedFrame {
   SpdySerializedFrame(const SpdySerializedFrame&) = delete;
   SpdySerializedFrame& operator=(const SpdySerializedFrame&) = delete;
 
-  SpdySerializedFrame& operator=(SpdySerializedFrame&& other) {
+  SpdySerializedFrame& operator=(SpdySerializedFrame&& other) noexcept {
     // Free buffer if necessary.
     if (owns_buffer_) {
       delete[] frame_;

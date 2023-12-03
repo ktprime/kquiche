@@ -90,7 +90,7 @@ class QUICHE_EXPORT Http2HeaderBlock {
     size_t separator_size_ = 0;
   };
 
-  typedef quiche::QuicheLinkedHashMap<absl::string_view, HeaderValue,
+  typedef std::unordered_map<absl::string_view, HeaderValue,
                                       quiche::StringPieceCaseHash,
                                       quiche::StringPieceCaseEqual>
       MapType;

@@ -74,7 +74,11 @@ QuicSocketAddress::QuicSocketAddress(const sockaddr* saddr, socklen_t len) {
 }
 
 bool operator==(const QuicSocketAddress& lhs, const QuicSocketAddress& rhs) {
+#if 1 //TODO hybchanged
+  return lhs.port_ == rhs.port_ && *(uint32_t*)&lhs.host_ == *(uint32_t*)&rhs.host_;
+#else
   return lhs.host_ == rhs.host_ && lhs.port_ == rhs.port_;
+#endif
 }
 
 bool operator!=(const QuicSocketAddress& lhs, const QuicSocketAddress& rhs) {

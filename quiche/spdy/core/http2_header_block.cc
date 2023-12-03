@@ -144,8 +144,8 @@ Http2HeaderBlock::ValueProxy& Http2HeaderBlock::ValueProxy::operator=(
     QUICHE_DVLOG(1) << "Inserting: (" << key_ << ", " << value << ")";
     lookup_result_ =
         block_->map_
-            .emplace(std::make_pair(
-                key_, HeaderValue(storage, key_, storage->Write(value))))
+            .emplace(
+                key_, HeaderValue(storage, key_, storage->Write(value)))
             .first;
   } else {
     QUICHE_DVLOG(1) << "Updating key: " << key_ << " with value: " << value;
@@ -299,8 +299,8 @@ void Http2HeaderBlock::AppendValueOrAddHeader(const absl::string_view key,
 void Http2HeaderBlock::AppendHeader(const absl::string_view key,
                                     const absl::string_view value) {
   auto backed_key = WriteKey(key);
-  map_.emplace(std::make_pair(
-      backed_key, HeaderValue(&storage_, backed_key, storage_.Write(value))));
+  map_.emplace(
+      backed_key, HeaderValue(&storage_, backed_key, storage_.Write(value)));
 }
 
 absl::string_view Http2HeaderBlock::WriteKey(const absl::string_view key) {
