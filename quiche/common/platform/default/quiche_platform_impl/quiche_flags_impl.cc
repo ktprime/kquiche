@@ -8,7 +8,7 @@
 #include "quiche/quic/core/quic_flags_list.h"
 #undef QUIC_FLAG
 
-#define DEFINE_QUIC_PROTOCOL_FLAG_SINGLE_VALUE(type, flag, value, doc) \
+#define QUIC_PROTOCOL_FLAG(type, flag, value, doc) \
   type FLAGS_##flag = value;
 
 #define DEFINE_QUIC_PROTOCOL_FLAG_TWO_VALUES(type, flag, internal_value, \
@@ -21,9 +21,11 @@
 #define QUIC_PROTOCOL_FLAG_MACRO_CHOOSER(...)                    \
   GET_6TH_ARG(__VA_ARGS__, DEFINE_QUIC_PROTOCOL_FLAG_TWO_VALUES, \
               DEFINE_QUIC_PROTOCOL_FLAG_SINGLE_VALUE)
+//hybchanged for msvc
+#if 0
 #define QUIC_PROTOCOL_FLAG(...) \
   QUIC_PROTOCOL_FLAG_MACRO_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
-
+#endif
 #include "quiche/quic/core/quic_protocol_flags_list.h"
 
 #undef QUIC_PROTOCOL_FLAG

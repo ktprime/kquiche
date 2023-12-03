@@ -6,26 +6,26 @@
 
 namespace quiche {
 
-void QuicheMutex::WriterLock() { impl_.WriterLock(); }
+void QuicheMutex::WriterLock() { /*impl_.WriterLock()*/; }
 
-void QuicheMutex::WriterUnlock() { impl_.WriterUnlock(); }
+void QuicheMutex::WriterUnlock() { /*impl_.WriterUnlock()*/; }
 
-void QuicheMutex::ReaderLock() { impl_.ReaderLock(); }
+void QuicheMutex::ReaderLock() { /*impl_.ReaderLock()*/; }
 
-void QuicheMutex::ReaderUnlock() { impl_.ReaderUnlock(); }
+void QuicheMutex::ReaderUnlock() { /*impl_.ReaderUnlock()*/; }
 
-void QuicheMutex::AssertReaderHeld() const { impl_.AssertReaderHeld(); }
+void QuicheMutex::AssertReaderHeld() const { /*impl_.AssertReaderHeld()*/; }
 
 QuicheReaderMutexLock::QuicheReaderMutexLock(QuicheMutex* lock) : lock_(lock) {
-  lock->ReaderLock();
+//  lock->ReaderLock();
 }
 
-QuicheReaderMutexLock::~QuicheReaderMutexLock() { lock_->ReaderUnlock(); }
+QuicheReaderMutexLock::~QuicheReaderMutexLock() { /*lock_->ReaderUnlock()*/; }
 
 QuicheWriterMutexLock::QuicheWriterMutexLock(QuicheMutex* lock) : lock_(lock) {
-  lock->WriterLock();
+//  lock->WriterLock();
 }
 
-QuicheWriterMutexLock::~QuicheWriterMutexLock() { lock_->WriterUnlock(); }
+QuicheWriterMutexLock::~QuicheWriterMutexLock() { /*lock_->WriterUnlock()*/; }
 
 }  // namespace quiche

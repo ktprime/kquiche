@@ -10,13 +10,15 @@
 #include "quiche/common/platform/api/quiche_logging.h"
 #include "quiche/common/platform/api/quiche_prefetch.h"
 
+
 namespace quiche {
 
 QuicheBuffer QuicheBuffer::CopyFromIovec(QuicheBufferAllocator* allocator,
                                          const struct iovec* iov, int iov_count,
                                          size_t iov_offset,
                                          size_t buffer_length) {
-  if (buffer_length == 0) {
+  //QUICHE_CHECK(buffer_length > 0);
+  if (false && buffer_length == 0) {
     return {};
   }
 
@@ -25,13 +27,13 @@ QuicheBuffer QuicheBuffer::CopyFromIovec(QuicheBufferAllocator* allocator,
     iov_offset -= iov[iovnum].iov_len;
     ++iovnum;
   }
-  QUICHE_DCHECK_LE(iovnum, iov_count);
-  if (iovnum >= iov_count) {
+  //QUICHE_DCHECK_LE(iovnum, iov_count);
+  if (false && iovnum >= iov_count) {
     QUICHE_BUG(quiche_bug_10839_1)
         << "iov_offset larger than iovec total size.";
     return {};
   }
-  QUICHE_DCHECK_LE(iov_offset, iov[iovnum].iov_len);
+  //QUICHE_DCHECK_LE(iov_offset, iov[iovnum].iov_len);
 
   // Unroll the first iteration that handles iov_offset.
   const size_t iov_available = iov[iovnum].iov_len - iov_offset;
@@ -67,8 +69,8 @@ QuicheBuffer QuicheBuffer::CopyFromIovec(QuicheBufferAllocator* allocator,
     copy_len = std::min(buffer_length, iov[iovnum].iov_len);
   }
 
-  QUICHE_BUG_IF(quiche_bug_10839_2, buffer_length > 0)
-      << "iov_offset + buffer_length larger than iovec total size.";
+  //QUICHE_BUG_IF(quiche_bug_10839_2, buffer_length > 0)
+  //    << "iov_offset + buffer_length larger than iovec total size.";
 
   return buffer;
 }

@@ -14,6 +14,7 @@ absl::optional<int64_t> QuicheUtcDateTimeToUnixSecondsInner(int year, int month,
                                                             int day, int hour,
                                                             int minute,
                                                             int second) {
+#if 0
   const absl::CivilSecond civil_time(year, month, day, hour, minute, second);
   if (second != 60 &&
       (civil_time.year() != year || civil_time.month() != month ||
@@ -24,6 +25,16 @@ absl::optional<int64_t> QuicheUtcDateTimeToUnixSecondsInner(int year, int month,
 
   const absl::Time time = absl::FromCivil(civil_time, absl::UTCTimeZone());
   return absl::ToUnixSeconds(time);
+#else
+  std::tm timeinfo = std::tm{};
+  timeinfo.tm_year = year - 1900;
+  timeinfo.tm_mon  = month - 1;
+  timeinfo.tm_mday = day;
+  timeinfo.tm_hour = hour;
+  timeinfo.tm_min  = minute;
+  timeinfo.tm_sec  = second;
+  return std::mktime (&timeinfo);
+#endif
 }
 }  // namespace
 

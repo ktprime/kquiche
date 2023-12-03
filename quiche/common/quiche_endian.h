@@ -29,6 +29,10 @@ class QUICHE_EXPORT QuicheEndian {
   static uint16_t HostToNet16(uint16_t x) { return __builtin_bswap16(x); }
   static uint32_t HostToNet32(uint32_t x) { return __builtin_bswap32(x); }
   static uint64_t HostToNet64(uint64_t x) { return __builtin_bswap64(x); }
+#elif _WIN32
+  static uint16_t HostToNet16(uint16_t x) { return _byteswap_ushort(x); }
+  static uint32_t HostToNet32(uint32_t x) { return _byteswap_ulong(x);  }
+  static uint64_t HostToNet64(uint64_t x) { return _byteswap_uint64(x); }
 #else
   static uint16_t HostToNet16(uint16_t x) { return PortableByteSwap(x); }
   static uint32_t HostToNet32(uint32_t x) { return PortableByteSwap(x); }
@@ -36,9 +40,9 @@ class QUICHE_EXPORT QuicheEndian {
 #endif
 
   // Convert |x| from network order (big endian) to host order (little endian).
-  static uint16_t NetToHost16(uint16_t x) { return HostToNet16(x); }
-  static uint32_t NetToHost32(uint32_t x) { return HostToNet32(x); }
-  static uint64_t NetToHost64(uint64_t x) { return HostToNet64(x); }
+//  static uint16_t NetToHost16(uint16_t x) { return HostToNet16(x); }
+//  static uint32_t NetToHost32(uint32_t x) { return HostToNet32(x); }
+//  static uint64_t NetToHost64(uint64_t x) { return HostToNet64(x); }
 
   // Left public for tests.
   template <typename T>

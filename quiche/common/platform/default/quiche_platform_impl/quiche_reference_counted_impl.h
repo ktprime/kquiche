@@ -66,7 +66,7 @@ class QUICHE_NO_EXPORT QuicheReferenceCountedPointerImpl {
   }
 
   // Move constructors.
-  QuicheReferenceCountedPointerImpl(QuicheReferenceCountedPointerImpl&& other) {
+  QuicheReferenceCountedPointerImpl(QuicheReferenceCountedPointerImpl&& other) noexcept {
     object_ = other.object_;
     other.object_ = nullptr;
   }

@@ -26,7 +26,8 @@ QuicheDataWriter::~QuicheDataWriter() {}
 char* QuicheDataWriter::data() { return buffer_; }
 
 bool QuicheDataWriter::WriteUInt8(uint8_t value) {
-  return WriteBytes(&value, sizeof(value));
+  *((uint8_t*)buffer_ + length_++) = value;
+  return true;
 }
 
 bool QuicheDataWriter::WriteUInt16(uint16_t value) {
@@ -51,9 +52,13 @@ bool QuicheDataWriter::WriteUInt64(uint64_t value) {
 }
 
 bool QuicheDataWriter::WriteBytesToUInt64(size_t num_bytes, uint64_t value) {
-  if (num_bytes > sizeof(value)) {
+  QUICHE_DCHECK(num_bytes <= sizeof(value));
+  if (false && num_bytes > sizeof(value)) {
     return false;
   }
+  if (num_bytes == 1)
+    return WriteUInt8((uint8_t)value);
+
   if (endianness_ == quiche::HOST_BYTE_ORDER) {
     return WriteBytes(&value, num_bytes);
   }
@@ -78,11 +83,12 @@ bool QuicheDataWriter::WriteStringPiece(absl::string_view val) {
 }
 
 char* QuicheDataWriter::BeginWrite(size_t length) {
-  if (length_ > capacity_) {
+  QUICHE_DCHECK(capacity_ >= length + length_);
+  if (false && length_ > capacity_) {
     return nullptr;
   }
 
-  if (capacity_ - length_ < length) {
+  if (false && capacity_ < length + length_) {
     return nullptr;
   }
 
@@ -95,7 +101,7 @@ char* QuicheDataWriter::BeginWrite(size_t length) {
 
 bool QuicheDataWriter::WriteBytes(const void* data, size_t data_len) {
   char* dest = BeginWrite(data_len);
-  if (!dest) {
+  if (false && !dest) {
     return false;
   }
 
@@ -107,7 +113,7 @@ bool QuicheDataWriter::WriteBytes(const void* data, size_t data_len) {
 
 bool QuicheDataWriter::WriteRepeatedByte(uint8_t byte, size_t count) {
   char* dest = BeginWrite(count);
-  if (!dest) {
+  if (false && !dest) {
     return false;
   }
 

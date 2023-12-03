@@ -72,12 +72,12 @@ class QUICHE_EXPORT QuicheBuffer {
       : buffer_(std::move(buffer)), size_(size) {}
 
   // Make sure the move constructor zeroes out the size field.
-  QuicheBuffer(QuicheBuffer&& other)
+  QuicheBuffer(QuicheBuffer&& other) noexcept
       : buffer_(std::move(other.buffer_)), size_(other.size_) {
     other.buffer_ = nullptr;
     other.size_ = 0;
   }
-  QuicheBuffer& operator=(QuicheBuffer&& other) {
+  QuicheBuffer& operator=(QuicheBuffer&& other) noexcept {
     buffer_ = std::move(other.buffer_);
     size_ = other.size_;
 

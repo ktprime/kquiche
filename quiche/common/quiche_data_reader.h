@@ -176,6 +176,16 @@ class QUICHE_EXPORT QuicheDataReader {
 
   std::string DebugString() const;
 
+  void AdvancePos(size_t amount) {
+    QUICHE_DCHECK_LE(pos_, std::numeric_limits<size_t>::max() - amount);
+    QUICHE_DCHECK_LE(pos_, len_ - amount);
+    pos_ += amount;
+  }
+
+  const char* data() const { return data_; }
+
+  size_t pos() const { return pos_; }
+
  protected:
   // Returns true if the underlying buffer has enough room to read the given
   // amount of bytes.
@@ -184,15 +194,6 @@ class QUICHE_EXPORT QuicheDataReader {
   // To be called when a read fails for any reason.
   void OnFailure();
 
-  const char* data() const { return data_; }
-
-  size_t pos() const { return pos_; }
-
-  void AdvancePos(size_t amount) {
-    QUICHE_DCHECK_LE(pos_, std::numeric_limits<size_t>::max() - amount);
-    QUICHE_DCHECK_LE(pos_, len_ - amount);
-    pos_ += amount;
-  }
 
   quiche::Endianness endianness() const { return endianness_; }
 

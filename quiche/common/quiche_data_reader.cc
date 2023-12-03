@@ -27,15 +27,19 @@ QuicheDataReader::QuicheDataReader(const char* data, const size_t len,
     : data_(data), len_(len), pos_(0), endianness_(endianness) {}
 
 bool QuicheDataReader::ReadUInt8(uint8_t* result) {
-  return ReadBytes(result, sizeof(*result));
+  //return ReadBytes(result, sizeof(*result));
+  auto res = CanRead(1);
+  *result = data_[pos_++];
+  return res;
 }
 
 bool QuicheDataReader::ReadUInt16(uint16_t* result) {
-  if (!ReadBytes(result, sizeof(*result))) {
-    return false;
-  }
+  //ReadBytes(result, sizeof(*result));
+  memcpy(result, data_ + pos_, sizeof(*result));
+  pos_ += sizeof(*result);
+
   if (endianness_ == quiche::NETWORK_BYTE_ORDER) {
-    *result = quiche::QuicheEndian::NetToHost16(*result);
+    *result = quiche::QuicheEndian::HostToNet16(*result);
   }
   return true;
 }
@@ -51,54 +55,50 @@ bool QuicheDataReader::ReadUInt24(uint32_t* result) {
   if (!ReadBytes(reinterpret_cast<char*>(result) + 1, 3u)) {
     return false;
   }
-  *result = quiche::QuicheEndian::NetToHost32(*result);
+  *result = quiche::QuicheEndian::HostToNet32(*result);
   return true;
 }
 
 bool QuicheDataReader::ReadUInt32(uint32_t* result) {
-  if (!ReadBytes(result, sizeof(*result))) {
-    return false;
-  }
+  auto ret = ReadBytes(result, sizeof(*result));
+
   if (endianness_ == quiche::NETWORK_BYTE_ORDER) {
-    *result = quiche::QuicheEndian::NetToHost32(*result);
+    *result = quiche::QuicheEndian::HostToNet32(*result);
   }
-  return true;
+  return ret;
 }
 
 bool QuicheDataReader::ReadUInt64(uint64_t* result) {
-  if (!ReadBytes(result, sizeof(*result))) {
-    return false;
-  }
+  QUICHE_CHECK(CanRead(sizeof(*result)));
+  auto ret = ReadBytes(result, sizeof(*result));
+
   if (endianness_ == quiche::NETWORK_BYTE_ORDER) {
-    *result = quiche::QuicheEndian::NetToHost64(*result);
+    *result = quiche::QuicheEndian::HostToNet64(*result);
   }
-  return true;
+  return ret;
 }
 
 bool QuicheDataReader::ReadBytesToUInt64(size_t num_bytes, uint64_t* result) {
   *result = 0u;
-  if (num_bytes > sizeof(*result)) {
-    return false;
-  }
+  if (num_bytes == 1)
+    return ReadUInt8((uint8_t*)result); //TODO here
+
   if (endianness_ == quiche::HOST_BYTE_ORDER) {
     return ReadBytes(result, num_bytes);
   }
 
-  if (!ReadBytes(reinterpret_cast<char*>(result) + sizeof(*result) - num_bytes,
-                 num_bytes)) {
-    return false;
-  }
-  *result = quiche::QuicheEndian::NetToHost64(*result);
-  return true;
+  auto ret = ReadBytes(reinterpret_cast<char*>(result) + sizeof(*result) - num_bytes,
+                 num_bytes);
+
+  *result = quiche::QuicheEndian::HostToNet64(*result);
+  return ret;
 }
 
 bool QuicheDataReader::ReadStringPiece16(absl::string_view* result) {
   // Read resultant length.
-  uint16_t result_len;
-  if (!ReadUInt16(&result_len)) {
-    // OnFailure() already called.
-    return false;
-  }
+  uint16_t result_len = 65535;
+
+  ReadUInt16(&result_len);
 
   return ReadStringPiece(result, result_len);
 }
@@ -278,8 +278,8 @@ bool QuicheDataReader::IsDoneReading() const { return len_ == pos_; }
 
 size_t QuicheDataReader::BytesRemaining() const {
   if (pos_ > len_) {
-    QUICHE_BUG(quiche_reader_pos_out_of_bound)
-        << "QUIC reader pos out of bound: " << pos_ << ", len: " << len_;
+    //QUICHE_BUG(quiche_reader_pos_out_of_bound)
+    //    << "QUIC reader pos out of bound: " << pos_ << ", len: " << len_;
     return 0;
   }
   return len_ - pos_;

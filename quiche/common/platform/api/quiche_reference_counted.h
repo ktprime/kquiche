@@ -79,7 +79,7 @@ class QUICHE_NO_EXPORT QuicheReferenceCountedPointer {
   QuicheReferenceCountedPointer(
       QuicheReferenceCountedPointer<U>&& other)  // NOLINT
       : impl_(std::move(other.impl())) {}
-  QuicheReferenceCountedPointer(QuicheReferenceCountedPointer&& other)
+  QuicheReferenceCountedPointer(QuicheReferenceCountedPointer&& other) noexcept
       : impl_(std::move(other.impl())) {}
 
   ~QuicheReferenceCountedPointer() = default;

@@ -35,7 +35,11 @@ class QUICHE_EXPORT QuicheMemSliceStorage {
   absl::Span<QuicheMemSlice> ToSpan() { return absl::MakeSpan(storage_); }
 
  private:
+#if 0
   std::vector<QuicheMemSlice> storage_;
+#else
+  absl::InlinedVector<QuicheMemSlice, 2> storage_;
+#endif
 };
 
 }  // namespace quiche

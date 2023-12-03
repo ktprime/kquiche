@@ -239,7 +239,7 @@ QuicheIpPrefix::QuicheIpPrefix(const QuicheIpAddress& address,
                                uint8_t prefix_length)
     : address_(address), prefix_length_(prefix_length) {
   QUICHE_DCHECK(prefix_length <= QuicheIpPrefix(address).prefix_length())
-      << "prefix_length cannot be longer than the size of the IP address";
+    ;//<< "prefix_length cannot be longer than the size of the IP address";
 }
 
 std::string QuicheIpPrefix::ToString() const {

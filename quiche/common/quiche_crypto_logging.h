@@ -18,8 +18,7 @@ void ClearOpenSslErrors();
 
 // Include OpenSSL error stack in Status msg so that callers could choose to
 // only log it in debug builds if required.
-absl::Status SslErrorAsStatus(
-    absl::string_view msg, absl::StatusCode code = absl::StatusCode::kInternal);
+absl::Status SslErrorAsStatus(absl::string_view msg);
 
 }  // namespace quiche
 

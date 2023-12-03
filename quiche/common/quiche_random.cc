@@ -87,7 +87,7 @@ uint64_t DefaultQuicheRandom::InsecureRandUint64() {
 
 // static
 QuicheRandom* QuicheRandom::GetInstance() {
-  static DefaultQuicheRandom* random = new DefaultQuicheRandom();
-  return random;
+  static DefaultQuicheRandom random;// = new DefaultQuicheRandom();
+  return &random;
 }
 }  // namespace quiche

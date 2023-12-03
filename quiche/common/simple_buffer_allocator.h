@@ -16,8 +16,8 @@ namespace quiche {
 class QUICHE_EXPORT SimpleBufferAllocator : public QuicheBufferAllocator {
  public:
   static SimpleBufferAllocator* Get() {
-    static SimpleBufferAllocator* singleton = new SimpleBufferAllocator();
-    return singleton;
+    static SimpleBufferAllocator singleton;// = new SimpleBufferAllocator();
+    return &singleton;
   }
 
   char* New(size_t size) override;

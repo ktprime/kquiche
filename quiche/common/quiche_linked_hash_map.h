@@ -22,10 +22,13 @@
 #include <type_traits>
 #include <utility>
 
-#include "absl/container/flat_hash_map.h"
+//#include "absl/container/flat_hash_map.h"
 #include "absl/hash/hash.h"
+//#include "base/containers/hash_table.hpp"
+#include "base/containers/small_unordered_flat_map.hpp"
 #include "quiche/common/platform/api/quiche_export.h"
 #include "quiche/common/platform/api/quiche_logging.h"
+#include "quiche/quic/core/bitmap_allocator.h"
 
 namespace quiche {
 
@@ -43,21 +46,23 @@ template <class Key,                      // QUICHE_NO_EXPORT
           class Eq = std::equal_to<Key>>  // QUICHE_NO_EXPORT
 class QuicheLinkedHashMap {               // QUICHE_NO_EXPORT
  private:
-  typedef std::list<std::pair<Key, Value>> ListType;
-  typedef absl::flat_hash_map<Key, typename ListType::iterator, Hash, Eq>
-      MapType;
+  typedef std::list<std::pair<Key, Value>, stm::allocator<std::pair<Key, Value>>> ListType;
+
+//  typedef absl::flat_hash_map<Key, typename ListType::iterator, Hash, Eq> MapType;
+//  using MapType = emhash5::HashMap<Key, typename ListType::iterator, Hash, Eq>;
+//  using MapType = sfl::small_unordered_flat_map<Key, typename ListType::iterator, 4, Eq>;
 
  public:
   typedef typename ListType::iterator iterator;
-  typedef typename ListType::reverse_iterator reverse_iterator;
+//  typedef typename ListType::reverse_iterator reverse_iterator;
   typedef typename ListType::const_iterator const_iterator;
-  typedef typename ListType::const_reverse_iterator const_reverse_iterator;
-  typedef typename MapType::key_type key_type;
+//  typedef typename ListType::const_reverse_iterator const_reverse_iterator;
+//  typedef typename MapType::key_type key_type;
   typedef typename ListType::value_type value_type;
   typedef typename ListType::size_type size_type;
 
   QuicheLinkedHashMap() = default;
-  explicit QuicheLinkedHashMap(size_type bucket_count) : map_(bucket_count) {}
+  explicit QuicheLinkedHashMap(size_type bucket_count) {}
 
   QuicheLinkedHashMap(const QuicheLinkedHashMap& other) = delete;
   QuicheLinkedHashMap& operator=(const QuicheLinkedHashMap& other) = delete;
@@ -75,12 +80,12 @@ class QuicheLinkedHashMap {               // QUICHE_NO_EXPORT
 
   // Returns an iterator to the last (insertion-ordered) element.  Like a map,
   // this can be dereferenced to a pair<Key, Value>.
-  reverse_iterator rbegin() { return list_.rbegin(); }
-  const_reverse_iterator rbegin() const { return list_.rbegin(); }
+//  reverse_iterator rbegin() { return list_.rbegin(); }
+//  const_reverse_iterator rbegin() const { return list_.rbegin(); }
 
   // Returns an iterator beyond the first element.
-  reverse_iterator rend() { return list_.rend(); }
-  const_reverse_iterator rend() const { return list_.rend(); }
+//  reverse_iterator rend() { return list_.rend(); }
+//  const_reverse_iterator rend() const { return list_.rend(); }
 
   // Front and back accessors common to many stl containers.
 
@@ -91,14 +96,13 @@ class QuicheLinkedHashMap {               // QUICHE_NO_EXPORT
   value_type& front() { return list_.front(); }
 
   // Returns the most-recently-inserted element.
-  const value_type& back() const { return list_.back(); }
+//  const value_type& back() const { return list_.back(); }
 
   // Returns the most-recently-inserted element.
   value_type& back() { return list_.back(); }
 
   // Clears the map of all values.
   void clear() {
-    map_.clear();
     list_.clear();
   }
 
@@ -106,19 +110,17 @@ class QuicheLinkedHashMap {               // QUICHE_NO_EXPORT
   bool empty() const { return list_.empty(); }
 
   // Removes the first element from the list.
-  void pop_front() { erase(begin()); }
+  void pop_front() { list_.erase(list_.begin()); }
 
   // Erases values with the provided key.  Returns the number of elements
   // erased.  In this implementation, this will be 0 or 1.
   size_type erase(const Key& key) {
-    typename MapType::iterator found = map_.find(key);
-    if (found == map_.end()) {
+    auto found = find(key);
+    if (found == list_.end()) {
       return 0;
     }
 
-    list_.erase(found->second);
-    map_.erase(found);
-
+    list_.erase(found);
     return 1;
   }
 
@@ -128,12 +130,6 @@ class QuicheLinkedHashMap {               // QUICHE_NO_EXPORT
   // If the provided iterator is invalid or there is inconsistency between the
   // map and list, a QUICHE_CHECK() error will occur.
   iterator erase(iterator position) {
-    typename MapType::iterator found = map_.find(position->first);
-    QUICHE_CHECK(found->second == position)
-        << "Inconsistent iterator for map and list, or the iterator is "
-           "invalid.";
-
-    map_.erase(found);
     return list_.erase(position);
   }
 
@@ -151,82 +147,57 @@ class QuicheLinkedHashMap {               // QUICHE_NO_EXPORT
   // value found, or to end() if the value was not found.  Like a map, this
   // iterator points to a pair<Key, Value>.
   iterator find(const Key& key) {
-    typename MapType::iterator found = map_.find(key);
-    if (found == map_.end()) {
-      return end();
-    }
-    return found->second;
+    for (auto it = list_.begin(); it != list_.end(); it++)
+      if (key == it->first) return it;
+    return list_.end();
   }
 
   const_iterator find(const Key& key) const {
-    typename MapType::const_iterator found = map_.find(key);
-    if (found == map_.end()) {
-      return end();
+    for (auto it = list_.begin(); it != list_.end(); it++)
+      if (key == it->first) return it;
+    return list_.end();
+  }
+
+  bool contains(const Key& key) const {
+    return list_.size() && list_.end() != find(key);
+  }
+
+  // Inserts an element into the map
+  bool insert(const Key& key, const Value& value) {
+    // First make sure the map doesn't have a key with this value.  If it does,
+    // return a pair with an iterator to it, and false indicating that we
+    // didn't insert anything.
+    if (list_.size() && find(key) != list_.end()) {
+      return false;
     }
-    return found->second;
-  }
 
-  bool contains(const Key& key) const { return find(key) != end(); }
-
-  // Returns the value mapped to key, or an inserted iterator to that position
-  // in the map.
-  Value& operator[](const key_type& key) {
-    return (*((this->insert(std::make_pair(key, Value()))).first)).second;
-  }
-
-  // Inserts an element into the map
-  std::pair<iterator, bool> insert(const std::pair<Key, Value>& pair) {
-    return InsertInternal(pair);
-  }
-
-  // Inserts an element into the map
-  std::pair<iterator, bool> insert(std::pair<Key, Value>&& pair) {
-    return InsertInternal(std::move(pair));
+    // Otherwise, insert into the list first.
+    list_.emplace_back(key, value);
+    return true;
   }
 
   // Derive size_ from map_, as list::size might be O(N).
-  size_type size() const { return map_.size(); }
-
-  template <typename... Args>
-  std::pair<iterator, bool> emplace(Args&&... args) {
-    ListType node_donor;
-    auto node_pos =
-        node_donor.emplace(node_donor.end(), std::forward<Args>(args)...);
-    const auto& k = node_pos->first;
-    auto ins = map_.insert({k, node_pos});
-    if (!ins.second) {
-      return {ins.first->second, false};
+  size_type size() const { return list_.size(); }
+#if 1
+  std::pair<iterator, bool> emplace(const Key& key, Value&& value) {
+    if (list_.size() && find(key) != list_.end()) {
+      return { list_.end(), false };
     }
-    list_.splice(list_.end(), node_donor, node_pos);
-    return {ins.first->second, true};
+
+    // Otherwise, insert into the list first.
+    list_.emplace_back(key, std::move(value));
+    return {--list_.end(), true };
   }
 
   void swap(QuicheLinkedHashMap& other) {
-    map_.swap(other.map_);
     list_.swap(other.list_);
   }
-
+#endif
  private:
-  template <typename U>
-  std::pair<iterator, bool> InsertInternal(U&& pair) {
-    auto insert_result = map_.try_emplace(pair.first);
-    auto map_iter = insert_result.first;
 
-    // If the map already contains this key, return a pair with an iterator to
-    // it, and false indicating that we didn't insert anything.
-    if (!insert_result.second) {
-      return {map_iter->second, false};
-    }
-
-    // Otherwise, insert into the list, and set value in map.
-    auto list_iter = list_.insert(list_.end(), std::forward<U>(pair));
-    map_iter->second = list_iter;
-
-    return {list_iter, true};
-  }
 
   // The map component, used for speedy lookups
-  MapType map_;
+  //MapType map_;
 
   // The list component, used for maintaining insertion order
   ListType list_;

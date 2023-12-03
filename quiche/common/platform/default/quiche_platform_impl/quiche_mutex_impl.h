@@ -42,7 +42,7 @@ class ABSL_LOCKABLE QUICHE_EXPORT QuicheLockImpl {
   void AssertReaderHeld() const ABSL_ASSERT_SHARED_LOCK();
 
  private:
-  absl::Mutex mu_;
+//  absl::Mutex mu_;
 };
 
 // A Notification allows threads to receive notification of a single occurrence

@@ -37,7 +37,7 @@ namespace quiche {
 // inserted or erased in the middle.
 //
 // TODO(wub): Make memory grow/shrink strategies customizable.
-template <typename T, size_t MinCapacityIncrement = 3,
+template <typename T, size_t MinCapacityIncrement = 6,
           typename Allocator = std::allocator<T>>
 class QUICHE_NO_EXPORT QuicheCircularDeque {
   using AllocatorTraits = std::allocator_traits<Allocator>;
@@ -321,7 +321,7 @@ class QUICHE_NO_EXPORT QuicheCircularDeque {
   }
 
   reference at(size_type pos) {
-    QUICHE_DCHECK(pos < size()) << "pos:" << pos << ", size():" << size();
+    QUICHE_DCHECK(pos < size());// << "pos:" << pos << ", size():" << size();
     size_type index = begin_ + pos;
     if (index < data_capacity()) {
       return *index_to_address(index);
@@ -469,7 +469,7 @@ class QUICHE_NO_EXPORT QuicheCircularDeque {
       // c++ standard, to swap between two AllocatorAwareContainer(s) with
       // unequal allocators.
       QUICHE_DCHECK(get_allocator() == other.get_allocator())
-          << "Undefined swap behavior";
+          ;//<< "Undefined swap behavior";
       swap(allocator_and_data_.data, other.allocator_and_data_.data);
       swap(allocator_and_data_.data_capacity,
            other.allocator_and_data_.data_capacity);
@@ -587,8 +587,8 @@ class QUICHE_NO_EXPORT QuicheCircularDeque {
 
   void Relocate(size_t new_capacity) {
     const size_t num_elements = size();
-    QUICHE_DCHECK_GT(new_capacity, num_elements)
-        << "new_capacity:" << new_capacity << ", num_elements:" << num_elements;
+    QUICHE_DCHECK_GT(new_capacity, num_elements);
+    //    << "new_capacity:" << new_capacity << ", num_elements:" << num_elements;
 
     size_t new_data_capacity = new_capacity + 1;
     pointer new_data = AllocatorTraits::allocate(
@@ -618,7 +618,7 @@ class QUICHE_NO_EXPORT QuicheCircularDeque {
   template <typename T_ = T>
   typename std::enable_if<std::is_trivially_copyable<T_>::value, void>::type
   RelocateUnwrappedRange(size_type begin, size_type end, pointer dest) const {
-    QUICHE_DCHECK_LE(begin, end) << "begin:" << begin << ", end:" << end;
+    QUICHE_DCHECK_LE(begin, end); //<< "begin:" << begin << ", end:" << end;
     pointer src = index_to_address(begin);
     QUICHE_DCHECK_NE(src, nullptr);
     memcpy(dest, src, sizeof(T) * (end - begin));
@@ -630,7 +630,7 @@ class QUICHE_NO_EXPORT QuicheCircularDeque {
                               std::is_move_constructible<T_>::value,
                           void>::type
   RelocateUnwrappedRange(size_type begin, size_type end, pointer dest) const {
-    QUICHE_DCHECK_LE(begin, end) << "begin:" << begin << ", end:" << end;
+    QUICHE_DCHECK_LE(begin, end); //<< "begin:" << begin << ", end:" << end;
     pointer src = index_to_address(begin);
     pointer src_end = index_to_address(end);
     while (src != src_end) {
@@ -646,7 +646,7 @@ class QUICHE_NO_EXPORT QuicheCircularDeque {
                               !std::is_move_constructible<T_>::value,
                           void>::type
   RelocateUnwrappedRange(size_type begin, size_type end, pointer dest) const {
-    QUICHE_DCHECK_LE(begin, end) << "begin:" << begin << ", end:" << end;
+    QUICHE_DCHECK_LE(begin, end); //<< "begin:" << begin << ", end:" << end;
     pointer src = index_to_address(begin);
     pointer src_end = index_to_address(end);
     while (src != src_end) {
@@ -689,7 +689,7 @@ class QUICHE_NO_EXPORT QuicheCircularDeque {
 
   // Should only be called from DestroyRange.
   void DestroyUnwrappedRange(size_type begin, size_type end) const {
-    QUICHE_DCHECK_LE(begin, end) << "begin:" << begin << ", end:" << end;
+    QUICHE_DCHECK_LE(begin, end); //<< "begin:" << begin << ", end:" << end;
     for (; begin != end; ++begin) {
       DestroyByIndex(begin);
     }

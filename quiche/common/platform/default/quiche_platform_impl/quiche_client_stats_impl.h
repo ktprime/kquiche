@@ -14,7 +14,7 @@ namespace quiche {
 
 #define QUICHE_CLIENT_HISTOGRAM_ENUM_IMPL(name, sample, enum_size, docstring) \
   do {                                                                        \
-    quiche::QuicheClientSparseHistogramImpl(name, static_cast<int>(sample));  \
+    (void)sample; /* Workaround for -Wunused-variable. */          \
   } while (0)
 
 #define QUICHE_CLIENT_HISTOGRAM_BOOL_IMPL(name, sample, docstring) \
@@ -31,7 +31,7 @@ namespace quiche {
 #define QUICHE_CLIENT_HISTOGRAM_COUNTS_IMPL(name, sample, min, max, \
                                             num_buckets, docstring) \
   do {                                                              \
-    quiche::QuicheClientSparseHistogramImpl(name, sample);          \
+    (void)sample; /* Workaround for -Wunused-variable. */          \
   } while (0)
 
 inline void QuicheClientSparseHistogramImpl(const std::string& /*name*/,
