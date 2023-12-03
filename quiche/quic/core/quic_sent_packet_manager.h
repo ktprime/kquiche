@@ -105,14 +105,6 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
 
     // Called when the Path MTU may have increased.
     virtual void OnPathMtuIncreased(QuicPacketLength packet_size) = 0;
-
-    // Called when a in-flight packet sent on the current default path with ECN
-    // markings is acked.
-    virtual void OnInFlightEcnPacketAcked() = 0;
-
-    // Called when an ACK frame with ECN counts has invalid values, or an ACK
-    // acknowledges packets with ECN marks and there are no ECN counts.
-    virtual void OnInvalidEcnFeedback() = 0;
   };
 
   // The retransmission timer is a single timer which switches modes depending
@@ -133,9 +125,9 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
                         CongestionControlType congestion_control_type);
   QuicSentPacketManager(const QuicSentPacketManager&) = delete;
   QuicSentPacketManager& operator=(const QuicSentPacketManager&) = delete;
-  virtual ~QuicSentPacketManager();
+  ~QuicSentPacketManager();
 
-  virtual void SetFromConfig(const QuicConfig& config);
+  void SetFromConfig(const QuicConfig& config);
 
   void ReserveUnackedPacketsInitialCapacity(int initial_capacity) {
     unacked_packets_.ReserveInitialCapacity(initial_capacity);
@@ -150,18 +142,6 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
 
   void SetMaxPacingRate(QuicBandwidth max_pacing_rate) {
     pacing_sender_.set_max_pacing_rate(max_pacing_rate);
-  }
-
-  // The delay to use for the send alarm. If zero, it essentially means
-  // to queue the send call immediately.
-  // WARNING: This is currently an experimental API.
-  // TODO(genioshelo): This should implement a dynamic delay based on the
-  // underlying connection properties and lumpy pacing.
-  QuicTime::Delta GetDeferredSendAlarmDelay() const {
-    return deferred_send_alarm_delay_.value_or(QuicTime::Delta::Zero());
-  }
-  void SetDeferredSendAlarmDelay(QuicTime::Delta delay) {
-    deferred_send_alarm_delay_ = delay;
   }
 
   QuicBandwidth MaxPacingRate() const {
@@ -193,7 +173,7 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   void OnConnectionClosed();
 
   // Retransmits the oldest pending packet.
-  bool MaybeRetransmitOldestPacket(TransmissionType type);
+  //bool MaybeRetransmitOldestPacket(TransmissionType type);
 
   // Removes the retransmittable frames from all unencrypted packets to ensure
   // they don't get retransmitted.
@@ -222,7 +202,7 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   bool OnPacketSent(SerializedPacket* mutable_packet, QuicTime sent_time,
                     TransmissionType transmission_type,
                     HasRetransmittableData has_retransmittable_data,
-                    bool measure_rtt, QuicEcnCodepoint ecn_codepoint);
+                    bool measure_rtt);
 
   bool CanSendAckFrequency() const;
 
@@ -349,8 +329,7 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   // Called when an ack frame is parsed completely.
   AckResult OnAckFrameEnd(QuicTime ack_receive_time,
                           QuicPacketNumber ack_packet_number,
-                          EncryptionLevel ack_decrypted_level,
-                          const absl::optional<QuicEcnCounts>& ecn_counts);
+                          EncryptionLevel ack_decrypted_level);
 
   void EnableMultiplePacketNumberSpacesSupport();
 
@@ -520,9 +499,7 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   // triggered.
   void MaybeInvokeCongestionEvent(bool rtt_updated,
                                   QuicByteCount prior_in_flight,
-                                  QuicTime event_time,
-                                  absl::optional<QuicEcnCounts> ecn_counts,
-                                  const QuicEcnCounts& previous_counts);
+                                  QuicTime event_time);
 
   // Removes the retransmittability and in flight properties from the packet at
   // |info| due to receipt by the peer.
@@ -543,8 +520,7 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
                                     EncryptionLevel ack_decrypted_level,
                                     const QuicAckFrame& ack_frame,
                                     QuicTime ack_receive_time, bool rtt_updated,
-                                    QuicByteCount prior_bytes_in_flight,
-                                    absl::optional<QuicEcnCounts> ecn_counts);
+                                    QuicByteCount prior_bytes_in_flight);
 
   // Notify observers that packet with QuicTransmissionInfo |info| is a spurious
   // retransmission. It is caller's responsibility to guarantee the packet with
@@ -579,20 +555,6 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   void OnAckFrequencyFrameAcked(
       const QuicAckFrequencyFrame& ack_frequency_frame);
 
-  // Checks if newly reported ECN counts are valid given what has been reported
-  // in the past. |space| is the packet number space the counts apply to.
-  // |ecn_counts| is what the peer reported. |newly_acked_ect0| and
-  // |newly_acked_ect1| count the number of previously unacked packets with
-  // those markings that appeared in an ack block for the first time.
-  bool IsEcnFeedbackValid(PacketNumberSpace space,
-                          const absl::optional<QuicEcnCounts>& ecn_counts,
-                          QuicPacketCount newly_acked_ect0,
-                          QuicPacketCount newly_acked_ect1);
-
-  // Update counters for the number of ECN-marked packets sent.
-  void RecordEcnMarkingSent(QuicEcnCodepoint ecn_codepoint,
-                            EncryptionLevel level);
-
   // Newly serialized retransmittable packets are added to this map, which
   // contains owning pointers to any contained frames.  If a packet is
   // retransmitted, this map will contain entries for both the old and the new
@@ -607,7 +569,7 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   QuicRandom* random_;
   QuicConnectionStats* stats_;
 
-  DebugDelegate* debug_delegate_;
+  constexpr static DebugDelegate* debug_delegate_ = nullptr;
   NetworkChangeVisitor* network_change_visitor_;
   QuicPacketCount initial_congestion_window_;
   RttStats rtt_stats_;
@@ -707,16 +669,6 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
 
   // Whether to ignore the ack_delay in received ACKs.
   bool ignore_ack_delay_;
-
-  // The total number of packets sent with ECT(0) or ECT(1) in each packet
-  // number space over the life of the connection.
-  QuicPacketCount ect0_packets_sent_[NUM_PACKET_NUMBER_SPACES] = {0, 0, 0};
-  QuicPacketCount ect1_packets_sent_[NUM_PACKET_NUMBER_SPACES] = {0, 0, 0};
-
-  // Most recent ECN codepoint counts received in an ACK frame sent by the peer.
-  QuicEcnCounts peer_ack_ecn_counts_[NUM_PACKET_NUMBER_SPACES];
-
-  absl::optional<QuicTime::Delta> deferred_send_alarm_delay_;
 };
 
 }  // namespace quic

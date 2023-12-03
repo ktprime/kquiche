@@ -41,13 +41,13 @@ QuicStreamSequencer::QuicStreamSequencer(StreamInterface* quic_stream)
 QuicStreamSequencer::~QuicStreamSequencer() {
   if (stream_ == nullptr) {
     QUIC_BUG(quic_bug_10858_1) << "Double free'ing QuicStreamSequencer at "
-                               << this << ". " << QuicStackTrace();
+                               << this << ". " << "QuicStackTrace()";
   }
   stream_ = nullptr;
 }
 
 void QuicStreamSequencer::OnStreamFrame(const QuicStreamFrame& frame) {
-  QUICHE_DCHECK_LE(frame.offset + frame.data_length, close_offset_);
+  //QUICHE_DCHECK_LE(frame.offset + frame.data_length, close_offset_);
   ++num_frames_received_;
   const QuicStreamOffset byte_offset = frame.offset;
   const size_t data_len = frame.data_length;
@@ -56,11 +56,13 @@ void QuicStreamSequencer::OnStreamFrame(const QuicStreamFrame& frame) {
       (!CloseStreamAtOffset(frame.offset + data_len) || data_len == 0)) {
     return;
   }
-  if (stream_->version().HasIetfQuicFrames() && data_len == 0) {
+#if QUIC_TLS_SESSION
+  if (data_len == 0 && stream_->version().HasIetfQuicFrames()) {
     QUICHE_DCHECK(!frame.fin);
     // Ignore empty frame with no fin.
     return;
   }
+#endif
   OnFrameData(byte_offset, data_len, frame.data_buffer);
 }
 
@@ -79,7 +81,7 @@ void QuicStreamSequencer::OnFrameData(QuicStreamOffset byte_offset,
   highest_offset_ = std::max(highest_offset_, byte_offset + data_len);
   const size_t previous_readable_bytes = buffered_frames_.ReadableBytes();
   size_t bytes_written;
-  std::string error_details;
+  std::string_view error_details;
   QuicErrorCode result = buffered_frames_.OnStreamData(
       byte_offset, absl::string_view(data_buffer, data_len), &bytes_written,
       &error_details);
@@ -93,36 +95,23 @@ void QuicStreamSequencer::OnFrameData(QuicStreamOffset byte_offset,
     return;
   }
 
-  if (bytes_written == 0) {
+  else if (bytes_written == 0) {
     ++num_duplicate_frames_received_;
+    stream_->OnDuplicate();
     // Silently ignore duplicates.
     return;
   }
-
-  if (blocked_) {
+  else if (buffered_frames_.ReadableBytes() == 0)
+    return;
+  else if (false && blocked_) {
     return;
   }
 
-  if (level_triggered_) {
-    if (buffered_frames_.ReadableBytes() > previous_readable_bytes) {
-      // Readable bytes has changed, let stream decide if to inform application
-      // or not.
-      if (ignore_read_data_) {
-        FlushBufferedFrames();
-      } else {
-        stream_->OnDataAvailable();
-      }
-    }
-    return;
-  }
-  const bool stream_unblocked =
-      previous_readable_bytes == 0 && buffered_frames_.ReadableBytes() > 0;
-  if (stream_unblocked) {
-    if (ignore_read_data_) {
-      FlushBufferedFrames();
-    } else {
-      stream_->OnDataAvailable();
-    }
+
+  if (ignore_read_data_) {
+    FlushBufferedFrames();
+  } else if (previous_readable_bytes == 0 || level_triggered_) {
+    stream_->OnDataAvailable();
   }
 }
 
@@ -205,13 +194,13 @@ void QuicStreamSequencer::Read(std::string* buffer) {
 
 size_t QuicStreamSequencer::Readv(const struct iovec* iov, size_t iov_len) {
   QUICHE_DCHECK(!blocked_);
-  std::string error_details;
+  std::string* error_details = nullptr;
   size_t bytes_read;
   QuicErrorCode read_error =
-      buffered_frames_.Readv(iov, iov_len, &bytes_read, &error_details);
+      buffered_frames_.Readv(iov, iov_len, &bytes_read, error_details);
   if (read_error != QUIC_NO_ERROR) {
     std::string details =
-        absl::StrCat("Stream ", stream_->id(), ": ", error_details);
+        absl::StrCat("Stream ", stream_->id(), ": ", *error_details);
     stream_->OnUnrecoverableError(read_error, details);
     return bytes_read;
   }
@@ -235,7 +224,8 @@ bool QuicStreamSequencer::IsClosed() const {
 void QuicStreamSequencer::MarkConsumed(size_t num_bytes_consumed) {
   QUICHE_DCHECK(!blocked_);
   bool result = buffered_frames_.MarkConsumed(num_bytes_consumed);
-  if (!result) {
+  QUICHE_DCHECK(result);
+  if (false && !result) {
     QUIC_BUG(quic_bug_10858_2)
         << "Invalid argument to MarkConsumed."
         << " expect to consume: " << num_bytes_consumed

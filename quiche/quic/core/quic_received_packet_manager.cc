@@ -72,20 +72,24 @@ void QuicReceivedPacketManager::SetFromConfig(const QuicConfig& config,
 }
 
 void QuicReceivedPacketManager::RecordPacketReceived(
-    const QuicPacketHeader& header, QuicTime receipt_time,
-    const QuicEcnCodepoint ecn) {
+    const QuicPacketHeader& header, QuicTime receipt_time) {
   const QuicPacketNumber packet_number = header.packet_number;
   QUICHE_DCHECK(IsAwaitingPacket(packet_number))
-      << " packet_number:" << packet_number;
+    ;//<< " packet_number:" << packet_number;
   was_last_packet_missing_ = IsMissing(packet_number);
   if (!ack_frame_updated_) {
     ack_frame_.received_packet_times.clear();
+    ack_frame_updated_ = true;
   }
-  ack_frame_updated_ = true;
 
   // Whether |packet_number| is received out of order.
   bool packet_reordered = false;
-  if (LargestAcked(ack_frame_).IsInitialized() &&
+  if (//!LargestAcked(ack_frame_).IsInitialized() ||
+    packet_number > LargestAcked(ack_frame_)) {
+    ack_frame_.largest_acked = packet_number;
+    time_largest_observed_ = receipt_time;
+  }
+  else if (//LargestAcked(ack_frame_).IsInitialized() &&
       LargestAcked(ack_frame_) > packet_number) {
     // Record how out of order stats.
     packet_reordered = true;
@@ -97,11 +101,6 @@ void QuicReceivedPacketManager::RecordPacketReceived(
         (receipt_time - time_largest_observed_).ToMicroseconds();
     stats_->max_time_reordering_us =
         std::max(stats_->max_time_reordering_us, reordering_time_us);
-  }
-  if (!LargestAcked(ack_frame_).IsInitialized() ||
-      packet_number > LargestAcked(ack_frame_)) {
-    ack_frame_.largest_acked = packet_number;
-    time_largest_observed_ = receipt_time;
   }
   ack_frame_.packets.Add(packet_number);
 
@@ -122,59 +121,36 @@ void QuicReceivedPacketManager::RecordPacketReceived(
     }
   }
 
-  if (GetQuicRestartFlag(quic_receive_ecn) && ecn != ECN_NOT_ECT) {
-    QUIC_RESTART_FLAG_COUNT_N(quic_receive_ecn, 1, 3);
-    if (!ack_frame_.ecn_counters.has_value()) {
-      ack_frame_.ecn_counters = QuicEcnCounts();
-    }
-    switch (ecn) {
-      case ECN_NOT_ECT:
-        QUICHE_NOTREACHED();
-        break;  // It's impossible to get here, but the compiler complains.
-      case ECN_ECT0:
-        ack_frame_.ecn_counters->ect0++;
-        break;
-      case ECN_ECT1:
-        ack_frame_.ecn_counters->ect1++;
-        break;
-      case ECN_CE:
-        ack_frame_.ecn_counters->ce++;
-        break;
-    }
-  }
-
-  if (least_received_packet_number_.IsInitialized()) {
-    least_received_packet_number_ =
-        std::min(least_received_packet_number_, packet_number);
-  } else {
+  if (least_received_packet_number_ > packet_number) {
     least_received_packet_number_ = packet_number;
   }
 }
 
 bool QuicReceivedPacketManager::IsMissing(QuicPacketNumber packet_number) {
-  return LargestAcked(ack_frame_).IsInitialized() &&
+  return //LargestAcked(ack_frame_).IsInitialized() &&
          packet_number < LargestAcked(ack_frame_) &&
          !ack_frame_.packets.Contains(packet_number);
 }
 
 bool QuicReceivedPacketManager::IsAwaitingPacket(
     QuicPacketNumber packet_number) const {
-  return quic::IsAwaitingPacket(ack_frame_, packet_number,
-                                peer_least_packet_awaiting_ack_);
+  return !peer_least_packet_awaiting_ack_.IsInitialized() ||
+         !ack_frame_.packets.Contains(packet_number) &&
+         packet_number >= peer_least_packet_awaiting_ack_;
+//  quic::IsAwaitingPacket(ack_frame_, packet_number,peer_least_packet_awaiting_ack_);
 }
 
 const QuicFrame QuicReceivedPacketManager::GetUpdatedAckFrame(
     QuicTime approximate_now) {
-  if (time_largest_observed_ == QuicTime::Zero()) {
-    // We have received no packets.
-    ack_frame_.ack_delay_time = QuicTime::Delta::Infinite();
-  } else {
+  if (true || approximate_now >= time_largest_observed_) {
     // Ensure the delta is zero if approximate now is "in the past".
-    ack_frame_.ack_delay_time = approximate_now < time_largest_observed_
-                                    ? QuicTime::Delta::Zero()
-                                    : approximate_now - time_largest_observed_;
-  }
-  while (max_ack_ranges_ > 0 &&
+    ack_frame_.ack_delay_time = approximate_now - time_largest_observed_;
+  } else
+    ack_frame_.ack_delay_time = QuicTime::Delta::Zero();
+  QUICHE_DCHECK(time_largest_observed_.IsInitialized());
+  QUICHE_DCHECK(approximate_now >= time_largest_observed_);
+
+  while (//max_ack_ranges_ > 0 &&
          ack_frame_.packets.NumIntervals() > max_ack_ranges_) {
     ack_frame_.packets.RemoveSmallestInterval();
   }
@@ -201,14 +177,14 @@ const QuicFrame QuicReceivedPacketManager::GetUpdatedAckFrame(
 
 void QuicReceivedPacketManager::DontWaitForPacketsBefore(
     QuicPacketNumber least_unacked) {
-  if (!least_unacked.IsInitialized()) {
+  if (false && !least_unacked.IsInitialized()) {
     return;
   }
   // ValidateAck() should fail if peer_least_packet_awaiting_ack shrinks.
   QUICHE_DCHECK(!peer_least_packet_awaiting_ack_.IsInitialized() ||
                 peer_least_packet_awaiting_ack_ <= least_unacked);
-  if (!peer_least_packet_awaiting_ack_.IsInitialized() ||
-      least_unacked > peer_least_packet_awaiting_ack_) {
+  if (//!peer_least_packet_awaiting_ack_.IsInitialized() ||
+      least_unacked.ToUint64() > peer_least_packet_awaiting_ack_.ToUint64()) {
     peer_least_packet_awaiting_ack_ = least_unacked;
     bool packets_updated = ack_frame_.packets.RemoveUpTo(least_unacked);
     if (packets_updated) {
@@ -218,7 +194,7 @@ void QuicReceivedPacketManager::DontWaitForPacketsBefore(
     }
   }
   QUICHE_DCHECK(ack_frame_.packets.Empty() ||
-                !peer_least_packet_awaiting_ack_.IsInitialized() ||
+                //!peer_least_packet_awaiting_ack_.IsInitialized() ||
                 ack_frame_.packets.Min() >= peer_least_packet_awaiting_ack_);
 }
 
@@ -234,7 +210,7 @@ QuicTime::Delta QuicReceivedPacketManager::GetMaxAckDelay(
   // Wait for the minimum of the ack decimation delay or the delayed ack time
   // before sending an ack.
   QuicTime::Delta ack_delay = std::min(
-      local_max_ack_delay_, rtt_stats.min_rtt() * ack_decimation_delay_);
+      local_max_ack_delay_, rtt_stats.min_rtt() / 4 /** ack_decimation_delay_**/);
   return std::max(ack_delay, kAlarmGranularity);
 }
 
@@ -259,16 +235,20 @@ void QuicReceivedPacketManager::MaybeUpdateAckTimeout(
     QuicPacketNumber last_received_packet_number,
     QuicTime last_packet_receipt_time, QuicTime now,
     const RttStats* rtt_stats) {
-  if (!ack_frame_updated_) {
+
+  QUICHE_DCHECK(ack_frame_updated_);
+  if (false && !ack_frame_updated_) {
     // ACK frame has not been updated, nothing to do.
     return;
   }
 
-  if (!ignore_order_ && was_last_packet_missing_ &&
-      last_sent_largest_acked_.IsInitialized() &&
+  if (//was_last_packet_missing_ && !ignore_order_ &&
+      //last_sent_largest_acked_.IsInitialized() &&
       last_received_packet_number < last_sent_largest_acked_) {
     // Only ack immediately if an ACK frame was sent with a larger largest acked
     // than the newly received packet number.
+    QUICHE_DCHECK(was_last_packet_missing_);
+    //QUICHE_DCHECK(should_last_packet_instigate_acks);
     ack_timeout_ = now;
     return;
   }
@@ -286,13 +266,14 @@ void QuicReceivedPacketManager::MaybeUpdateAckTimeout(
     return;
   }
 
-  if (!ignore_order_ && HasNewMissingPackets()) {
+  if (HasMissingPackets() && HasNewMissingPackets() && !ignore_order_) {
     ack_timeout_ = now;
     return;
   }
 
+  QUICHE_DCHECK(last_packet_receipt_time <= now);
   const QuicTime updated_ack_time = std::max(
-      now, std::min(last_packet_receipt_time, now) +
+      now, last_packet_receipt_time +
                GetMaxAckDelay(last_received_packet_number, *rtt_stats));
   if (!ack_timeout_.IsInitialized() || ack_timeout_ > updated_ack_time) {
     ack_timeout_ = updated_ack_time;
@@ -307,21 +288,21 @@ void QuicReceivedPacketManager::ResetAckStates() {
 }
 
 bool QuicReceivedPacketManager::HasMissingPackets() const {
-  if (ack_frame_.packets.Empty()) {
+  if (false && ack_frame_.packets.Empty()) {
     return false;
   }
   if (ack_frame_.packets.NumIntervals() > 1) {
     return true;
   }
-  return peer_least_packet_awaiting_ack_.IsInitialized() &&
+  return //peer_least_packet_awaiting_ack_.IsInitialized() &&
          ack_frame_.packets.Min() > peer_least_packet_awaiting_ack_;
 }
 
 bool QuicReceivedPacketManager::HasNewMissingPackets() const {
   if (one_immediate_ack_) {
-    return HasMissingPackets() && ack_frame_.packets.LastIntervalLength() == 1;
+    return ack_frame_.packets.LastIntervalLength() == 1;
   }
-  return HasMissingPackets() &&
+  return //HasMissingPackets() &&
          ack_frame_.packets.LastIntervalLength() <= kMaxPacketsAfterNewMissing;
 }
 
@@ -335,7 +316,7 @@ QuicPacketNumber QuicReceivedPacketManager::GetLargestObserved() const {
 
 QuicPacketNumber QuicReceivedPacketManager::PeerFirstSendingPacketNumber()
     const {
-  if (!least_received_packet_number_.IsInitialized()) {
+  if (false && !least_received_packet_number_.IsInitialized()) {
     QUIC_BUG(quic_bug_10849_1) << "No packets have been received yet";
     return QuicPacketNumber(1);
   }

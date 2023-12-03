@@ -137,9 +137,6 @@ void QuicFlowController::MaybeIncreaseMaxWindowSize() {
     return;
   }
 
-  if (!auto_tune_receive_window_) {
-    return;
-  }
 
   // Get outbound RTT.
   QuicTime::Delta rtt =
@@ -190,21 +187,12 @@ QuicByteCount QuicFlowController::WindowUpdateThreshold() {
 }
 
 void QuicFlowController::MaybeSendWindowUpdate() {
-  if (!session_->connection()->connected()) {
-    return;
-  }
   // Send WindowUpdate to increase receive window if
   // (receive window offset - consumed bytes) < (max window / 2).
   // This is behaviour copied from SPDY.
   QUICHE_DCHECK_LE(bytes_consumed_, receive_window_offset_);
   QuicStreamOffset available_window = receive_window_offset_ - bytes_consumed_;
   QuicByteCount threshold = WindowUpdateThreshold();
-
-  if (!prev_window_update_time_.IsInitialized()) {
-    // Treat the initial window as if it is a window update, so if 1/2 the
-    // window is used in less than 2 RTTs, the window is increased.
-    prev_window_update_time_ = connection_->clock()->ApproximateNow();
-  }
 
   if (available_window >= threshold) {
     QUIC_DVLOG(1) << ENDPOINT << "Not sending WindowUpdate for " << LogLabel()
@@ -213,7 +201,18 @@ void QuicFlowController::MaybeSendWindowUpdate() {
     return;
   }
 
-  MaybeIncreaseMaxWindowSize();
+  if (!session_->connection()->connected()) {
+    return;
+  }
+
+  if (!prev_window_update_time_.IsInitialized()) {
+    // Treat the initial window as if it is a window update, so if 1/2 the
+    // window is used in less than 2 RTTs, the window is increased.
+    prev_window_update_time_ = connection_->clock()->ApproximateNow();
+  }
+
+  if (auto_tune_receive_window_)
+    MaybeIncreaseMaxWindowSize();
   UpdateReceiveWindowOffsetAndSendWindowUpdate(available_window);
 }
 
@@ -280,7 +279,7 @@ void QuicFlowController::EnsureWindowAtLeast(QuicByteCount window_size) {
   UpdateReceiveWindowOffsetAndSendWindowUpdate(available_window);
 }
 
-bool QuicFlowController::IsBlocked() const { return SendWindowSize() == 0; }
+bool QuicFlowController::IsBlocked() const { return bytes_sent_ > send_window_offset_; }
 
 uint64_t QuicFlowController::SendWindowSize() const {
   if (bytes_sent_ > send_window_offset_) {

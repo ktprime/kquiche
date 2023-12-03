@@ -34,22 +34,21 @@ class QUIC_EXPORT_PRIVATE QuicReceivedPacketManager {
   QuicReceivedPacketManager(const QuicReceivedPacketManager&) = delete;
   QuicReceivedPacketManager& operator=(const QuicReceivedPacketManager&) =
       delete;
-  virtual ~QuicReceivedPacketManager();
+  ~QuicReceivedPacketManager();
 
   void SetFromConfig(const QuicConfig& config, Perspective perspective);
 
   // Updates the internal state concerning which packets have been received.
   // header: the packet header.
   // timestamp: the arrival time of the packet.
-  virtual void RecordPacketReceived(const QuicPacketHeader& header,
-                                    QuicTime receipt_time,
-                                    QuicEcnCodepoint ecn);
+  void RecordPacketReceived(const QuicPacketHeader& header,
+                                    QuicTime receipt_time);
 
   // Checks whether |packet_number| is missing and less than largest observed.
-  virtual bool IsMissing(QuicPacketNumber packet_number);
+  bool IsMissing(QuicPacketNumber packet_number);
 
   // Checks if we're still waiting for the packet with |packet_number|.
-  virtual bool IsAwaitingPacket(QuicPacketNumber packet_number) const;
+  bool IsAwaitingPacket(QuicPacketNumber packet_number) const;
 
   // Retrieves a frame containing a QuicAckFrame.  The ack frame may not be
   // changed outside QuicReceivedPacketManager and must be serialized before
@@ -78,13 +77,13 @@ class QUIC_EXPORT_PRIVATE QuicReceivedPacketManager {
 
   // Returns true when there are new missing packets to be reported within 3
   // packets of the largest observed.
-  virtual bool HasNewMissingPackets() const;
+  bool HasNewMissingPackets() const;
 
   QuicPacketNumber peer_least_packet_awaiting_ack() const {
     return peer_least_packet_awaiting_ack_;
   }
 
-  virtual bool ack_frame_updated() const;
+  bool ack_frame_updated() const;
 
   QuicPacketNumber GetLargestObserved() const;
 
@@ -137,7 +136,7 @@ class QUIC_EXPORT_PRIVATE QuicReceivedPacketManager {
   friend class test::UberReceivedPacketManagerPeer;
 
   // Sets ack_timeout_ to |time| if ack_timeout_ is not initialized or > time.
-  void MaybeUpdateAckTimeoutTo(QuicTime time);
+  //void MaybeUpdateAckTimeoutTo(QuicTime time);
 
   // Maybe update ack_frequency_ when condition meets.
   void MaybeUpdateAckFrequency(QuicPacketNumber last_received_packet_number);
@@ -176,7 +175,7 @@ class QUIC_EXPORT_PRIVATE QuicReceivedPacketManager {
   bool save_timestamps_for_in_order_packets_;
 
   // Least packet number received from peer.
-  QuicPacketNumber least_received_packet_number_;
+  QuicPacketNumber least_received_packet_number_ = QuicPacketNumber(1<<30);
 
   QuicConnectionStats* stats_;
 

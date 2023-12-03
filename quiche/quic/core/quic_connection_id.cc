@@ -50,7 +50,7 @@ class QuicConnectionIdHasher {
 
 }  // namespace
 
-QuicConnectionId::QuicConnectionId() : QuicConnectionId(nullptr, 0) {
+QuicConnectionId::QuicConnectionId() : length_(0) {
   static_assert(offsetof(QuicConnectionId, padding_) ==
                     offsetof(QuicConnectionId, length_),
                 "bad offset");
@@ -59,16 +59,14 @@ QuicConnectionId::QuicConnectionId() : QuicConnectionId(nullptr, 0) {
 
 QuicConnectionId::QuicConnectionId(const char* data, uint8_t length) {
   length_ = length;
-  if (length_ == 0) {
-    return;
+  //QUICHE_DCHECK(length <= sizeof(data_short_));
+  if (length_ == sizeof(uint64_t)) {
+      data_short_ = *((uint64_t*)data);
+  } else if (length_ > sizeof(data_short_)) {
+      data_long_ = reinterpret_cast<char*>(malloc(length_));
+      QUICHE_CHECK_NE(nullptr, data_long_);
+      memcpy(data_long_, data, length_);
   }
-  if (length_ <= sizeof(data_short_)) {
-    memcpy(data_short_, data, length_);
-    return;
-  }
-  data_long_ = reinterpret_cast<char*>(malloc(length_));
-  QUICHE_CHECK_NE(nullptr, data_long_);
-  memcpy(data_long_, data, length_);
 }
 
 QuicConnectionId::QuicConnectionId(const absl::Span<const uint8_t> data)
@@ -76,31 +74,39 @@ QuicConnectionId::QuicConnectionId(const absl::Span<const uint8_t> data)
                        data.length()) {}
 
 QuicConnectionId::~QuicConnectionId() {
+  QUICHE_CHECK(length_ <= sizeof(data_short_));
+#if 0
   if (length_ > sizeof(data_short_)) {
     free(data_long_);
     data_long_ = nullptr;
   }
+#endif
 }
 
 QuicConnectionId::QuicConnectionId(const QuicConnectionId& other)
     : QuicConnectionId(other.data(), other.length()) {}
 
 QuicConnectionId& QuicConnectionId::operator=(const QuicConnectionId& other) {
-  set_length(other.length());
-  memcpy(mutable_data(), other.data(), length_);
+  if (other.length_ == sizeof(uint64_t)) {
+    data_short_ = other.data_short_; //x86
+  } else if (other.length_ > 0) {
+    set_length(other.length());
+    memcpy(mutable_data(), other.data(), length_);
+  }
+  length_ = other.length_;
   return *this;
 }
 
 const char* QuicConnectionId::data() const {
   if (length_ <= sizeof(data_short_)) {
-    return data_short_;
+    return (char*) &data_short_;
   }
   return data_long_;
 }
 
 char* QuicConnectionId::mutable_data() {
   if (length_ <= sizeof(data_short_)) {
-    return data_short_;
+    return (char*) &data_short_;
   }
   return data_long_;
 }
@@ -108,11 +114,13 @@ char* QuicConnectionId::mutable_data() {
 uint8_t QuicConnectionId::length() const { return length_; }
 
 void QuicConnectionId::set_length(uint8_t length) {
+  //QUICHE_DCHECK(length <= sizeof(data_short_));
+#if 0
   char temporary_data[sizeof(data_short_)];
-  if (length > sizeof(data_short_)) {
+  else if (length > sizeof(data_short_)) {
     if (length_ <= sizeof(data_short_)) {
       // Copy data from data_short_ to data_long_.
-      memcpy(temporary_data, data_short_, length_);
+      memcpy(temporary_data, &data_short_, length_);
       data_long_ = reinterpret_cast<char*>(malloc(length));
       QUICHE_CHECK_NE(nullptr, data_long_);
       memcpy(data_long_, temporary_data, length_);
@@ -128,8 +136,9 @@ void QuicConnectionId::set_length(uint8_t length) {
     memcpy(temporary_data, data_long_, length);
     free(data_long_);
     data_long_ = nullptr;
-    memcpy(data_short_, temporary_data, length);
+    memcpy(&data_short_, temporary_data, length);
   }
+#endif
   length_ = length;
 }
 

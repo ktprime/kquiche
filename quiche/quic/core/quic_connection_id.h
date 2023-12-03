@@ -106,7 +106,7 @@ class QUIC_EXPORT_PRIVATE QuicConnectionId {
     // anyway.
     struct {
       uint8_t padding_;  // Match length_ field of the other union member.
-      char data_short_[11];
+      int64_t data_short_;
     };
     struct {
       uint8_t length_;  // length of the connection ID, in bytes.

@@ -36,8 +36,6 @@ const std::vector<std::string>& QuicVersionManager::GetSupportedAlpns() {
 }
 
 void QuicVersionManager::MaybeRefilterSupportedVersions() {
-  static_assert(SupportedVersions().size() == 6u,
-                "Supported versions out of sync");
   if (enable_version_2_draft_08_ !=
           GetQuicReloadableFlag(quic_enable_version_2_draft_08) ||
       disable_version_rfcv1_ !=

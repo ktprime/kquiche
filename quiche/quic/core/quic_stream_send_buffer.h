@@ -7,11 +7,11 @@
 
 #include "absl/types/span.h"
 #include "quiche/quic/core/frames/quic_stream_frame.h"
-#include "quiche/quic/core/quic_interval_deque.h"
+//#include "quiche/quic/core/quic_interval_deque.h"
 #include "quiche/quic/core/quic_interval_set.h"
 #include "quiche/quic/core/quic_types.h"
 #include "quiche/common/platform/api/quiche_mem_slice.h"
-#include "quiche/common/quiche_circular_deque.h"
+//#include "quiche/common/quiche_circular_deque.h"
 
 namespace quic {
 
@@ -62,6 +62,18 @@ struct QUIC_EXPORT_PRIVATE StreamPendingRetransmission {
 // the list when they get fully acked. Stream data can be retrieved and acked
 // across slice boundaries.
 class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
+  // Size of blocks used by this buffer.
+  // Choose 8K to make block large enough to hold multiple frames, each of
+  // which could be up to 1.5 KB.
+  static constexpr size_t kBlockSizeBytes = 32 * 1024;  // 8KB
+  static constexpr size_t kSmallBlocks = 64 * 1024 / kBlockSizeBytes;
+  //static_assert(kBlockSizeBytes > kMaxIncomingPacketSize);
+
+  // The basic storage block used by this buffer.
+  struct QUIC_EXPORT_PRIVATE BufferBlock {
+    char buffer[kBlockSizeBytes];
+  };
+
  public:
   explicit QuicStreamSendBuffer(quiche::QuicheBufferAllocator* allocator);
   QuicStreamSendBuffer(const QuicStreamSendBuffer& other) = delete;
@@ -70,6 +82,7 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
 
   // Save |data| to send buffer.
   void SaveStreamData(absl::string_view data);
+  void SaveStreamDatav(std::string_view data);
 
   // Save |slice| to send buffer.
   void SaveMemSlice(quiche::QuicheMemSlice slice);
@@ -83,6 +96,8 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
   // Write |data_length| of data starts at |offset|.
   bool WriteStreamData(QuicStreamOffset offset, QuicByteCount data_length,
                        QuicDataWriter* writer);
+  bool WriteStreamDatav(QuicStreamOffset offset, QuicByteCount data_length,
+                        QuicDataWriter* writer);
 
   // Called when data [offset, offset + data_length) is acked or removed as
   // stream is canceled. Removes fully acked data slice from send buffer. Set
@@ -109,7 +124,7 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
                                QuicByteCount data_length) const;
 
   // Number of data slices in send buffer.
-  size_t size() const;
+  //size_t size() const;
 
   QuicStreamOffset stream_offset() const { return stream_offset_; }
 
@@ -127,6 +142,14 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
     return pending_retransmissions_;
   }
 
+  size_t GetBlockIndex(QuicStreamOffset offset) const {
+    return (offset - stream_bytes_start_) / kBlockSizeBytes;
+  }
+
+  size_t GetInBlockOffset(QuicStreamOffset offset) const {
+    return offset % kBlockSizeBytes;
+  }
+
  private:
   friend class test::QuicStreamSendBufferPeer;
   friend class test::QuicStreamPeer;
@@ -135,6 +158,7 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
   // acked buffered slices if any. Returns false if the corresponding data does
   // not exist or has been acked.
   bool FreeMemSlices(QuicStreamOffset start, QuicStreamOffset end);
+  bool FreeMemSlicesv(QuicStreamOffset start, QuicStreamOffset end);
 
   // Cleanup empty slices in order from buffered_slices_.
   void CleanUpBufferedSlices();
@@ -142,12 +166,16 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
   // |current_end_offset_| stores the end offset of the current slice to ensure
   // data isn't being written out of order when using the |interval_deque_|.
   QuicStreamOffset current_end_offset_;
+#if OPT_WBUFF
   QuicIntervalDeque<BufferedSlice> interval_deque_;
-
+  quiche::QuicheBufferAllocator* allocator_;
+#endif
   // Offset of next inserted byte.
   QuicStreamOffset stream_offset_;
+  QuicStreamOffset stream_bytes_start_;
 
-  quiche::QuicheBufferAllocator* allocator_;
+  absl::InlinedVector<BufferBlock*, kSmallBlocks> blocks_;
+  //std::vector<BufferBlock*> blocks_;
 
   // Bytes that have been consumed by the stream.
   uint64_t stream_bytes_written_;
@@ -163,7 +191,7 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
 
   // Index of slice which contains data waiting to be written for the first
   // time. -1 if send buffer is empty or all data has been written.
-  int32_t write_index_;
+  //int32_t write_index_;
 };
 
 }  // namespace quic

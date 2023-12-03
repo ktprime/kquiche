@@ -82,7 +82,9 @@ class QUIC_EXPORT_PRIVATE QuicStreamSequencerBuffer {
   // Size of blocks used by this buffer.
   // Choose 8K to make block large enough to hold multiple frames, each of
   // which could be up to 1.5 KB.
-  static const size_t kBlockSizeBytes = 8 * 1024;  // 8KB
+  static constexpr size_t kBlockSizeBytes = 16 * 1024;  // 8KB
+  static constexpr size_t kSmallBlocks = 16;
+  static constexpr size_t kEmptyBlocks = 64 * 1024 / kBlockSizeBytes;
 
   // The basic storage block used by this buffer.
   struct QUIC_EXPORT_PRIVATE BufferBlock {
@@ -108,7 +110,7 @@ class QUIC_EXPORT_PRIVATE QuicStreamSequencerBuffer {
   // bytes buffered in |bytes_buffered|. Returns an error otherwise.
   QuicErrorCode OnStreamData(QuicStreamOffset offset, absl::string_view data,
                              size_t* bytes_buffered,
-                             std::string* error_details);
+                             std::string_view* error_details);
 
   // Reads from this buffer into given iovec array, up to number of iov_len
   // iovec objects and returns the number of bytes read.
@@ -174,7 +176,7 @@ class QUIC_EXPORT_PRIVATE QuicStreamSequencerBuffer {
   // Copies |data| to blocks_, sets |bytes_copy|. Returns true if the copy is
   // successful. Otherwise, sets |error_details| and returns false.
   bool CopyStreamData(QuicStreamOffset offset, absl::string_view data,
-                      size_t* bytes_copy, std::string* error_details);
+                      size_t* bytes_copy, std::string_view* error_details);
 
   // Dispose the given buffer block.
   // After calling this method, blocks_[index] is set to nullptr
@@ -216,10 +218,13 @@ class QUIC_EXPORT_PRIVATE QuicStreamSequencerBuffer {
 
   // Number of blocks this buffer would have when it reaches full capacity,
   // i.e., maximal number of blocks in blocks_.
-  size_t max_blocks_count_;
+  //const size_t max_blocks_count_;
 
   // Number of blocks this buffer currently has.
   size_t current_blocks_count_;
+  size_t current_capacity_bytes_;
+  size_t empty_blocks_count_ = 0;
+  BufferBlock* empty_blocks[kEmptyBlocks];
 
   // Number of bytes read out of buffer.
   QuicStreamOffset total_bytes_read_;
@@ -227,7 +232,8 @@ class QUIC_EXPORT_PRIVATE QuicStreamSequencerBuffer {
   // An ordered, variable-length list of blocks, with the length limited
   // such that the number of blocks never exceeds max_blocks_count_.
   // Each list entry can hold up to kBlockSizeBytes bytes.
-  std::unique_ptr<BufferBlock*[]> blocks_;
+  //std::unique_ptr<BufferBlock*[]> blocks_;
+  absl::InlinedVector<BufferBlock*, kSmallBlocks> blocks_;
 
   // Number of bytes in buffer.
   size_t num_bytes_buffered_;

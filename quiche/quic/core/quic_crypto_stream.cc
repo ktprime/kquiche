@@ -113,7 +113,8 @@ void QuicCryptoStream::OnDataAvailable() {
 void QuicCryptoStream::OnDataAvailableInSequencer(
     QuicStreamSequencer* sequencer, EncryptionLevel level) {
   struct iovec iov;
-  while (sequencer->GetReadableRegion(&iov)) {
+  while (sequencer->ReadableBytes()) {
+    sequencer->GetReadableRegion(&iov);
     absl::string_view data(static_cast<char*>(iov.iov_base), iov.iov_len);
     if (!crypto_message_parser()->ProcessInput(data, level)) {
       OnUnrecoverableError(crypto_message_parser()->error(),
@@ -172,7 +173,7 @@ void QuicCryptoStream::WriteCryptoData(EncryptionLevel level,
   }
 
   // Append |data| to the send buffer for this encryption level.
-  send_buffer->SaveStreamData(data);
+  send_buffer->SaveStreamDatav(data);
   if (kMaxStreamLength - offset < data.length()) {
     QUIC_BUG(quic_bug_10322_2) << "Writing too much crypto handshake data";
     OnUnrecoverableError(QUIC_INTERNAL_ERROR,
@@ -230,9 +231,11 @@ void QuicCryptoStream::NeuterStreamDataOfEncryptionLevel(
   // TODO(nharper): Consider adding a Clear() method to QuicStreamSendBuffer
   // to replace the following code.
   QuicIntervalSet<QuicStreamOffset> to_ack = send_buffer->bytes_acked();
-  to_ack.Complement(0, send_buffer->stream_offset());
+  if (send_buffer->stream_offset())
+    to_ack.Complement(0, send_buffer->stream_offset()); //hybchanged
   for (const auto& interval : to_ack) {
     QuicByteCount newly_acked_length = 0;
+    if (!interval.Empty())
     send_buffer->OnStreamDataAcked(
         interval.min(), interval.max() - interval.min(), &newly_acked_length);
   }
@@ -244,14 +247,15 @@ void QuicCryptoStream::OnStreamDataConsumed(QuicByteCount bytes_consumed) {
         << "Stream data consumed when CRYPTO frames should be in use";
   }
   if (bytes_consumed > 0) {
-    bytes_consumed_[session()->connection()->encryption_level()].Add(
+    bytes_consumed_[session()->connection()->encryption_level()].AddOptimizedForAppend(
         stream_bytes_written(), stream_bytes_written() + bytes_consumed);
   }
   QuicStream::OnStreamDataConsumed(bytes_consumed);
 }
 
 bool QuicCryptoStream::HasPendingCryptoRetransmission() const {
-  if (!QuicVersionUsesCryptoFrames(session()->transport_version())) {
+  QUICHE_DCHECK(QuicVersionUsesCryptoFrames(session()->transport_version()));
+  if (false && !QuicVersionUsesCryptoFrames(session()->transport_version())) {
     return false;
   }
   for (const auto& substream : substreams_) {

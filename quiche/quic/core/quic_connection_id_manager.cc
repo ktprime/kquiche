@@ -79,7 +79,7 @@ QuicPeerIssuedConnectionIdManager::QuicPeerIssuedConnectionIdManager(
                                           const StatelessResetToken&>(
       initial_peer_issued_connection_id,
       /*sequence_number=*/0u, {});
-  recent_new_connection_id_sequence_numbers_.Add(0u, 1u);
+  recent_new_connection_id_sequence_numbers_.AddOptimizedForAppend(0u, 1u);
 }
 
 QuicPeerIssuedConnectionIdManager::~QuicPeerIssuedConnectionIdManager() {
