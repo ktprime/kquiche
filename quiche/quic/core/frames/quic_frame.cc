@@ -102,6 +102,9 @@ void DeleteFrame(QuicFrame* frame) {
     QUICHE_CHECK(!frame->delete_forbidden) << *frame;
   }
 #endif  // QUIC_FRAME_DEBUG
+  if (frame->type == STREAM_FRAME)
+    return;
+
   switch (frame->type) {
     // Frames smaller than a pointer are inlined, so don't need to be deleted.
     case PADDING_FRAME:
@@ -149,7 +152,7 @@ void DeleteFrame(QuicFrame* frame) {
       delete frame->ack_frequency_frame;
       break;
     case NUM_FRAME_TYPES:
-      QUICHE_DCHECK(false) << "Cannot delete type: " << frame->type;
+      QUICHE_DCHECK(false);//<< "Cannot delete type: " << frame->type;
   }
 }
 

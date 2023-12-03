@@ -38,7 +38,7 @@
 
 #ifndef QUIC_FRAME_DEBUG
 #if !defined(NDEBUG) || defined(ADDRESS_SANITIZER)
-#define QUIC_FRAME_DEBUG 1
+#define QUIC_FRAME_DEBUG 0
 #else  // !defined(NDEBUG) || defined(ADDRESS_SANITIZER)
 #define QUIC_FRAME_DEBUG 0
 #endif  // !defined(NDEBUG) || defined(ADDRESS_SANITIZER)
@@ -129,7 +129,11 @@ static_assert(offsetof(QuicStreamFrame, type) == offsetof(QuicFrame, type),
 
 // A inline size of 1 is chosen to optimize the typical use case of
 // 1-stream-frame in QuicTransmissionInfo.retransmittable_frames.
-using QuicFrames = absl::InlinedVector<QuicFrame, 1>;
+#if 1
+using QuicFrames = absl::InlinedVector<QuicFrame, 2>;
+#else
+using QuicFrames = std::vector<QuicFrame>;
+#endif
 
 // Deletes all the sub-frames contained in |frames|.
 QUIC_EXPORT_PRIVATE void DeleteFrames(QuicFrames* frames);

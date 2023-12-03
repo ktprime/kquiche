@@ -21,8 +21,8 @@ bool IsAwaitingPacket(const QuicAckFrame& ack_frame,
                       QuicPacketNumber packet_number,
                       QuicPacketNumber peer_least_packet_awaiting_ack) {
   QUICHE_DCHECK(packet_number.IsInitialized());
-  return (!peer_least_packet_awaiting_ack.IsInitialized() ||
-          packet_number >= peer_least_packet_awaiting_ack) &&
+  return !peer_least_packet_awaiting_ack.IsInitialized() ||
+          packet_number >= peer_least_packet_awaiting_ack &&
          !ack_frame.packets.Contains(packet_number);
 }
 
@@ -42,11 +42,11 @@ std::ostream& operator<<(std::ostream& os, const QuicAckFrame& ack_frame) {
     os << p.first << " at " << p.second.ToDebuggingValue() << " ";
   }
   os << " ]";
-  os << ", ecn_counters_populated: " << ack_frame.ecn_counters.has_value();
-  if (ack_frame.ecn_counters.has_value()) {
-    os << ", ect_0_count: " << ack_frame.ecn_counters->ect0
-       << ", ect_1_count: " << ack_frame.ecn_counters->ect1
-       << ", ecn_ce_count: " << ack_frame.ecn_counters->ce;
+  os << ", ecn_counters_populated: " << ack_frame.ecn_counters_populated;
+  if (ack_frame.ecn_counters_populated) {
+    os << ", ect_0_count: " << ack_frame.ect_0_count
+       << ", ect_1_count: " << ack_frame.ect_1_count
+       << ", ecn_ce_count: " << ack_frame.ecn_ce_count;
   }
 
   os << " }\n";
@@ -71,7 +71,8 @@ PacketNumberQueue& PacketNumberQueue::operator=(PacketNumberQueue&& other) =
     default;
 
 void PacketNumberQueue::Add(QuicPacketNumber packet_number) {
-  if (!packet_number.IsInitialized()) {
+  QUICHE_DCHECK(packet_number.IsInitialized());
+  if (false && !packet_number.IsInitialized()) {
     return;
   }
   packet_number_intervals_.AddOptimizedForAppend(packet_number,
@@ -80,7 +81,7 @@ void PacketNumberQueue::Add(QuicPacketNumber packet_number) {
 
 void PacketNumberQueue::AddRange(QuicPacketNumber lower,
                                  QuicPacketNumber higher) {
-  if (!lower.IsInitialized() || !higher.IsInitialized() || lower >= higher) {
+  if (lower >= higher) {
     return;
   }
 
@@ -88,7 +89,7 @@ void PacketNumberQueue::AddRange(QuicPacketNumber lower,
 }
 
 bool PacketNumberQueue::RemoveUpTo(QuicPacketNumber higher) {
-  if (!higher.IsInitialized() || Empty()) {
+  if (false && (!higher.IsInitialized() || Empty())) {
     return false;
   }
   return packet_number_intervals_.TrimLessThan(higher);
@@ -105,7 +106,7 @@ void PacketNumberQueue::RemoveSmallestInterval() {
 void PacketNumberQueue::Clear() { packet_number_intervals_.Clear(); }
 
 bool PacketNumberQueue::Contains(QuicPacketNumber packet_number) const {
-  if (!packet_number.IsInitialized()) {
+  if (false && !packet_number.IsInitialized()) {
     return false;
   }
   return packet_number_intervals_.Contains(packet_number);
