@@ -167,8 +167,8 @@ struct CertEntry {
 
   Type type;
   uint64_t hash;
-  uint64_t set_hash;
-  uint32_t index;
+//  uint64_t set_hash;
+//  uint32_t index;
 };
 
 // MatchCerts returns a vector of CertEntries describing how to most

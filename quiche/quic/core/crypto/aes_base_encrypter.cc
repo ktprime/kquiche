@@ -24,23 +24,23 @@ bool AesBaseEncrypter::SetHeaderProtectionKey(absl::string_view key) {
   return true;
 }
 
-std::string AesBaseEncrypter::GenerateHeaderProtectionMask(
-    absl::string_view sample) {
+int AesBaseEncrypter::GenerateHeaderProtectionMask(
+    absl::string_view sample, char out[]) {
   if (sample.size() != AES_BLOCK_SIZE) {
-    return std::string();
+    return 0;
   }
-  std::string out(AES_BLOCK_SIZE, 0);
+  //std::string out(AES_BLOCK_SIZE, 0);
   AES_encrypt(reinterpret_cast<const uint8_t*>(sample.data()),
-              reinterpret_cast<uint8_t*>(const_cast<char*>(out.data())),
+              reinterpret_cast<uint8_t*>(const_cast<char*>(out)),
               &pne_key_);
-  return out;
+  return AES_BLOCK_SIZE;
 }
 
 QuicPacketCount AesBaseEncrypter::GetConfidentialityLimit() const {
   // For AEAD_AES_128_GCM and AEAD_AES_256_GCM ... endpoints that do not send
   // packets larger than 2^11 bytes cannot protect more than 2^28 packets.
   // https://quicwg.org/base-drafts/draft-ietf-quic-tls.html#name-confidentiality-limit
-  static_assert(kMaxOutgoingPacketSize <= 2048,
+  static_assert(kMaxOutgoingPacketSize <= kEthernetMTU + 548,
                 "This key limit requires limits on encryption payload sizes");
   return 268435456U;
 }

@@ -54,9 +54,9 @@ bool NullEncrypter::EncryptPacket(uint64_t /*packet_number*/,
   return true;
 }
 
-std::string NullEncrypter::GenerateHeaderProtectionMask(
-    absl::string_view /*sample*/) {
-  return std::string(5, 0);
+int NullEncrypter::GenerateHeaderProtectionMask(
+    absl::string_view /*sample*/, char out[]) {
+  return 0;
 }
 
 size_t NullEncrypter::GetKeySize() const { return 0; }

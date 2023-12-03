@@ -19,8 +19,8 @@ class QUIC_EXPORT_PRIVATE AesBaseDecrypter : public AeadBaseDecrypter {
   using AeadBaseDecrypter::AeadBaseDecrypter;
 
   bool SetHeaderProtectionKey(absl::string_view key) override;
-  std::string GenerateHeaderProtectionMask(
-      QuicDataReader* sample_reader) override;
+  int GenerateHeaderProtectionMask(
+      QuicDataReader* sample_reader, char out[]) override;
   QuicPacketCount GetIntegrityLimit() const override;
 
  private:

@@ -18,8 +18,8 @@ class QUIC_EXPORT_PRIVATE ChaChaBaseDecrypter : public AeadBaseDecrypter {
   using AeadBaseDecrypter::AeadBaseDecrypter;
 
   bool SetHeaderProtectionKey(absl::string_view key) override;
-  std::string GenerateHeaderProtectionMask(
-      QuicDataReader* sample_reader) override;
+  int GenerateHeaderProtectionMask(
+      QuicDataReader* sample_reader, char buffer[]) override;
 
  private:
   // The key used for packet number encryption.

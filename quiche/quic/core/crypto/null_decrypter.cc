@@ -69,9 +69,9 @@ bool NullDecrypter::DecryptPacket(uint64_t /*packet_number*/,
   return true;
 }
 
-std::string NullDecrypter::GenerateHeaderProtectionMask(
-    QuicDataReader* /*sample_reader*/) {
-  return std::string(5, 0);
+int NullDecrypter::GenerateHeaderProtectionMask(
+    QuicDataReader*, char out[]) {
+  return 5;
 }
 
 size_t NullDecrypter::GetKeySize() const { return 0; }

@@ -525,6 +525,7 @@ bool CertificateView::VerifySignature(absl::string_view data,
     return false;
   }
 
+#ifdef QUIC_TLS_SESSION //hybchanged
   bssl::ScopedEVP_MD_CTX md_ctx;
   EVP_PKEY_CTX* pctx;
   if (!EVP_DigestVerifyInit(
@@ -543,6 +544,9 @@ bool CertificateView::VerifySignature(absl::string_view data,
       md_ctx.get(), reinterpret_cast<const uint8_t*>(signature.data()),
       signature.size(), reinterpret_cast<const uint8_t*>(data.data()),
       data.size());
+#else
+ return false;
+#endif
 }
 
 absl::optional<std::string> CertificateView::GetHumanReadableSubject() const {
@@ -618,6 +622,7 @@ std::string CertificatePrivateKey::Sign(absl::string_view input,
     return "";
   }
 
+#ifdef QUIC_TLS_SESSION //hybchanged
   bssl::ScopedEVP_MD_CTX md_ctx;
   EVP_PKEY_CTX* pctx;
   if (!EVP_DigestSignInit(
@@ -648,6 +653,9 @@ std::string CertificatePrivateKey::Sign(absl::string_view input,
   }
   output.resize(output_size);
   return output;
+#else
+  return "";
+#endif
 }
 
 bool CertificatePrivateKey::MatchesPublicKey(

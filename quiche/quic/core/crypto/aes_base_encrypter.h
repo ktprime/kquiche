@@ -19,7 +19,7 @@ class QUIC_EXPORT_PRIVATE AesBaseEncrypter : public AeadBaseEncrypter {
   using AeadBaseEncrypter::AeadBaseEncrypter;
 
   bool SetHeaderProtectionKey(absl::string_view key) override;
-  std::string GenerateHeaderProtectionMask(absl::string_view sample) override;
+  int GenerateHeaderProtectionMask(absl::string_view sample, char out[]) override;
   QuicPacketCount GetConfidentialityLimit() const override;
 
  private:

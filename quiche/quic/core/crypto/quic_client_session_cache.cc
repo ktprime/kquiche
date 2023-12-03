@@ -44,7 +44,7 @@ void QuicClientSessionCache::Insert(const QuicServerId& server_id,
                                     bssl::UniquePtr<SSL_SESSION> session,
                                     const TransportParameters& params,
                                     const ApplicationState* application_state) {
-  QUICHE_DCHECK(session) << "TLS session is not inserted into client cache.";
+  QUICHE_DCHECK(session);// << "TLS session is not inserted into client cache.";
   auto iter = cache_.Lookup(server_id);
   if (iter == cache_.end()) {
     CreateAndInsertEntry(server_id, std::move(session), params,

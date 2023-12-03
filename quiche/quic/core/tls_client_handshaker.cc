@@ -16,7 +16,9 @@
 #include "quiche/quic/core/quic_session.h"
 #include "quiche/quic/core/quic_types.h"
 #include "quiche/quic/platform/api/quic_flags.h"
+#if USE_URL //hybchanged
 #include "quiche/quic/platform/api/quic_hostname_utils.h"
+#endif
 #include "quiche/common/quiche_text_utils.h"
 
 namespace quic {
@@ -82,6 +84,7 @@ bool TlsClientHandshaker::CryptoConnect() {
 
   // Set the SNI to send, if any.
   SSL_set_connect_state(ssl());
+#if USE_URL //hybchanged
   if (QUIC_DLOG_INFO_IS_ON() &&
       !QuicHostnameUtils::IsValidSNI(server_id_.host())) {
     QUIC_DLOG(INFO) << "Client configured with invalid hostname \""
@@ -93,6 +96,13 @@ bool TlsClientHandshaker::CryptoConnect() {
       SSL_set_tlsext_host_name(ssl(), server_id_.host().c_str()) != 1) {
     return false;
   }
+#else
+  if (!server_id_.host().empty() &&
+      allow_invalid_sni_for_tests_ &&
+      SSL_set_tlsext_host_name(ssl(), server_id_.host().c_str()) != 1) {
+    return false;
+  }
+#endif
 
   if (!SetAlpn()) {
     CloseConnection(QUIC_HANDSHAKE_FAILED, "Client failed to set ALPN");
@@ -531,7 +541,7 @@ void TlsClientHandshaker::FinishHandshake() {
   std::vector<std::string> offered_alpns = session()->GetAlpnsToOffer();
   if (std::find(offered_alpns.begin(), offered_alpns.end(),
                 received_alpn_string) == offered_alpns.end()) {
-    QUIC_LOG(ERROR) << "Client: received mismatched ALPN '"
+    QUIC_LOG(WARNING) << "Client: received mismatched ALPN '"
                     << received_alpn_string;
     // TODO(b/130164908) this should send no_application_protocol
     // instead of QUIC_HANDSHAKE_FAILED.

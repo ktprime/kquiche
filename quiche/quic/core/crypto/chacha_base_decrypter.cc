@@ -24,21 +24,21 @@ bool ChaChaBaseDecrypter::SetHeaderProtectionKey(absl::string_view key) {
   return true;
 }
 
-std::string ChaChaBaseDecrypter::GenerateHeaderProtectionMask(
-    QuicDataReader* sample_reader) {
+int ChaChaBaseDecrypter::GenerateHeaderProtectionMask(
+    QuicDataReader* sample_reader, char out[]) {
   absl::string_view sample;
   if (!sample_reader->ReadStringPiece(&sample, 16)) {
-    return std::string();
+    return 0;
   }
   const uint8_t* nonce = reinterpret_cast<const uint8_t*>(sample.data()) + 4;
   uint32_t counter;
   QuicDataReader(sample.data(), 4, quiche::HOST_BYTE_ORDER)
       .ReadUInt32(&counter);
   const uint8_t zeroes[] = {0, 0, 0, 0, 0};
-  std::string out(ABSL_ARRAYSIZE(zeroes), 0);
-  CRYPTO_chacha_20(reinterpret_cast<uint8_t*>(const_cast<char*>(out.data())),
+  //std::string out(ABSL_ARRAYSIZE(zeroes), 0);
+  CRYPTO_chacha_20(reinterpret_cast<uint8_t*>(const_cast<char*>(out)),
                    zeroes, ABSL_ARRAYSIZE(zeroes), pne_key_, nonce, counter);
-  return out;
+  return ABSL_ARRAYSIZE(zeroes);
 }
 
 }  // namespace quic

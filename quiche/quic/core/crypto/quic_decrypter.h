@@ -65,8 +65,8 @@ class QUIC_EXPORT_PRIVATE QuicDecrypter : public QuicCrypter {
   // protection key to generate a mask to use for header protection. If
   // successful, this function returns this mask, which is at least 5 bytes
   // long. Callers can detect failure by checking if the output string is empty.
-  virtual std::string GenerateHeaderProtectionMask(
-      QuicDataReader* sample_reader) = 0;
+  virtual int GenerateHeaderProtectionMask(
+      QuicDataReader* sample_reader, char out[]) = 0;
 
   // The ID of the cipher. Return 0x03000000 ORed with the 'cryptographic suite
   // selector'.

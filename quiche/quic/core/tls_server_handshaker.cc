@@ -20,7 +20,9 @@
 #include "quiche/quic/core/quic_types.h"
 #include "quiche/quic/platform/api/quic_flag_utils.h"
 #include "quiche/quic/platform/api/quic_flags.h"
+#if USE_URL //hybchanged
 #include "quiche/quic/platform/api/quic_hostname_utils.h"
+#endif
 #include "quiche/quic/platform/api/quic_logging.h"
 #include "quiche/quic/platform/api/quic_server_stats.h"
 
@@ -884,8 +886,12 @@ ssl_select_cert_result_t TlsServerHandshaker::EarlySelectCertCallback(
   // function do not work at this point, but SSL_get_servername does.
   const char* hostname = SSL_get_servername(ssl(), TLSEXT_NAMETYPE_host_name);
   if (hostname) {
+#if USE_URL
     crypto_negotiated_params_->sni =
         QuicHostnameUtils::NormalizeHostname(hostname);
+#else
+    crypto_negotiated_params_->sni = hostname;
+#endif
     if (!ValidateHostname(hostname)) {
       return ssl_select_cert_error;
     }
@@ -912,7 +918,7 @@ ssl_select_cert_result_t TlsServerHandshaker::EarlySelectCertCallback(
 
   auto set_transport_params_result = SetTransportParameters();
   if (!set_transport_params_result.success) {
-    QUIC_LOG(ERROR) << "Failed to set transport parameters";
+    QUIC_LOG(WARNING) << "Failed to set transport parameters";
     return ssl_select_cert_error;
   }
 
@@ -1068,12 +1074,14 @@ bool TlsServerHandshaker::WillNotCallComputeSignature() const {
 }
 
 bool TlsServerHandshaker::ValidateHostname(const std::string& hostname) const {
+#if USE_URL
   if (!QuicHostnameUtils::IsValidSNI(hostname)) {
     // TODO(b/151676147): Include this error string in the CONNECTION_CLOSE
     // frame.
     QUIC_DLOG(ERROR) << "Invalid SNI provided: \"" << hostname << "\"";
     return false;
   }
+#endif
   return true;
 }
 

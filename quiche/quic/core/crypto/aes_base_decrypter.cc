@@ -23,17 +23,17 @@ bool AesBaseDecrypter::SetHeaderProtectionKey(absl::string_view key) {
   return true;
 }
 
-std::string AesBaseDecrypter::GenerateHeaderProtectionMask(
-    QuicDataReader* sample_reader) {
+int AesBaseDecrypter::GenerateHeaderProtectionMask(
+    QuicDataReader* sample_reader, char out[]) {
   absl::string_view sample;
   if (!sample_reader->ReadStringPiece(&sample, AES_BLOCK_SIZE)) {
-    return std::string();
+    return 0;
   }
-  std::string out(AES_BLOCK_SIZE, 0);
+  //std::string out(AES_BLOCK_SIZE, 0);
   AES_encrypt(reinterpret_cast<const uint8_t*>(sample.data()),
-              reinterpret_cast<uint8_t*>(const_cast<char*>(out.data())),
+              reinterpret_cast<uint8_t*>(const_cast<char*>(out)),
               &pne_key_);
-  return out;
+  return AES_BLOCK_SIZE;
 }
 
 QuicPacketCount AesBaseDecrypter::GetIntegrityLimit() const {
@@ -44,7 +44,7 @@ QuicPacketCount AesBaseDecrypter::GetIntegrityLimit() const {
   // AEAD_AES_128_GCM. However, this document recommends that the same limit be
   // applied to both functions as either limit is acceptably large.
   // https://quicwg.org/base-drafts/draft-ietf-quic-tls.html#name-integrity-limit
-  static_assert(kMaxIncomingPacketSize <= 2048,
+  static_assert(kMaxIncomingPacketSize <= kEthernetMTU + 548,
                 "This key limit requires limits on decryption payload sizes");
   return 144115188075855872U;
 }

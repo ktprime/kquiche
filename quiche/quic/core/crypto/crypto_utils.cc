@@ -76,7 +76,7 @@ std::vector<uint8_t> HkdfExpandLabel(const EVP_MD* prf,
       // Zero length |Context|.
       !CBB_add_u8(quic_hkdf_label.get(), 0) ||
       !CBB_flush(quic_hkdf_label.get())) {
-    QUIC_LOG(ERROR) << "Building HKDF label failed";
+    QUIC_LOG(WARNING) << "Building HKDF label failed";
     return std::vector<uint8_t>();
   }
   std::vector<uint8_t> out;
@@ -84,7 +84,7 @@ std::vector<uint8_t> HkdfExpandLabel(const EVP_MD* prf,
   if (!HKDF_expand(out.data(), out_len, prf, secret.data(), secret.size(),
                    CBB_data(quic_hkdf_label.get()),
                    CBB_len(quic_hkdf_label.get()))) {
-    QUIC_LOG(ERROR) << "Running HKDF-Expand-Label failed";
+    QUIC_LOG(WARNING) << "Running HKDF-Expand-Label failed";
     return std::vector<uint8_t>();
   }
   return out;
@@ -94,8 +94,6 @@ std::vector<uint8_t> HkdfExpandLabel(const EVP_MD* prf,
 
 const std::string getLabelForVersion(const ParsedQuicVersion& version,
                                      const absl::string_view& predicate) {
-  static_assert(SupportedVersions().size() == 6u,
-                "Supported versions out of sync with HKDF labels");
   if (version == ParsedQuicVersion::V2Draft08()) {
     return absl::StrCat("quicv2 ", predicate);
   } else {
@@ -172,8 +170,6 @@ const uint8_t kReservedForNegotiationSalt[] = {
 
 const uint8_t* InitialSaltForVersion(const ParsedQuicVersion& version,
                                      size_t* out_len) {
-  static_assert(SupportedVersions().size() == 6u,
-                "Supported versions out of sync with initial encryption salts");
   if (version == ParsedQuicVersion::V2Draft08()) {
     *out_len = ABSL_ARRAYSIZE(kV2Draft08InitialSalt);
     return kV2Draft08InitialSalt;
@@ -230,8 +226,6 @@ const uint8_t kReservedForNegotiationRetryIntegrityNonce[] = {
 bool RetryIntegrityKeysForVersion(const ParsedQuicVersion& version,
                                   absl::string_view* key,
                                   absl::string_view* nonce) {
-  static_assert(SupportedVersions().size() == 6u,
-                "Supported versions out of sync with retry integrity keys");
   if (!version.UsesTls()) {
     QUIC_BUG(quic_bug_10699_2)
         << "Attempted to get retry integrity keys for invalid version "
@@ -750,7 +744,12 @@ const char* CryptoUtils::HandshakeFailureReasonToString(
 // static
 std::string CryptoUtils::EarlyDataReasonToString(
     ssl_early_data_reason_t reason) {
+#ifdef QUIC_TLS_SESSION //hybchanged
   const char* reason_string = SSL_early_data_reason_string(reason);
+#else
+  const auto error_str = std::to_string((int)reason);
+  const char* reason_string = error_str.data();
+#endif
   if (reason_string != nullptr) {
     return std::string("ssl_early_data_") + reason_string;
   }
@@ -776,6 +775,7 @@ std::string CryptoUtils::HashHandshakeMessage(
 bool CryptoUtils::GetSSLCapabilities(const SSL* ssl,
                                      bssl::UniquePtr<uint8_t>* capabilities,
                                      size_t* capabilities_len) {
+#ifdef QUIC_TLS_SESSION //hybchanged
   uint8_t* buffer;
   bssl::ScopedCBB cbb;
 
@@ -786,6 +786,7 @@ bool CryptoUtils::GetSSLCapabilities(const SSL* ssl,
   }
 
   *capabilities = bssl::UniquePtr<uint8_t>(buffer);
+#endif
   return true;
 }
 

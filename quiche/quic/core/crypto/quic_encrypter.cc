@@ -30,11 +30,13 @@ std::unique_ptr<QuicEncrypter> QuicEncrypter::Create(
         return std::make_unique<Aes128Gcm12Encrypter>();
       }
     case kCC20:
+#ifdef QUIC_TLS_SESSION //hybchanged
       if (version.UsesInitialObfuscators()) {
         return std::make_unique<ChaCha20Poly1305TlsEncrypter>();
       } else {
         return std::make_unique<ChaCha20Poly1305Encrypter>();
       }
+#endif
     default:
       QUIC_LOG(FATAL) << "Unsupported algorithm: " << algorithm;
       return nullptr;
@@ -49,8 +51,10 @@ std::unique_ptr<QuicEncrypter> QuicEncrypter::CreateFromCipherSuite(
       return std::make_unique<Aes128GcmEncrypter>();
     case TLS1_CK_AES_256_GCM_SHA384:
       return std::make_unique<Aes256GcmEncrypter>();
+#ifdef QUIC_TLS_SESSION //hybchanged
     case TLS1_CK_CHACHA20_POLY1305_SHA256:
       return std::make_unique<ChaCha20Poly1305TlsEncrypter>();
+#endif
     default:
       QUIC_BUG(quic_bug_10711_1) << "TLS cipher suite is unknown to QUIC";
       return nullptr;

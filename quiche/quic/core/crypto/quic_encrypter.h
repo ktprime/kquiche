@@ -45,8 +45,8 @@ class QUIC_EXPORT_PRIVATE QuicEncrypter : public QuicCrypter {
   // generate a mask to use for header protection, and returns that mask. On
   // success, the mask will be at least 5 bytes long; on failure the string will
   // be empty.
-  virtual std::string GenerateHeaderProtectionMask(
-      absl::string_view sample) = 0;
+  virtual int GenerateHeaderProtectionMask(
+      absl::string_view sample, char out[]) = 0;
 
   // Returns the maximum length of plaintext that can be encrypted
   // to ciphertext no larger than |ciphertext_size|.

@@ -32,7 +32,7 @@ class QUIC_EXPORT_PRIVATE NullEncrypter : public QuicEncrypter {
   bool EncryptPacket(uint64_t packet_number, absl::string_view associated_data,
                      absl::string_view plaintext, char* output,
                      size_t* output_length, size_t max_output_length) override;
-  std::string GenerateHeaderProtectionMask(absl::string_view sample) override;
+  int GenerateHeaderProtectionMask(absl::string_view sample, char out[]) override;
   size_t GetKeySize() const override;
   size_t GetNoncePrefixSize() const override;
   size_t GetIVSize() const override;

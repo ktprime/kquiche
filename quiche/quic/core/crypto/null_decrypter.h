@@ -38,8 +38,8 @@ class QUIC_EXPORT_PRIVATE NullDecrypter : public QuicDecrypter {
   bool DecryptPacket(uint64_t packet_number, absl::string_view associated_data,
                      absl::string_view ciphertext, char* output,
                      size_t* output_length, size_t max_output_length) override;
-  std::string GenerateHeaderProtectionMask(
-      QuicDataReader* sample_reader) override;
+  int GenerateHeaderProtectionMask(
+      QuicDataReader* sample_reader, char out[]) override;
   size_t GetKeySize() const override;
   size_t GetNoncePrefixSize() const override;
   size_t GetIVSize() const override;
