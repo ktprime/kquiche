@@ -35,7 +35,7 @@ class QUIC_EXPORT_PRIVATE QuicOneBlockArena {
   template <typename T, typename... Args>
   QuicArenaScopedPtr<T> New(Args&&... args) {
     QUICHE_DCHECK_LT(AlignedSize<T>(), ArenaSize)
-        << "Object is too large for the arena.";
+        ;//<< "Object is too large for the arena.";
     static_assert(alignof(T) > 1,
                   "Objects added to the arena must be at least 2B aligned.");
     if (ABSL_PREDICT_FALSE(offset_ > ArenaSize - AlignedSize<T>())) {

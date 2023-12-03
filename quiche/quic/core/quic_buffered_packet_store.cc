@@ -107,7 +107,7 @@ EnqueuePacketResult QuicBufferedPacketStore::EnqueuePacket(
       return TOO_MANY_CONNECTIONS;
     }
     undecryptable_packets_.emplace(
-        std::make_pair(connection_id, BufferedPacketList()));
+        connection_id, BufferedPacketList());
     undecryptable_packets_.back().second.ietf_quic = ietf_quic;
     undecryptable_packets_.back().second.version = version;
   }
@@ -141,7 +141,8 @@ EnqueuePacketResult QuicBufferedPacketStore::EnqueuePacket(
     // first later.
     queue.buffered_packets.push_front(std::move(new_entry));
     queue.parsed_chlo = std::move(parsed_chlo);
-    connections_with_chlo_[connection_id] = false;  // Dummy value.
+    //connections_with_chlo_[connection_id] = false;  // Dummy value.
+    connections_with_chlo_.insert(connection_id, false);
     // Set the version of buffered packets of this connection on CHLO.
     queue.version = version;
   } else {
@@ -192,7 +193,7 @@ BufferedPacketList QuicBufferedPacketStore::DeliverPackets(
       QuicConnectionId unused_destination_connection_id;
       QuicConnectionId unused_source_connection_id;
       absl::optional<absl::string_view> unused_retry_token;
-      std::string unused_detailed_error;
+      std::string_view unused_detailed_error;
 
       // We don't need to pass |generator| because we already got the correct
       // connection ID length when we buffered the packet and indexed by
@@ -279,9 +280,9 @@ BufferedPacketList QuicBufferedPacketStore::DeliverPacketsForNextConnection(
   BufferedPacketList packets = DeliverPackets(*connection_id);
   QUICHE_DCHECK(!packets.buffered_packets.empty() &&
                 packets.parsed_chlo.has_value())
-      << "Try to deliver connectons without CHLO. # packets:"
-      << packets.buffered_packets.size()
-      << ", has_parsed_chlo:" << packets.parsed_chlo.has_value();
+;//      << "Try to deliver connectons without CHLO. # packets:"
+//      << packets.buffered_packets.size()
+//      << ", has_parsed_chlo:" << packets.parsed_chlo.has_value();
   return packets;
 }
 

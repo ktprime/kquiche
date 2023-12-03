@@ -26,8 +26,7 @@ class QUIC_EXPORT_PRIVATE QuicCoalescedPacket {
                            const QuicSocketAddress& self_address,
                            const QuicSocketAddress& peer_address,
                            quiche::QuicheBufferAllocator* allocator,
-                           QuicPacketLength current_max_packet_length,
-                           QuicEcnCodepoint ecn_codepoint);
+                           QuicPacketLength current_max_packet_length);
 
   // Clears this coalesced packet.
   void Clear();
@@ -67,8 +66,6 @@ class QUIC_EXPORT_PRIVATE QuicCoalescedPacket {
 
   std::vector<size_t> packet_lengths() const;
 
-  QuicEcnCodepoint ecn_codepoint() const { return ecn_codepoint_; }
-
  private:
   friend class test::QuicCoalescedPacketPeer;
 
@@ -92,9 +89,6 @@ class QUIC_EXPORT_PRIVATE QuicCoalescedPacket {
   // frames are copied to allow it be re-serialized when this coalesced packet
   // gets sent.
   std::unique_ptr<SerializedPacket> initial_packet_;
-
-  // A coalesced packet shares an ECN codepoint.
-  QuicEcnCodepoint ecn_codepoint_;
 };
 
 }  // namespace quic

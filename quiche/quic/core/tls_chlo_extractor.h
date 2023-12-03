@@ -113,8 +113,7 @@ class QUIC_NO_EXPORT TlsChloExtractor
     return true;
   }
   bool OnAckFrameEnd(
-      QuicPacketNumber /*start*/,
-      const absl::optional<QuicEcnCounts>& /*ecn_counts*/) override {
+      QuicPacketNumber /*start*/) override {
     return true;
   }
   bool OnStopWaitingFrame(const QuicStopWaitingFrame& /*frame*/) override {

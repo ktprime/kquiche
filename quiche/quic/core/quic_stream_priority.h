@@ -20,8 +20,8 @@ namespace quic {
 
 // Represents HTTP priorities as defined by RFC 9218.
 struct QUICHE_EXPORT HttpStreamPriority {
-  static constexpr int kMinimumUrgency = 0;
-  static constexpr int kMaximumUrgency = 7;
+  static constexpr int kMinimumUrgency = 2;
+  static constexpr int kMaximumUrgency = 5;
   static constexpr int kDefaultUrgency = 3;
   static constexpr bool kDefaultIncremental = false;
 

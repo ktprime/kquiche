@@ -324,8 +324,6 @@ class QUIC_EXPORT_PRIVATE QuicReceivedPacket : public QuicEncryptedPacket {
   QUIC_EXPORT_PRIVATE friend std::ostream& operator<<(
       std::ostream& os, const QuicReceivedPacket& s);
 
-  QuicEcnCodepoint ecn_codepoint() const { return ecn_codepoint_; }
-
  private:
   const QuicTime receipt_time_;
   int ttl_;
@@ -335,7 +333,6 @@ class QUIC_EXPORT_PRIVATE QuicReceivedPacket : public QuicEncryptedPacket {
   int headers_length_;
   // Whether owns the buffer for packet headers.
   bool owns_header_buffer_;
-  QuicEcnCodepoint ecn_codepoint_;
 };
 
 // SerializedPacket contains information of a serialized(encrypted) packet.
@@ -376,7 +373,6 @@ struct QUIC_EXPORT_PRIVATE SerializedPacket {
   // TODO(fayang): Remove has_ack and has_stop_waiting.
   bool has_ack;
   bool has_stop_waiting;
-  bool has_ack_ecn = false;  // ack frame contains ECN counts.
   TransmissionType transmission_type;
   // The largest acked of the AckFrame in this packet if has_ack is true,
   // 0 otherwise.
@@ -392,9 +388,6 @@ struct QUIC_EXPORT_PRIVATE SerializedPacket {
   // populated for packets with "mixed frames": at least one frame of a
   // retransmission type and at least one frame of NOT_RETRANSMISSION type.
   absl::optional<QuicByteCount> bytes_not_retransmitted;
-  // Only populated if encryption_level is ENCRYPTION_INITIAL.
-  // TODO(b/265777524): remove this.
-  absl::optional<QuicPacketHeader> initial_header;
 };
 
 // Make a copy of |serialized| (including the underlying frames). |copy_buffer|

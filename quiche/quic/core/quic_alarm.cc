@@ -17,77 +17,80 @@ QuicAlarm::QuicAlarm(QuicArenaScopedPtr<Delegate> delegate)
     : delegate_(std::move(delegate)), deadline_(QuicTime::Zero()) {}
 
 QuicAlarm::~QuicAlarm() {
-  if (IsSet()) {
-    QUIC_CODE_COUNT(quic_alarm_not_cancelled_in_dtor);
-  }
+  //QUICHE_DCHECK(!IsSet());
+  //QUICHE_DCHECK(IsPermanentlyCancelled());
 }
 
 void QuicAlarm::Set(QuicTime new_deadline) {
-  QUICHE_DCHECK(!IsSet());
   QUICHE_DCHECK(new_deadline.IsInitialized());
-
-  if (IsPermanentlyCancelled()) {
+#if 0
+  {
     QUIC_BUG(quic_alarm_illegal_set)
         << "Set called after alarm is permanently cancelled. new_deadline:"
         << new_deadline;
     return;
   }
+#endif
 
   deadline_ = new_deadline;
   SetImpl();
 }
 
-void QuicAlarm::CancelInternal(bool permanent) {
-  if (IsSet()) {
-    deadline_ = QuicTime::Zero();
-    CancelImpl();
-  }
+void QuicAlarm::PermanentCancel() {
+  Cancel();
+  delegate_.reset();
+}
 
-  if (permanent) {
-    delegate_.reset();
+void QuicAlarm::Cancel() {
+  if (deadline_.IsInitialized()) {
+    CancelImpl();
+    deadline_ = QuicTime::Zero();
   }
 }
 
 bool QuicAlarm::IsPermanentlyCancelled() const { return delegate_ == nullptr; }
 
 void QuicAlarm::Update(QuicTime new_deadline, QuicTime::Delta granularity) {
-  if (IsPermanentlyCancelled()) {
+#if 0
+  {
     QUIC_BUG(quic_alarm_illegal_update)
         << "Update called after alarm is permanently cancelled. new_deadline:"
         << new_deadline << ", granularity:" << granularity;
     return;
   }
-
-  if (!new_deadline.IsInitialized()) {
-    Cancel();
-    return;
-  }
-  if (std::abs((new_deadline - deadline_).ToMicroseconds()) <
-      granularity.ToMicroseconds()) {
-    return;
-  }
-  const bool was_set = IsSet();
+#endif
+  const auto delta = (new_deadline - deadline_).ToMicroseconds();
   deadline_ = new_deadline;
-  if (was_set) {
-    UpdateImpl();
-  } else {
-    SetImpl();
+  if (std::abs(delta) <= granularity.ToMicroseconds()) {
+    return;
   }
+  else if (!new_deadline.IsInitialized()) {
+    CancelImpl();
+    //deadline_ = QuicTime::Zero();
+    return;
+  }
+  else if (false && delta > 0 && deadline_.IsInitialized()) {
+    deadline_ = new_deadline;
+    return;
+  }
+  //QUICHE_DCHECK (!IsPermanentlyCancelled());
+
+  //deadline_ = new_deadline;
+  SetImpl();
 }
 
 bool QuicAlarm::IsSet() const { return deadline_.IsInitialized(); }
 
 void QuicAlarm::Fire() {
-  if (!IsSet()) {
-    return;
-  }
+  QUICHE_DCHECK(IsSet()/* && !IsPermanentlyCancelled()***/);
 
   deadline_ = QuicTime::Zero();
-  if (!IsPermanentlyCancelled()) {
-    QuicConnectionContextSwitcher context_switcher(
+#if DEBUG
+  QuicConnectionContextSwitcher context_switcher(
         delegate_->GetConnectionContext());
-    delegate_->OnAlarm();
-  }
+#endif
+  if (delegate_.get())
+    delegate_.get()->OnAlarm();
 }
 
 void QuicAlarm::UpdateImpl() {

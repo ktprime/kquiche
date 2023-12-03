@@ -78,7 +78,7 @@ void QuicWriteBlockedList::RegisterStream(QuicStreamId stream_id,
                                           bool is_static_stream,
                                           const QuicStreamPriority& priority) {
   QUICHE_DCHECK(!priority_write_scheduler_.StreamRegistered(stream_id))
-      << "stream " << stream_id << " already registered";
+    ;//<< "stream " << stream_id << " already registered";
   if (is_static_stream) {
     static_stream_collection_.Register(stream_id);
     return;

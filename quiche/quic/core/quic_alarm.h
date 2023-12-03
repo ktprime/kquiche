@@ -73,8 +73,8 @@ class QUIC_EXPORT_PRIVATE QuicAlarm {
   // Both may be called repeatedly.  Does not guarantee that the underlying
   // scheduling system will remove the alarm's associated task, but guarantees
   // that the delegates OnAlarm method will not be called.
-  void PermanentCancel() { CancelInternal(true); }
-  void Cancel() { CancelInternal(false); }
+  void PermanentCancel();
+  void Cancel();
 
   // Return true if PermanentCancel() has been called.
   bool IsPermanentlyCancelled() const;
@@ -114,7 +114,6 @@ class QUIC_EXPORT_PRIVATE QuicAlarm {
   void Fire();
 
  private:
-  void CancelInternal(bool permanent);
 
   QuicArenaScopedPtr<Delegate> delegate_;
   QuicTime deadline_;

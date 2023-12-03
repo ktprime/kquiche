@@ -90,6 +90,7 @@ class QUIC_EXPORT_PRIVATE QuicTimeDelta {
   friend inline constexpr QuicTimeDelta operator-(QuicTimeDelta lhs,
                                                   QuicTimeDelta rhs);
   friend inline constexpr QuicTimeDelta operator*(QuicTimeDelta lhs, int rhs);
+  friend inline constexpr QuicTimeDelta operator/(QuicTimeDelta lhs, int rhs);
   // Not constexpr since std::llround() is not constexpr.
   friend inline QuicTimeDelta operator*(QuicTimeDelta lhs, double rhs);
 
@@ -126,10 +127,7 @@ class QUIC_EXPORT_PRIVATE QuicTime {
 
   QuicTime(const QuicTime& other) = default;
 
-  QuicTime& operator=(const QuicTime& other) {
-    time_ = other.time_;
-    return *this;
-  }
+  QuicTime& operator=(const QuicTime& other) = default;
 
   // Produce the internal value to be used when logging.  This value
   // represents the number of microseconds since some epoch.  It may
@@ -138,6 +136,7 @@ class QUIC_EXPORT_PRIVATE QuicTime {
   int64_t ToDebuggingValue() const { return time_; }
 
   bool IsInitialized() const { return 0 != time_; }
+  explicit constexpr QuicTime(int64_t time) : time_(time) {}
 
  private:
   friend class QuicClock;
@@ -148,7 +147,7 @@ class QUIC_EXPORT_PRIVATE QuicTime {
   friend inline QuicTime operator-(QuicTime lhs, QuicTimeDelta rhs);
   friend inline QuicTimeDelta operator-(QuicTime lhs, QuicTime rhs);
 
-  explicit constexpr QuicTime(int64_t time) : time_(time) {}
+
 
   int64_t time_;
 };
@@ -263,6 +262,9 @@ inline constexpr QuicTimeDelta operator-(QuicTimeDelta lhs, QuicTimeDelta rhs) {
 }
 inline constexpr QuicTimeDelta operator*(QuicTimeDelta lhs, int rhs) {
   return QuicTimeDelta(lhs.time_offset_ * rhs);
+}
+inline constexpr QuicTimeDelta operator/(QuicTimeDelta lhs, int rhs) {
+    return QuicTimeDelta(lhs.time_offset_ / rhs);
 }
 inline QuicTimeDelta operator*(QuicTimeDelta lhs, double rhs) {
   return QuicTimeDelta(static_cast<int64_t>(

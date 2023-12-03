@@ -34,8 +34,7 @@ struct QUIC_EXPORT_PRIVATE PerPacketOptions {
   QuicTime::Delta release_time_delay = QuicTime::Delta::Zero();
   // Whether it is allowed to send this packet without |release_time_delay|.
   bool allow_burst = false;
-  // ECN codepoint to use when sending this packet.
-  QuicEcnCodepoint ecn_codepoint = ECN_NOT_ECT;
+  TransmissionType transmission_type = NOT_RETRANSMISSION;
 };
 
 // An interface between writers and the entity managing the
@@ -132,6 +131,9 @@ class QUIC_EXPORT_PRIVATE QuicPacketWriter {
 
   // True=Batch mode. False=PassThrough mode.
   virtual bool IsBatchMode() const = 0;
+
+  // Returns true if the writer will mark ECN on packets it writes.
+  virtual bool SupportsEcn() const = 0;
 
   // PassThrough mode: Return {nullptr, nullptr}
   //

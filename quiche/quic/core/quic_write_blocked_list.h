@@ -91,7 +91,7 @@ class QUIC_EXPORT_PRIVATE QuicWriteBlockedList
   }
 
   size_t NumBlockedStreams() const override {
-    return NumBlockedSpecialStreams() +
+    return static_stream_collection_.num_blocked() +
            priority_write_scheduler_.NumReadyStreams();
   }
 

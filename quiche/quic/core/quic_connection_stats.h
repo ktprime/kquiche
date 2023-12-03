@@ -95,8 +95,6 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   // Count of times the loss detection alarm fired.  At least one packet should
   // be lost when the alarm fires.
   size_t loss_timeout_count = 0;
-  size_t tlp_count = 0;
-  size_t rto_count = 0;  // Count of times the rto timer fired.
   size_t pto_count = 0;
 
   int64_t min_rtt_us = 0;                 // Minimum RTT in microseconds.
@@ -188,14 +186,6 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   QuicPacketCount
       num_tls_server_zero_rtt_packets_received_after_discarding_decrypter = 0;
 
-  // Counts the number of packets received with each Explicit Congestion
-  // Notification (ECN) codepoint, except Not-ECT. There is one counter across
-  // all packet number spaces.
-  QuicEcnCounts num_ecn_marks_received;
-
-  // Counts the number of ACK frames sent with ECN counts.
-  QuicPacketCount num_ack_frames_sent_with_ecn = 0;
-
   // True if address is validated via decrypting HANDSHAKE or 1-RTT packet.
   bool address_validated_via_decrypting_packet = false;
 
@@ -225,16 +215,6 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   size_t num_new_connection_id_sent = 0;
   // Number of RETIRE_CONNECTION_ID frames sent.
   size_t num_retire_connection_id_sent = 0;
-  // Number of path degrading.
-  size_t num_path_degrading = 0;
-  // Number of forward progress made after path degrading.
-  size_t num_forward_progress_after_path_degrading = 0;
-
-  bool server_preferred_address_validated = false;
-  bool failed_to_validate_server_preferred_address = false;
-  // Number of duplicated packets that have been sent to server preferred
-  // address while the validation is pending.
-  size_t num_duplicated_packets_sent_to_server_preferred_address = 0;
 
   struct QUIC_NO_EXPORT TlsServerOperationStats {
     bool success = false;

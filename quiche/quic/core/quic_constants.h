@@ -29,23 +29,24 @@ inline constexpr uint64_t kNumMicrosPerSecond =
 // Default number of connections for N-connection emulation.
 inline constexpr uint32_t kDefaultNumConnections = 2;
 // Default initial maximum size in bytes of a QUIC packet.
-inline constexpr QuicByteCount kDefaultMaxPacketSize = 1250;
+inline constexpr QuicByteCount kEthernetMTU = 1500;
+inline constexpr QuicByteCount kDefaultMaxPacketSize = kEthernetMTU - 250;
 // Default initial maximum size in bytes of a QUIC packet for servers.
 inline constexpr QuicByteCount kDefaultServerMaxPacketSize = 1000;
 // Maximum transmission unit on Ethernet.
-inline constexpr QuicByteCount kEthernetMTU = 1500;
+//inline constexpr QuicByteCount kEthernetMTU = kDefaultMaxPacketSize + 250;
 // The maximum packet size of any QUIC packet over IPv6, based on ethernet's max
 // size, minus the IP and UDP headers. IPv6 has a 40 byte header, UDP adds an
 // additional 8 bytes.  This is a total overhead of 48 bytes.  Ethernet's
 // max packet size is 1500 bytes,  1500 - 48 = 1452.
-inline constexpr QuicByteCount kMaxV6PacketSize = 1452;
+inline constexpr QuicByteCount kMaxV6PacketSize = kEthernetMTU - 48;
 // The maximum packet size of any QUIC packet over IPv4.
 // 1500(Ethernet) - 20(IPv4 header) - 8(UDP header) = 1472.
-inline constexpr QuicByteCount kMaxV4PacketSize = 1472;
+inline constexpr QuicByteCount kMaxV4PacketSize = kMaxV6PacketSize + 20;
 // The maximum incoming packet size allowed.
 inline constexpr QuicByteCount kMaxIncomingPacketSize = kMaxV4PacketSize;
 // The maximum outgoing packet size allowed.
-inline constexpr QuicByteCount kMaxOutgoingPacketSize = kMaxV6PacketSize;
+inline constexpr QuicByteCount kMaxOutgoingPacketSize = kMaxV4PacketSize; //TODO
 // ETH_MAX_MTU - MAX(sizeof(iphdr), sizeof(ip6_hdr)) - sizeof(udphdr).
 inline constexpr QuicByteCount kMaxGsoPacketSize = 65535 - 40 - 8;
 // The maximal IETF DATAGRAM frame size we'll accept. Choosing 2^16 ensures
@@ -231,7 +232,7 @@ inline constexpr size_t kDiversificationNonceSize = 32;
 
 // The largest gap in packets we'll accept without closing the connection.
 // This will likely have to be tuned.
-inline constexpr QuicPacketCount kMaxPacketGap = 5000;
+inline constexpr QuicPacketCount kMaxPacketGap = 100;
 
 // The max number of sequence number intervals that
 // QuicPeerIssuedConnetionIdManager can maintain.
