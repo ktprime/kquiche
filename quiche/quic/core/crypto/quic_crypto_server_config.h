@@ -212,7 +212,7 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerConfig {
       absl::string_view source_address_token_secret,
       QuicRandom* server_nonce_entropy,
       std::unique_ptr<ProofSource> proof_source,
-      std::unique_ptr<KeyExchangeSource> key_exchange_source);
+      std::unique_ptr<KeyExchangeSource> key_exchange_source, bool tls_session);//hybchanged
   QuicCryptoServerConfig(const QuicCryptoServerConfig&) = delete;
   QuicCryptoServerConfig& operator=(const QuicCryptoServerConfig&) = delete;
   ~QuicCryptoServerConfig();
@@ -255,6 +255,7 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerConfig {
   // passing them through a KDF, in contradistinction to the
   // |source_address_token_secret| argument to the constructor.
   void SetSourceAddressTokenKeys(const std::vector<std::string>& keys);
+  void SetServerNonceKeys(const std::vector<std::string>& keys); //hybchanged
 
   // Get the server config ids for all known configs.
   std::vector<std::string> GetConfigIds() const;
@@ -892,8 +893,10 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerConfig {
   // objects.
   std::unique_ptr<KeyExchangeSource> key_exchange_source_;
 
+#ifdef QUIC_TLS_SESSION //hybchanged
   // ssl_ctx_ contains the server configuration for doing TLS handshakes.
   bssl::UniquePtr<SSL_CTX> ssl_ctx_;
+#endif
 
   // These fields store configuration values. See the comments for their
   // respective setter functions.

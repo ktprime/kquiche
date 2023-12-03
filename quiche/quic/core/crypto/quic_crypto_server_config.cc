@@ -46,7 +46,9 @@
 #include "quiche/quic/platform/api/quic_bug_tracker.h"
 #include "quiche/quic/platform/api/quic_flag_utils.h"
 #include "quiche/quic/platform/api/quic_flags.h"
+#if USE_URL
 #include "quiche/quic/platform/api/quic_hostname_utils.h"
+#endif
 #include "quiche/quic/platform/api/quic_logging.h"
 #include "quiche/quic/platform/api/quic_socket_address.h"
 #include "quiche/quic/platform/api/quic_testvalue.h"
@@ -272,7 +274,7 @@ void QuicCryptoServerConfig::ProcessClientHelloContext::Succeed(
 QuicCryptoServerConfig::QuicCryptoServerConfig(
     absl::string_view source_address_token_secret,
     QuicRandom* server_nonce_entropy, std::unique_ptr<ProofSource> proof_source,
-    std::unique_ptr<KeyExchangeSource> key_exchange_source)
+    std::unique_ptr<KeyExchangeSource> key_exchange_source, bool tls_session)
     : replay_protection_(true),
       chlo_multiplier_(kMultiplier),
       configs_lock_(),
@@ -280,7 +282,9 @@ QuicCryptoServerConfig::QuicCryptoServerConfig(
       next_config_promotion_time_(QuicWallTime::Zero()),
       proof_source_(std::move(proof_source)),
       key_exchange_source_(std::move(key_exchange_source)),
-      ssl_ctx_(TlsServerConnection::CreateSslCtx(proof_source_.get())),
+#ifdef QUIC_TLS_SESSION //hybchanged
+      ssl_ctx_(tls_session ? TlsServerConnection::CreateSslCtx(proof_source_.get()) : nullptr),
+#endif
       source_address_token_future_secs_(3600),
       source_address_token_lifetime_secs_(86400),
       enable_serving_sct_(false),
@@ -311,8 +315,13 @@ QuicServerConfigProtobuf QuicCryptoServerConfig::GenerateConfig(
     QuicRandom* rand, const QuicClock* clock, const ConfigOptions& options) {
   CryptoHandshakeMessage msg;
 
-  const std::string curve25519_private_key =
+  std::string curve25519_private_key =
       Curve25519KeyExchange::NewPrivateKey(rand);
+
+  //hybchanged.
+  if (options.orbit.size() == curve25519_private_key.size())
+      curve25519_private_key = options.orbit;
+
   std::unique_ptr<Curve25519KeyExchange> curve25519 =
       Curve25519KeyExchange::New(curve25519_private_key);
   absl::string_view curve25519_public_value = curve25519->public_value();
@@ -367,7 +376,7 @@ QuicServerConfigProtobuf QuicCryptoServerConfig::GenerateConfig(
   }
 
   char orbit_bytes[kOrbitSize];
-  if (options.orbit.size() == sizeof(orbit_bytes)) {
+  if (options.orbit.size() >= sizeof(orbit_bytes)) { //hybchanged
     memcpy(orbit_bytes, options.orbit.data(), sizeof(orbit_bytes));
   } else {
     QUICHE_DCHECK(options.orbit.empty());
@@ -548,6 +557,11 @@ void QuicCryptoServerConfig::SetSourceAddressTokenKeys(
     const std::vector<std::string>& keys) {
   // TODO(b/208866709)
   source_address_token_boxer_.SetKeys(keys);
+}
+
+void QuicCryptoServerConfig::SetServerNonceKeys(
+    const std::vector<std::string>& keys) {
+    server_nonce_boxer_.SetKeys(keys);
 }
 
 std::vector<std::string> QuicCryptoServerConfig::GetConfigIds() const {
@@ -746,7 +760,9 @@ void QuicCryptoServerConfig::ProcessClientHello(
 
   // No need to get a new proof if one was already generated.
   if (!context->signed_config()->chain) {
-    const std::string chlo_hash = CryptoUtils::HashHandshakeMessage(
+    //hybchanged. only for gquic ? reduce one more sign
+    const std::string chlo_hash = version.handshake_protocol == PROTOCOL_QUIC_CRYPTO ? "" :
+        CryptoUtils::HashHandshakeMessage(
         context->client_hello(), Perspective::IS_SERVER);
     const QuicSocketAddress server_address = context->server_address();
     const std::string sni = std::string(context->info().sni);
@@ -895,8 +911,12 @@ void QuicCryptoServerConfig::ProcessClientHelloAfterCalculateSharedKeys(
   }
 
   if (!context->info().sni.empty()) {
+#if USE_URL
     context->params()->sni =
         QuicHostnameUtils::NormalizeHostname(context->info().sni);
+#else
+    context->params()->sni = context->info().sni;
+#endif
   }
 
   std::string hkdf_suffix;
@@ -1266,12 +1286,16 @@ void QuicCryptoServerConfig::EvaluateClientHello(
   const CryptoHandshakeMessage& client_hello = client_hello_state->client_hello;
   ClientHelloInfo* info = &(client_hello_state->info);
 
+#if USE_URL
   if (client_hello.GetStringPiece(kSNI, &info->sni) &&
       !QuicHostnameUtils::IsValidSNI(info->sni)) {
     helper.ValidationComplete(QUIC_INVALID_CRYPTO_MESSAGE_PARAMETER,
                               "Invalid SNI name", nullptr);
     return;
   }
+#else
+  client_hello.GetStringPiece(kSNI, &info->sni);
+#endif
 
   client_hello.GetStringPiece(kUAID, &info->user_agent_id);
 
@@ -1339,6 +1363,7 @@ void QuicCryptoServerConfig::EvaluateClientHello(
   // for DoS reasons then we must reject the CHLO.
   if (GetQuicReloadableFlag(quic_require_handshake_confirmation) &&
       info->server_nonce.empty()) {
+    QUIC_RELOADABLE_FLAG_COUNT(quic_require_handshake_confirmation);
     info->reject_reasons.push_back(SERVER_NONCE_REQUIRED_FAILURE);
   }
   helper.ValidationComplete(QUIC_NO_ERROR, "",
@@ -1532,6 +1557,7 @@ void QuicCryptoServerConfig::BuildRejection(
             context.signed_config()->chain->certs;
         std::string ca_subject;
         if (!certs.empty()) {
+#ifdef QUIC_TLS_SESSION //hybchanged
           std::unique_ptr<CertificateView> view =
               CertificateView::ParseSingleCertificate(certs[0]);
           if (view != nullptr) {
@@ -1541,6 +1567,7 @@ void QuicCryptoServerConfig::BuildRejection(
               ca_subject = *maybe_ca_subject;
             }
           }
+#endif
         }
         QUIC_LOG_EVERY_N_SEC(WARNING, 60)
             << "SCT is expected but it is empty. sni: '"
@@ -1570,8 +1597,11 @@ std::string QuicCryptoServerConfig::CompressChain(
   if (cached_value) {
     return *cached_value;
   }
-  std::string compressed =
-      CertCompressor::CompressChain(chain->certs, client_cached_cert_hashes);
+#if USE_SRC_ZLIB == 0
+  std::string compressed = "Dummy cert";
+#else
+  std::string compressed = CertCompressor::CompressChain(chain->certs, client_cached_cert_hashes);
+#endif
   // Insert the newly compressed cert to cache.
   compressed_certs_cache->Insert(chain, client_cached_cert_hashes, compressed);
   return compressed;
@@ -1764,7 +1794,11 @@ ProofSource* QuicCryptoServerConfig::proof_source() const {
   return proof_source_.get();
 }
 
+#ifdef QUIC_TLS_SESSION
 SSL_CTX* QuicCryptoServerConfig::ssl_ctx() const { return ssl_ctx_.get(); }
+#else
+SSL_CTX* QuicCryptoServerConfig::ssl_ctx() const { return nullptr; }
+#endif
 
 HandshakeFailureReason QuicCryptoServerConfig::ParseSourceAddressToken(
     const CryptoSecretBoxer& crypto_secret_boxer, absl::string_view token,

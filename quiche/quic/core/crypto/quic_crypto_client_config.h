@@ -238,8 +238,11 @@ class QUIC_EXPORT_PRIVATE QuicCryptoClientConfig : public QuicCryptoConfig {
   // DEPRECATED: Use the constructor below instead.
   explicit QuicCryptoClientConfig(
       std::unique_ptr<ProofVerifier> proof_verifier);
+  explicit QuicCryptoClientConfig(
+      std::unique_ptr<ProofVerifier> proof_verifier, bool tsl_session);
+
   QuicCryptoClientConfig(std::unique_ptr<ProofVerifier> proof_verifier,
-                         std::unique_ptr<SessionCache> session_cache);
+                         std::unique_ptr<SessionCache> session_cache, bool tsl_session);
   QuicCryptoClientConfig(const QuicCryptoClientConfig&) = delete;
   QuicCryptoClientConfig& operator=(const QuicCryptoClientConfig&) = delete;
   ~QuicCryptoClientConfig();
@@ -247,6 +250,9 @@ class QUIC_EXPORT_PRIVATE QuicCryptoClientConfig : public QuicCryptoConfig {
   // LookupOrCreate returns a CachedState for the given |server_id|. If no such
   // CachedState currently exists, it will be created and cached.
   CachedState* LookupOrCreate(const QuicServerId& server_id);
+  //hybchanged
+  void SetTextEncryptTag(int64_t no_encrypt_tag) { no_encrypt_tag_ = no_encrypt_tag; }
+  void SetClientTypeTag(int64_t client_type_tag)  { client_type_tag_ = client_type_tag; }
 
   // Delete CachedState objects whose server ids match |filter| from
   // cached_states.
@@ -337,6 +343,7 @@ class QUIC_EXPORT_PRIVATE QuicCryptoClientConfig : public QuicCryptoConfig {
 
   ProofVerifier* proof_verifier() const;
   SessionCache* session_cache() const;
+  SessionCache* mutable_session_cache() { return session_cache_.get(); }
   ClientProofSource* proof_source() const;
   void set_proof_source(std::unique_ptr<ClientProofSource> proof_source);
   SSL_CTX* ssl_ctx() const;
@@ -390,8 +397,6 @@ class QUIC_EXPORT_PRIVATE QuicCryptoClientConfig : public QuicCryptoConfig {
   bool pad_full_hello() const { return pad_full_hello_; }
   void set_pad_full_hello(bool new_value) { pad_full_hello_ = new_value; }
 
-  SessionCache* mutable_session_cache() { return session_cache_.get(); }
-
  private:
   // Sets the members to reasonable, default values.
   void SetDefaults();
@@ -431,7 +436,9 @@ class QUIC_EXPORT_PRIVATE QuicCryptoClientConfig : public QuicCryptoConfig {
   std::unique_ptr<SessionCache> session_cache_;
   std::unique_ptr<ClientProofSource> proof_source_;
 
+#ifdef QUIC_TLS_SESSION //hybchanged
   bssl::UniquePtr<SSL_CTX> ssl_ctx_;
+#endif
 
   // The |user_agent_id_| passed in QUIC's CHLO message.
   std::string user_agent_id_;
@@ -460,6 +467,8 @@ class QUIC_EXPORT_PRIVATE QuicCryptoClientConfig : public QuicCryptoConfig {
   // other means of verifying the client.
   bool pad_inchoate_hello_ = true;
   bool pad_full_hello_ = true;
+  int64_t no_encrypt_tag_ = 0;
+  int64_t client_type_tag_ = 0;
 };
 
 }  // namespace quic

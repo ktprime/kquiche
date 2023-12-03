@@ -304,7 +304,7 @@ void QuicCryptoServerStream::FinishSendServerConfigUpdate(
 }
 
 bool QuicCryptoServerStream::DisableResumption() {
-  QUICHE_DCHECK(false) << "Not supported for QUIC crypto.";
+  QUICHE_DCHECK(false) ;//<< "Not supported for QUIC crypto.";
   return false;
 }
 
@@ -332,7 +332,7 @@ bool QuicCryptoServerStream::ResumptionAttempted() const {
 }
 
 bool QuicCryptoServerStream::EarlyDataAttempted() const {
-  QUICHE_DCHECK(false) << "Not supported for QUIC crypto.";
+  QUICHE_DCHECK(false) ;//<< "Not supported for QUIC crypto.";
   return zero_rtt_attempted_;
 }
 
