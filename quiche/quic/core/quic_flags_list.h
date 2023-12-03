@@ -1,4 +1,4 @@
-// Copyright (c) 2022 The Chromium Authors. All rights reserved.
+// Copyright (c) 2023 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -19,8 +19,6 @@ QUIC_FLAG(quic_restart_flag_quic_testonly_default_true, true)
 QUIC_FLAG(quic_reloadable_flag_quic_no_write_control_frame_upon_connection_close, true)
 // If true, QUIC will default enable MTU discovery at server, with a target of 1450 bytes.
 QUIC_FLAG(quic_reloadable_flag_quic_enable_mtu_discovery_at_server, false)
-// If true, QuicCryptoServerConfig::ParseConfigProtobuf will treat an empty SCID as the same as non-existent.
-QUIC_FLAG(quic_restart_flag_quic_return_error_on_empty_scid, true)
 // If true, QuicGsoBatchWriter will support release time if it is available and the process has the permission to do so.
 QUIC_FLAG(quic_restart_flag_quic_support_release_time_for_gso, false)
 // If true, ack frequency frame can be sent from server to client.
@@ -29,18 +27,14 @@ QUIC_FLAG(quic_reloadable_flag_quic_can_send_ack_frequency, true)
 QUIC_FLAG(quic_reloadable_flag_quic_allow_client_enabled_bbr_v2, true)
 // If true, an endpoint does not detect path degrading or blackholing until handshake gets confirmed.
 QUIC_FLAG(quic_reloadable_flag_quic_no_path_degrading_before_handshake_confirmed, true)
-// If true, combine two WriteOrBufferData to one while writing headers.
-QUIC_FLAG(quic_reloadable_flag_quic_one_write_for_headers, true)
 // If true, default-enable 5RTO blachole detection.
 QUIC_FLAG(quic_reloadable_flag_quic_default_enable_5rto_blackhole_detection2, true)
-// If true, delay setting of stateless reset token until session initialization.
-QUIC_FLAG(quic_reloadable_flag_quic_delay_setting_stateless_reset_token, true)
 // If true, disable QUIC version Q043.
-QUIC_FLAG(quic_reloadable_flag_quic_disable_version_q043, false)
+QUIC_FLAG(quic_reloadable_flag_quic_disable_version_q043, true)
 // If true, disable QUIC version Q046.
-QUIC_FLAG(quic_reloadable_flag_quic_disable_version_q046, false)
+QUIC_FLAG(quic_reloadable_flag_quic_disable_version_q046, true)
 // If true, disable QUIC version Q050.
-QUIC_FLAG(quic_reloadable_flag_quic_disable_version_q050, false)
+QUIC_FLAG(quic_reloadable_flag_quic_disable_version_q050, true)
 // If true, disable QUIC version h3 (RFCv1).
 QUIC_FLAG(quic_reloadable_flag_quic_disable_version_rfcv1, false)
 // If true, disable QUIC version h3-29.
@@ -51,44 +45,52 @@ QUIC_FLAG(quic_reloadable_flag_quic_disable_server_blackhole_detection, false)
 QUIC_FLAG(quic_reloadable_flag_quic_enable_disable_resumption, true)
 // If true, discard INITIAL packet if the key has been dropped.
 QUIC_FLAG(quic_reloadable_flag_quic_discard_initial_packet_with_key_dropped, true)
-// If true, do not PTO new stream data before handshake confirmed.
-QUIC_FLAG(quic_reloadable_flag_quic_donot_pto_stream_data_before_handshake_confirmed, true)
 // If true, do not issue a new connection ID that has been claimed by another connection.
 QUIC_FLAG(quic_reloadable_flag_quic_check_cid_collision_when_issue_new_cid, true)
 // If true, enable server retransmittable on wire PING.
 QUIC_FLAG(quic_reloadable_flag_quic_enable_server_on_wire_ping, true)
 // If true, flush pending frames as well as pending padding bytes on connection migration.
 QUIC_FLAG(quic_reloadable_flag_quic_flush_pending_frames_and_padding_bytes_on_migration, true)
-// If true, ietf connection migration is no longer conditioned on connection option RVCM.
-QUIC_FLAG(quic_reloadable_flag_quic_remove_connection_migration_connection_option_v2, false)
 // If true, include stream information in idle timeout connection close detail.
 QUIC_FLAG(quic_reloadable_flag_quic_add_stream_info_to_idle_close_detail, true)
-// If true, lowers the minimum packet size to that in the spec.
-QUIC_FLAG(quic_restart_flag_quic_allow_smaller_packets, false)
-// If true, quic server will send ENABLE_CONNECT_PROTOCOL setting and and endpoint will validate required request/response headers and extended CONNECT mechanism and update code counts of valid/invalid headers.
-QUIC_FLAG(quic_reloadable_flag_quic_verify_request_headers_2, true)
-// If true, reject or send error response code upon receiving invalid request or response headers. This flag depends on --gfe2_reloadable_flag_quic_verify_request_headers_2.
+// If true, reject or send error response code upon receiving invalid request or response headers.
 QUIC_FLAG(quic_reloadable_flag_quic_act_upon_invalid_header, false)
 // If true, require handshake confirmation for QUIC connections, functionally disabling 0-rtt handshakes.
 QUIC_FLAG(quic_reloadable_flag_quic_require_handshake_confirmation, false)
+// If true, respect the incremental parameter of each stream in QuicWriteBlockedList.
+QUIC_FLAG(quic_reloadable_flag_quic_priority_respect_incremental, false)
+// If true, round-robin stream writes instead of batching in QuicWriteBlockedList.
+QUIC_FLAG(quic_reloadable_flag_quic_disable_batch_write, false)
 // If true, server proactively retires client issued connection ID on reverse path validation failure. 
 QUIC_FLAG(quic_reloadable_flag_quic_retire_cid_on_reverse_path_validation_failure, true)
 // If true, server sends bandwidth eastimate when network is idle for a while.
 QUIC_FLAG(quic_restart_flag_quic_enable_sending_bandwidth_estimate_when_network_idle_v2, true)
 // If true, set burst token to 2 in cwnd bootstrapping experiment.
 QUIC_FLAG(quic_reloadable_flag_quic_conservative_bursts, false)
+// If true, unacked QPACK entries with no references will not be evicted.
+QUIC_FLAG(quic_reloadable_flag_quic_do_not_evict_unacked_entry, false)
 // If true, use BBRv2 as the default congestion controller. Takes precedence over --quic_default_to_bbr.
 QUIC_FLAG(quic_reloadable_flag_quic_default_to_bbr_v2, false)
+// If true, use a LRU cache to record client addresses of packets received on server\'s original address.
+QUIC_FLAG(quic_reloadable_flag_quic_use_received_client_addresses_cache, true)
 // If true, use new connection ID in connection migration.
 QUIC_FLAG(quic_reloadable_flag_quic_connection_migration_use_new_cid_v2, true)
 // If true, use next_connection_id_sequence_number to validate retired cid number.
 QUIC_FLAG(quic_reloadable_flag_quic_check_retire_cid_with_next_cid_sequence_number, true)
-// If true, use quiche/common/structured_headers in QuicReceiveControlStream::OnPriorityUpdateFrame().
-QUIC_FLAG(quic_reloadable_flag_quic_priority_update_structured_headers_parser, true)
 // If true, uses conservative cwnd gain and pacing gain when cwnd gets bootstrapped.
 QUIC_FLAG(quic_reloadable_flag_quic_conservative_cwnd_and_pacing_gains, false)
+// If true, when TicketCrypter fails to encrypt a session ticket, quic::TlsServerHandshaker will send a placeholder ticket, instead of an empty one, to the client.
+QUIC_FLAG(quic_reloadable_flag_quic_send_placeholder_ticket_when_encrypt_ticket_fails, true)
+// When true, check what sockopt is used to set the IP TOS byte on the platform.
+QUIC_FLAG(quic_restart_flag_quic_platform_tos_sockopt, false)
 // When true, defaults to BBR congestion control instead of Cubic.
 QUIC_FLAG(quic_reloadable_flag_quic_default_to_bbr, false)
+// When true, quiche UDP sockets report Explicit Congestion Notification (ECN) [RFC3168, RFC9330] results.
+QUIC_FLAG(quic_restart_flag_quic_quiche_ecn_sockets, true)
+// When true, report received ECN markings to the peer.
+QUIC_FLAG(quic_restart_flag_quic_receive_ecn, true)
+// When true, sends QUIC packets marked ECT(1).
+QUIC_FLAG(quic_reloadable_flag_quic_send_ect1, false)
 // When true, support draft-ietf-quic-v2-08
 QUIC_FLAG(quic_reloadable_flag_quic_enable_version_2_draft_08, false)
 // When true, the BB2U copt causes BBR2 to wait two rounds with out draining the queue before exiting PROBE_UP and BB2S has the same effect in STARTUP.

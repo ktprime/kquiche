@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <limits>
@@ -42,12 +43,17 @@ namespace quiche {
 
 namespace {
 
-const size_t kContinueStatusCode = 100;
+constexpr size_t kContinueStatusCode = 100;
+constexpr size_t kSwitchingProtocolsStatusCode = 101;
 
 constexpr absl::string_view kChunked = "chunked";
 constexpr absl::string_view kContentLength = "content-length";
 constexpr absl::string_view kIdentity = "identity";
 constexpr absl::string_view kTransferEncoding = "transfer-encoding";
+
+bool IsInterimResponse(size_t response_code) {
+  return response_code >= 100 && response_code < 200;
+}
 
 }  // namespace
 
@@ -286,8 +292,6 @@ void BalsaFrame::CleanUpKeyValueWhitespace(
   QUICHE_DCHECK_CHAR_GE(' ', *line_end)
       << "\"" << std::string(line_begin, line_end) << "\"";
 
-  // TODO(fenix): Investigate whether or not the bounds tests in the
-  // while loops here are redundant, and if so, remove them.
   --current;
   while (current > line_begin && CHAR_LE(*current, ' ')) {
     --current;
@@ -350,7 +354,7 @@ bool BalsaFrame::FindColonsAndParseIntoKeyValue(const Lines& lines,
       // https://tools.ietf.org/html/rfc7230#section-3.2.4 says that a proxy
       // can choose to reject or normalize continuation lines.
       if ((c != ' ' && c != '\t') ||
-          http_validation_policy().disallow_header_continuation_lines()) {
+          http_validation_policy().disallow_header_continuation_lines) {
         HandleError(is_trailer ? BalsaFrameEnums::INVALID_TRAILER_FORMAT
                                : BalsaFrameEnums::INVALID_HEADER_FORMAT);
         return false;
@@ -384,7 +388,7 @@ bool BalsaFrame::FindColonsAndParseIntoKeyValue(const Lines& lines,
         line_begin - stream_begin, line_end - stream_begin,
         line_end - stream_begin, line_end - stream_begin, 0));
     if (current >= line_end) {
-      if (http_validation_policy().require_header_colon()) {
+      if (http_validation_policy().require_header_colon) {
         HandleError(is_trailer ? BalsaFrameEnums::TRAILER_MISSING_COLON
                                : BalsaFrameEnums::HEADER_MISSING_COLON);
         return false;
@@ -424,7 +428,7 @@ bool BalsaFrame::FindColonsAndParseIntoKeyValue(const Lines& lines,
       // construct which is technically not allowed by the spec.
 
       // In strict mode, we do treat this invalid value-less key as an error.
-      if (http_validation_policy().require_header_colon()) {
+      if (http_validation_policy().require_header_colon) {
         HandleError(is_trailer ? BalsaFrameEnums::TRAILER_MISSING_COLON
                                : BalsaFrameEnums::HEADER_MISSING_COLON);
         return false;
@@ -525,7 +529,9 @@ void BalsaFrame::ProcessTransferEncodingLine(HeaderLines::size_type line_idx) {
     return;
   }
 
-  HandleError(BalsaFrameEnums::UNKNOWN_TRANSFER_ENCODING);
+  if (http_validation_policy().validate_transfer_encoding) {
+    HandleError(BalsaFrameEnums::UNKNOWN_TRANSFER_ENCODING);
+  }
 }
 
 bool BalsaFrame::CheckHeaderLinesForInvalidChars(const Lines& lines,
@@ -624,7 +630,7 @@ void BalsaFrame::ProcessHeaderLines(const Lines& lines, bool is_trailer,
       if ((headers->content_length_status_ != content_length_status) ||
           ((headers->content_length_status_ ==
             BalsaHeadersEnums::VALID_CONTENT_LENGTH) &&
-           (http_validation_policy().disallow_multiple_content_length() ||
+           (http_validation_policy().disallow_multiple_content_length ||
             length != headers->content_length_))) {
         HandleError(BalsaFrameEnums::MULTIPLE_CONTENT_LENGTH_KEYS);
         return;
@@ -632,7 +638,8 @@ void BalsaFrame::ProcessHeaderLines(const Lines& lines, bool is_trailer,
       continue;
     }
     if (absl::EqualsIgnoreCase(key, kTransferEncoding)) {
-      if (transfer_encoding_idx != 0) {
+      if (http_validation_policy().validate_transfer_encoding &&
+          transfer_encoding_idx != 0) {
         HandleError(BalsaFrameEnums::MULTIPLE_TRANSFER_ENCODING_KEYS);
         return;
       }
@@ -641,8 +648,9 @@ void BalsaFrame::ProcessHeaderLines(const Lines& lines, bool is_trailer,
   }
 
   if (!is_trailer) {
-    if (http_validation_policy()
-            .disallow_transfer_encoding_with_content_length() &&
+    if (http_validation_policy().validate_transfer_encoding &&
+        http_validation_policy()
+            .disallow_transfer_encoding_with_content_length &&
         content_length_idx != 0 && transfer_encoding_idx != 0) {
       HandleError(BalsaFrameEnums::BOTH_TRANSFER_ENCODING_AND_CONTENT_LENGTH);
       return;
@@ -846,6 +854,17 @@ size_t BalsaFrame::ProcessHeaders(const char* message_start,
       return message_current - original_message_start;
     }
 
+    if (use_interim_headers_callback_ &&
+        IsInterimResponse(headers_->parsed_response_code()) &&
+        headers_->parsed_response_code() != kSwitchingProtocolsStatusCode) {
+      // Deliver headers from this interim response but reset everything else to
+      // prepare for the next set of headers. Skip 101 Switching Protocols
+      // because these are considered final headers for the current protocol.
+      visitor_->OnInterimHeaders(std::move(*headers_));
+      Reset();
+      checkpoint = message_start = message_current;
+      continue;
+    }
     if (continue_headers_ != nullptr &&
         headers_->parsed_response_code_ == kContinueStatusCode) {
       // Save the headers from this 100 Continue response but reset everything

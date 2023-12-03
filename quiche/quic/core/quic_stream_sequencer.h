@@ -31,8 +31,6 @@ class QUIC_EXPORT_PRIVATE QuicStreamSequencer final {
 
     // Called when new data is available to be read from the sequencer.
     virtual void OnDataAvailable() = 0;
-    virtual void OnDuplicate() {}
-
     // Called when the end of the stream has been read.
     virtual void OnFinRead() = 0;
     // Called when bytes have been consumed from the sequencer.

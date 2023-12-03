@@ -34,7 +34,8 @@ struct QUIC_EXPORT_PRIVATE PerPacketOptions {
   QuicTime::Delta release_time_delay = QuicTime::Delta::Zero();
   // Whether it is allowed to send this packet without |release_time_delay|.
   bool allow_burst = false;
-  TransmissionType transmission_type = NOT_RETRANSMISSION;
+  // ECN codepoint to use when sending this packet.
+  QuicEcnCodepoint ecn_codepoint = ECN_NOT_ECT;
 };
 
 // An interface between writers and the entity managing the

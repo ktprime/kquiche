@@ -26,15 +26,12 @@ void QuicAlarm::Set(QuicTime new_deadline) {
   QUICHE_DCHECK(!IsSet());
   QUICHE_DCHECK(new_deadline.IsInitialized());
 
-  assert (!IsPermanentlyCancelled());
-#if 0
-  {
+  if (IsPermanentlyCancelled()) {
     QUIC_BUG(quic_alarm_illegal_set)
         << "Set called after alarm is permanently cancelled. new_deadline:"
         << new_deadline;
     return;
   }
-#endif
 
   deadline_ = new_deadline;
   SetImpl();
@@ -54,15 +51,12 @@ void QuicAlarm::CancelInternal(bool permanent) {
 bool QuicAlarm::IsPermanentlyCancelled() const { return delegate_ == nullptr; }
 
 void QuicAlarm::Update(QuicTime new_deadline, QuicTime::Delta granularity) {
-  assert (!IsPermanentlyCancelled());
-#if 0
-  {
+  if (IsPermanentlyCancelled()) {
     QUIC_BUG(quic_alarm_illegal_update)
         << "Update called after alarm is permanently cancelled. new_deadline:"
         << new_deadline << ", granularity:" << granularity;
     return;
   }
-#endif
 
   if (!new_deadline.IsInitialized()) {
     Cancel();
@@ -72,8 +66,6 @@ void QuicAlarm::Update(QuicTime new_deadline, QuicTime::Delta granularity) {
       granularity.ToMicroseconds()) {
     return;
   }
-
-#ifdef HYB_OPT_TIMER //hychanged
   const bool was_set = IsSet();
   deadline_ = new_deadline;
   if (was_set) {
@@ -81,21 +73,21 @@ void QuicAlarm::Update(QuicTime new_deadline, QuicTime::Delta granularity) {
   } else {
     SetImpl();
   }
-#else
-  deadline_ = new_deadline;
-  SetImpl();
-#endif
 }
 
 bool QuicAlarm::IsSet() const { return deadline_.IsInitialized(); }
 
 void QuicAlarm::Fire() {
-  assert (IsSet() && !IsPermanentlyCancelled());
+  if (!IsSet()) {
+    return;
+  }
 
   deadline_ = QuicTime::Zero();
+  if (!IsPermanentlyCancelled()) {
     QuicConnectionContextSwitcher context_switcher(
         delegate_->GetConnectionContext());
     delegate_->OnAlarm();
+  }
 }
 
 void QuicAlarm::UpdateImpl() {

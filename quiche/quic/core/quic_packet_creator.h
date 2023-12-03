@@ -51,7 +51,7 @@ class QUIC_EXPORT_PRIVATE QuicPacketCreator {
     virtual QuicPacketBuffer GetPacketBuffer() = 0;
     // Called when a packet is serialized. Delegate take the ownership of
     // |serialized_packet|.
-    virtual void OnSerializedPacket(SerializedPacket& serialized_packet) = 0;
+    virtual void OnSerializedPacket(SerializedPacket serialized_packet) = 0;
 
     // Called when an unrecoverable error is encountered.
     virtual void OnUnrecoverableError(QuicErrorCode error,

@@ -58,6 +58,7 @@ const char* QuicRstStreamErrorCodeToString(QuicRstStreamErrorCode error) {
     RETURN_STRING_LITERAL(QUIC_STREAM_WEBTRANSPORT_SESSION_GONE);
     RETURN_STRING_LITERAL(
         QUIC_STREAM_WEBTRANSPORT_BUFFERED_STREAMS_LIMIT_EXCEEDED);
+    RETURN_STRING_LITERAL(QUIC_APPLICATION_DONE_WITH_STREAM);
     RETURN_STRING_LITERAL(QUIC_STREAM_LAST_ERROR);
   }
   // Return a default value so that we return this when |error| doesn't match
@@ -296,12 +297,10 @@ const char* QuicErrorCodeToString(QuicErrorCode error) {
 std::string QuicIetfTransportErrorCodeString(QuicIetfTransportErrorCodes c) {
   if (c >= CRYPTO_ERROR_FIRST && c <= CRYPTO_ERROR_LAST) {
     const int tls_error = static_cast<int>(c - CRYPTO_ERROR_FIRST);
-#if QUIC_TLS_SESSION
     const char* tls_error_description = SSL_alert_desc_string_long(tls_error);
     if (strcmp("unknown", tls_error_description) != 0) {
       return absl::StrCat("CRYPTO_ERROR(", tls_error_description, ")");
     }
-#endif
     return absl::StrCat("CRYPTO_ERROR(unknown(", tls_error, "))");
   }
 
@@ -909,6 +908,8 @@ uint64_t RstStreamErrorCodeToIetfResetStreamErrorCode(
       return static_cast<uint64_t>(QuicHttp3ErrorCode::CONNECT_ERROR);
     case QUIC_STREAM_WEBTRANSPORT_BUFFERED_STREAMS_LIMIT_EXCEEDED:
       return static_cast<uint64_t>(QuicHttp3ErrorCode::CONNECT_ERROR);
+    case QUIC_APPLICATION_DONE_WITH_STREAM:
+      return static_cast<uint64_t>(QuicHttp3ErrorCode::GENERAL_PROTOCOL_ERROR);
     case QUIC_STREAM_LAST_ERROR:
       return static_cast<uint64_t>(QuicHttp3ErrorCode::INTERNAL_ERROR);
   }

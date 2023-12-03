@@ -486,12 +486,13 @@ void QuicPacketCreator::OnSerializedPacket() {
   SerializedPacket packet(std::move(packet_));
   ClearPacket();
   RemoveSoftMaxPacketLength();
-  delegate_->OnSerializedPacket(packet);
+  delegate_->OnSerializedPacket(std::move(packet));
 }
 
 void QuicPacketCreator::ClearPacket() {
   packet_.has_ack = false;
   packet_.has_stop_waiting = false;
+  packet_.has_ack_ecn = false;
   packet_.has_crypto_handshake = NOT_HANDSHAKE;
   packet_.transmission_type = NOT_RETRANSMISSION;
   packet_.encrypted_buffer = nullptr;
@@ -507,6 +508,7 @@ void QuicPacketCreator::ClearPacket() {
   packet_.largest_acked.Clear();
   needs_full_padding_ = false;
   packet_.bytes_not_retransmitted.reset();
+  packet_.initial_header.reset();
 }
 
 size_t QuicPacketCreator::ReserializeInitialPacketInCoalescedPacket(
@@ -559,6 +561,15 @@ size_t QuicPacketCreator::ReserializeInitialPacketInCoalescedPacket(
   if (!SerializePacket(QuicOwnedPacketBuffer(buffer, nullptr), buffer_len,
                        /*allow_padding=*/false)) {
     return 0;
+  }
+  if (!packet.initial_header.has_value() ||
+      !packet_.initial_header.has_value()) {
+    QUIC_BUG(missing initial packet header)
+        << "initial serialized packet does not have header populated";
+  } else if (packet.initial_header.value() != packet_.initial_header.value()) {
+    QUIC_BUG(initial packet header changed before reserialization)
+        << ENDPOINT << "original header: " << packet.initial_header.value()
+        << ", new header: " << packet_.initial_header.value();
   }
   const size_t encrypted_length = packet_.encrypted_length;
   // Clear frames in packet_. No need to DeleteFrames since frames are owned by
@@ -619,21 +630,11 @@ void QuicPacketCreator::CreateAndSerializeStreamFrame(
       MinPlaintextPacketSize(framer_->version(), GetPacketNumberLength());
   if (plaintext_bytes_written < min_plaintext_size) {
     needs_padding = true;
-    if (!GetQuicRestartFlag(quic_allow_smaller_packets)) {
-      // Recalculate sizes with the stream frame not being marked as the last
-      // frame in the packet.
-      min_frame_size = QuicFramer::GetMinStreamFrameSize(
-          framer_->transport_version(), id, stream_offset,
-          /* last_frame_in_packet= */ false, remaining_data_size);
-      available_size = max_plaintext_size_ - writer.length() - min_frame_size;
-      bytes_consumed = std::min<size_t>(available_size, remaining_data_size);
-      plaintext_bytes_written = min_frame_size + bytes_consumed;
-    }
   }
 
   const bool set_fin = fin && (bytes_consumed == remaining_data_size);
   QuicStreamFrame frame(id, set_fin, stream_offset, bytes_consumed);
-  if (0) {
+  if (debug_delegate_ != nullptr) {
     debug_delegate_->OnFrameAddedToPacket(QuicFrame(frame));
   }
   QUIC_DVLOG(1) << ENDPOINT << "Adding frame: " << frame;
@@ -642,8 +643,7 @@ void QuicPacketCreator::CreateAndSerializeStreamFrame(
 
   // TODO(ianswett): AppendTypeByte and AppendStreamFrame could be optimized
   // into one method that takes a QuicStreamFrame, if warranted.
-  if (needs_padding && GetQuicRestartFlag(quic_allow_smaller_packets)) {
-    QUIC_RESTART_FLAG_COUNT_N(quic_allow_smaller_packets, 2, 5);
+  if (needs_padding) {
     if (!writer.WritePaddingBytes(min_plaintext_size -
                                   plaintext_bytes_written)) {
       QUIC_BUG(quic_bug_10752_12) << ENDPOINT << "Unable to add padding bytes";
@@ -754,13 +754,6 @@ size_t QuicPacketCreator::BytesFree() const {
 
 size_t QuicPacketCreator::BytesFreeForPadding() const {
   size_t consumed = PacketSize();
-
-  if (!GetQuicRestartFlag(quic_allow_smaller_packets)) {
-    consumed += ExpansionOnNewFrame();
-  } else {
-    // The next frame (which is PADDING) will be prepended to the packet.
-    QUIC_RESTART_FLAG_COUNT_N(quic_allow_smaller_packets, 5, 5);
-  }
   return max_plaintext_size_ - std::min(max_plaintext_size_, consumed);
 }
 
@@ -780,7 +773,8 @@ bool QuicPacketCreator::AddPaddedSavedFrame(
 absl::optional<size_t>
 QuicPacketCreator::MaybeBuildDataPacketWithChaosProtection(
     const QuicPacketHeader& header, char* buffer) {
-  if (framer_->perspective() != Perspective::IS_CLIENT ||
+  if (!GetQuicFlag(quic_enable_chaos_protection) ||
+      framer_->perspective() != Perspective::IS_CLIENT ||
       packet_.encryption_level != ENCRYPTION_INITIAL ||
       !framer_->version().UsesCryptoFrames() || queued_frames_.size() != 2u ||
       queued_frames_[0].type != CRYPTO_FRAME ||
@@ -825,6 +819,9 @@ bool QuicPacketCreator::SerializePacket(QuicOwnedPacketBuffer encrypted_buffer,
   QuicPacketHeader header;
   // FillPacketHeader increments packet_number_.
   FillPacketHeader(&header);
+  if (packet_.encryption_level == ENCRYPTION_INITIAL) {
+    packet_.initial_header = header;
+  }
   if (delegate_ != nullptr) {
     packet_.fate = delegate_->GetSerializedPacketFate(
         /*is_mtu_discovery=*/QuicUtils::ContainsFrameType(queued_frames_,
@@ -1055,7 +1052,7 @@ size_t QuicPacketCreator::BuildPaddedPathChallengePacket(
   // Write a PATH_CHALLENGE frame, which has a random 8-byte payload
   frames.push_back(QuicFrame(QuicPathChallengeFrame(0, payload)));
 
-  if (0) {
+  if (debug_delegate_ != nullptr) {
     debug_delegate_->OnFrameAddedToPacket(frames.back());
   }
 
@@ -1084,7 +1081,7 @@ size_t QuicPacketCreator::BuildPathResponsePacket(
   for (const QuicPathFrameBuffer& payload : payloads) {
     // Note that the control frame ID can be 0 since this is not retransmitted.
     frames.push_back(QuicFrame(QuicPathResponseFrame(0, payload)));
-    if (0) {
+    if (debug_delegate_ != nullptr) {
       debug_delegate_->OnFrameAddedToPacket(frames.back());
     }
   }
@@ -1815,6 +1812,9 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
   if (frame.type == ACK_FRAME) {
     packet_.has_ack = true;
     packet_.largest_acked = LargestAcked(*frame.ack_frame);
+    if (frame.ack_frame->ecn_counters.has_value()) {
+      packet_.has_ack_ecn = true;
+    }
   } else if (frame.type == STOP_WAITING_FRAME) {
     packet_.has_stop_waiting = true;
   } else if (frame.type == ACK_FREQUENCY_FRAME) {
@@ -1822,7 +1822,7 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
   } else if (frame.type == MESSAGE_FRAME) {
     packet_.has_message = true;
   }
-  if (0) {
+  if (debug_delegate_ != nullptr) {
     debug_delegate_->OnFrameAddedToPacket(frame);
   }
 
@@ -1847,20 +1847,9 @@ void QuicPacketCreator::MaybeAddExtraPaddingForHeaderProtection() {
       MinPlaintextPacketSize(framer_->version(), GetPacketNumberLength())) {
     return;
   }
-  QuicByteCount min_header_protection_padding;
-  if (GetQuicRestartFlag(quic_allow_smaller_packets)) {
-    QUIC_RESTART_FLAG_COUNT_N(quic_allow_smaller_packets, 4, 5);
-    min_header_protection_padding =
-        MinPlaintextPacketSize(framer_->version(), GetPacketNumberLength()) -
-        frame_bytes;
-  } else {
-    min_header_protection_padding =
-        std::max(1 + ExpansionOnNewFrame(),
-                 MinPlaintextPacketSize(framer_->version(),
-                                        GetPacketNumberLength()) -
-                     frame_bytes) -
-        ExpansionOnNewFrame();
-  }
+  QuicByteCount min_header_protection_padding =
+      MinPlaintextPacketSize(framer_->version(), GetPacketNumberLength()) -
+      frame_bytes;
   // Update pending_padding_bytes_.
   pending_padding_bytes_ =
       std::max(pending_padding_bytes_, min_header_protection_padding);
@@ -1892,7 +1881,7 @@ bool QuicPacketCreator::MaybeCoalesceStreamFrame(const QuicStreamFrame& frame) {
   retransmittable->data_length = candidate->data_length;
   retransmittable->fin = candidate->fin;
   packet_size_ += frame.data_length;
-  if (0) {
+  if (debug_delegate_ != nullptr) {
     debug_delegate_->OnStreamFrameCoalesced(*candidate);
   }
   return true;
@@ -1948,11 +1937,9 @@ void QuicPacketCreator::MaybeAddPadding() {
     pending_padding_bytes_ -= padding_bytes;
   }
 
-  if (!queued_frames_.empty() &&
-      GetQuicRestartFlag(quic_allow_smaller_packets)) {
+  if (!queued_frames_.empty()) {
     // Insert PADDING before the other frames to avoid adding a length field
     // to any trailing STREAM frame.
-    QUIC_RESTART_FLAG_COUNT_N(quic_allow_smaller_packets, 3, 5);
     if (needs_full_padding_) {
       padding_bytes = BytesFreeForPadding();
     }
@@ -2139,11 +2126,7 @@ size_t QuicPacketCreator::MinPlaintextPacketSize(
   // 1.3 is used, unittests still use NullEncrypter/NullDecrypter (and other
   // test crypters) which also only use 12 byte tags.
   //
-  if (GetQuicRestartFlag(quic_allow_smaller_packets)) {
-    QUIC_RESTART_FLAG_COUNT_N(quic_allow_smaller_packets, 1, 5);
-    return (version.UsesTls() ? 4 : 8) - packet_number_length;
-  }
-  return 7;
+  return (version.UsesTls() ? 4 : 8) - packet_number_length;
 }
 
 QuicPacketNumber QuicPacketCreator::NextSendingPacketNumber() const {

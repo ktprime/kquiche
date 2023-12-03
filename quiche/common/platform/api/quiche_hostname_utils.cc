@@ -19,7 +19,6 @@ namespace {
 
 std::string CanonicalizeHost(absl::string_view host,
                              url::CanonHostInfo* host_info) {
-#if USE_URL && USE_CERT //hychaned
   // Try to canonicalize the host.
   const url::Component raw_host_component(0, static_cast<int>(host.length()));
   std::string canon_host;
@@ -39,9 +38,6 @@ std::string CanonicalizeHost(absl::string_view host,
   }
 
   return canon_host;
-#else
-  return std::string(host);
-#endif
 }
 
 bool IsHostCharAlphanumeric(char c) {
@@ -85,24 +81,17 @@ bool QuicheHostnameUtils::IsValidSNI(absl::string_view sni) {
   // based on the above spec, we may be losing some hostnames that windows
   // would consider valid. By far the most common hostname character NOT
   // accepted by the above spec is '_'.
-#if USE_URL && USE_CERT //hychaned
   url::CanonHostInfo host_info;
   std::string canonicalized_host = CanonicalizeHost(sni, &host_info);
   return !host_info.IsIPAddress() &&
          IsCanonicalizedHostCompliant(canonicalized_host);
-#else
-  return sni.find_last_of('.') != std::string::npos;
-#endif
 }
 
 // static
 std::string QuicheHostnameUtils::NormalizeHostname(absl::string_view hostname) {
-#if USE_URL && USE_CERT //hychaned
   url::CanonHostInfo host_info;
   std::string host = CanonicalizeHost(hostname, &host_info);
-#else
-  std::string host = std::string(hostname);
-#endif
+
   // Walk backwards over the string, stopping at the first trailing dot.
   size_t host_end = host.length();
   while (host_end != 0 && host[host_end - 1] == '.') {

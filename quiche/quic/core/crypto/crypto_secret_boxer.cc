@@ -64,7 +64,7 @@ bool CryptoSecretBoxer::SetKeys(const std::vector<std::string>& keys) {
     new_state->ctxs.push_back(std::move(ctx));
   }
 
-  //QuicWriterMutexLock l(&lock_);
+  QuicWriterMutexLock l(&lock_);
   state_ = std::move(new_state);
   return true;
 }
@@ -91,7 +91,7 @@ std::string CryptoSecretBoxer::Box(QuicRandom* rand,
 
   size_t bytes_written;
   {
-    //QuicReaderMutexLock l(&lock_);
+    QuicReaderMutexLock l(&lock_);
     if (!EVP_AEAD_CTX_seal(state_->ctxs[0].get(), out, &bytes_written, out_len,
                            nonce, kSIVNonceSize,
                            reinterpret_cast<const uint8_t*>(plaintext.data()),
@@ -122,7 +122,7 @@ bool CryptoSecretBoxer::Unbox(absl::string_view in_ciphertext,
 
   bool ok = false;
   {
-    //QuicReaderMutexLock l(&lock_);
+    QuicReaderMutexLock l(&lock_);
     for (const bssl::UniquePtr<EVP_AEAD_CTX>& ctx : state_->ctxs) {
       size_t bytes_written;
       if (EVP_AEAD_CTX_open(ctx.get(),

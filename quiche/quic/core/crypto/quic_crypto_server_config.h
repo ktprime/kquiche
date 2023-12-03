@@ -212,7 +212,7 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerConfig {
       absl::string_view source_address_token_secret,
       QuicRandom* server_nonce_entropy,
       std::unique_ptr<ProofSource> proof_source,
-      std::unique_ptr<KeyExchangeSource> key_exchange_source, bool tls_session);
+      std::unique_ptr<KeyExchangeSource> key_exchange_source);
   QuicCryptoServerConfig(const QuicCryptoServerConfig&) = delete;
   QuicCryptoServerConfig& operator=(const QuicCryptoServerConfig&) = delete;
   ~QuicCryptoServerConfig();
@@ -255,7 +255,6 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerConfig {
   // passing them through a KDF, in contradistinction to the
   // |source_address_token_secret| argument to the constructor.
   void SetSourceAddressTokenKeys(const std::vector<std::string>& keys);
-  void SetServerNonceKeys(const std::vector<std::string>& keys);
 
   // Get the server config ids for all known configs.
   std::vector<std::string> GetConfigIds() const;
@@ -525,8 +524,8 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerConfig {
 
   // Get a ref to the config with a given server config id.
   quiche::QuicheReferenceCountedPointer<Config> GetConfigWithScid(
-    absl::string_view requested_scid) const
-    ;// QUIC_SHARED_LOCKS_REQUIRED(configs_lock_);
+      absl::string_view requested_scid) const
+      QUIC_SHARED_LOCKS_REQUIRED(configs_lock_);
 
   // A snapshot of the configs associated with an in-progress handshake.
   struct QUIC_EXPORT_PRIVATE Configs {
@@ -555,7 +554,7 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerConfig {
   // SelectNewPrimaryConfig reevaluates the primary config based on the
   // "primary_time" deadlines contained in each.
   void SelectNewPrimaryConfig(QuicWallTime now) const
-      ;// QUIC_EXCLUSIVE_LOCKS_REQUIRED(configs_lock_);
+      QUIC_EXCLUSIVE_LOCKS_REQUIRED(configs_lock_);
 
   // EvaluateClientHello checks |client_hello_state->client_hello| for gross
   // errors and determines whether it is fresh (i.e. not a replay). The results
@@ -830,7 +829,7 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerConfig {
 
   // Returns true if the next config promotion should happen now.
   bool IsNextConfigReady(QuicWallTime now) const
-      ;// QUIC_SHARED_LOCKS_REQUIRED(configs_lock_);
+      QUIC_SHARED_LOCKS_REQUIRED(configs_lock_);
 
   // replay_protection_ controls whether the server enforces that handshakes
   // aren't replays.
@@ -845,16 +844,16 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerConfig {
   //   1) configs_.empty() <-> primary_config_ == nullptr
   //   2) primary_config_ != nullptr -> primary_config_->is_primary
   //   3) ∀ c∈configs_, c->is_primary <-> c == primary_config_
-  //mutable QuicMutex configs_lock_;
+  mutable QuicMutex configs_lock_;
 
   // configs_ contains all active server configs. It's expected that there are
   // about half-a-dozen configs active at any one time.
-  ConfigMap configs_ ; //QUIC_GUARDED_BY(configs_lock_);
+  ConfigMap configs_ QUIC_GUARDED_BY(configs_lock_);
 
   // primary_config_ points to a Config (which is also in |configs_|) which is
   // the primary config - i.e. the one that we'll give out to new clients.
   mutable quiche::QuicheReferenceCountedPointer<Config> primary_config_
-      ; //QUIC_GUARDED_BY(configs_lock_);
+      QUIC_GUARDED_BY(configs_lock_);
 
   // fallback_config_ points to a Config (which is also in |configs_|) which is
   // the fallback config, which will be used if the other configs are unuseable
@@ -862,16 +861,16 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerConfig {
   //
   // TODO(b/112548056): This is currently always nullptr.
   quiche::QuicheReferenceCountedPointer<Config> fallback_config_
-      ; //QUIC_GUARDED_BY(configs_lock_);
+      QUIC_GUARDED_BY(configs_lock_);
 
   // next_config_promotion_time_ contains the nearest, future time when an
   // active config will be promoted to primary.
   mutable QuicWallTime next_config_promotion_time_
-      ; //QUIC_GUARDED_BY(configs_lock_);
+      QUIC_GUARDED_BY(configs_lock_);
 
   // Callback to invoke when the primary config changes.
   std::unique_ptr<PrimaryConfigChangedCallback> primary_config_changed_cb_
-      ; //QUIC_GUARDED_BY(configs_lock_);
+      QUIC_GUARDED_BY(configs_lock_);
 
   // Used to protect the source-address tokens that are given to clients.
   CryptoSecretBoxer source_address_token_boxer_;
@@ -893,10 +892,8 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerConfig {
   // objects.
   std::unique_ptr<KeyExchangeSource> key_exchange_source_;
 
-#ifdef QUIC_TLS_SESSION //hybchanged
   // ssl_ctx_ contains the server configuration for doing TLS handshakes.
   bssl::UniquePtr<SSL_CTX> ssl_ctx_;
-#endif
 
   // These fields store configuration values. See the comments for their
   // respective setter functions.

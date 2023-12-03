@@ -65,7 +65,6 @@
 #include <vector>
 
 #include "quiche/quic/platform/api/quic_export.h"
-#include "quiche/common/platform/api/quiche_logging.h"
 
 namespace quic {
 
@@ -123,34 +122,27 @@ class QUIC_NO_EXPORT QuicInterval {
   // Returns the length of this QuicInterval. The value returned is zero if
   // Empty() is true; otherwise the value returned is max() - min().
   typename DiffTypeOrVoid<T>::type Length() const {
-    QUICHE_DCHECK(!Empty());
-    return (/* Empty() ? min() : **/ max()) - min();
+    return (Empty() ? min() : max()) - min();
   }
 
   // Returns true iff t >= min() && t < max().
-  bool Contains(const T& t) const { return max() > t && min() <= t; }
+  bool Contains(const T& t) const { return min() <= t && max() > t; }
 
   // Returns true iff *this and i are non-empty, and *this includes i. "*this
   // includes i" means that for all t, if i.Contains(t) then this->Contains(t).
   // Note the unintuitive consequence of this definition: this method always
   // returns false when i is the empty QuicInterval.
   bool Contains(const QuicInterval& i) const {
-    QUICHE_DCHECK(!i.Empty());
-//    if (Empty() || i.Empty())
-//      return false;
-    return max() >= i.max() && min() <= i.min();
+    return !Empty() && !i.Empty() && min() <= i.min() && max() >= i.max();
   }
 
-  // Returns true if there exists some point t for which this->Contains(t) &&
+  // Returns true iff there exists some point t for which this->Contains(t) &&
   // i.Contains(t) evaluates to true, i.e. if the intersection is non-empty.
   bool Intersects(const QuicInterval& i) const {
-    QUICHE_DCHECK(!Empty());
-//    if (Empty() || i.Empty())
-//      return false;
-    return max() > i.min() && min() < i.max();
+    return !Empty() && !i.Empty() && min() < i.max() && max() > i.min();
   }
 
-  // Returns true if there exists some point t for which this->Contains(t) &&
+  // Returns true iff there exists some point t for which this->Contains(t) &&
   // i.Contains(t) evaluates to true, i.e. if the intersection is non-empty.
   // Furthermore, if the intersection is non-empty and the out pointer is not
   // null, this method stores the calculated intersection in *out.
@@ -160,14 +152,12 @@ class QUIC_NO_EXPORT QuicInterval {
   // *this was modified.
   bool IntersectWith(const QuicInterval& i);
 
-  // Returns true if this and other have disjoint closures.  For nonempty
+  // Returns true iff this and other have disjoint closures.  For nonempty
   // intervals, that means there is at least one point between this and other.
   // Roughly speaking that means the intervals don't intersect, and they are not
   // adjacent.   Empty intervals are always separated from any other interval.
   bool Separated(const QuicInterval& other) const {
-    QUICHE_DCHECK(!other.Empty());
-//    if (Empty() || other.Empty())
-//      return true;
+    if (Empty() || other.Empty()) return true;
     return other.max() < min() || max() < other.min();
   }
 

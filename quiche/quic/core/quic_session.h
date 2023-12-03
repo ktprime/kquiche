@@ -68,8 +68,11 @@ class QUIC_EXPORT_PRIVATE QuicSession
       public QuicControlFrameManager::DelegateInterface {
  public:
   // An interface from the session to the entity owning the session.
-  // This lets the session notify its owner (the Dispatcher) when the connection
-  // is closed, blocked, or added/removed from the time-wait list.
+  // This lets the session notify its owner when the connection
+  // is closed, blocked, etc.
+  // TODO(danzh): split this visitor to separate visitors for client and server
+  // respectively as not all methods in this class are interesting to both
+  // perspectives.
   class QUIC_EXPORT_PRIVATE Visitor {
    public:
     virtual ~Visitor() {}
@@ -98,6 +101,9 @@ class QUIC_EXPORT_PRIVATE QuicSession
     // Called when a ConnectionId has been retired.
     virtual void OnConnectionIdRetired(
         const QuicConnectionId& server_connection_id) = 0;
+
+    virtual void OnServerPreferredAddressAvailable(
+        const QuicSocketAddress& /*server_preferred_address*/) = 0;
   };
 
   // Does not take ownership of |connection| or |visitor|.
@@ -175,10 +181,15 @@ class QUIC_EXPORT_PRIVATE QuicSession
   bool ValidateToken(absl::string_view token) override;
   bool MaybeSendAddressToken() override;
   void OnBandwidthUpdateTimeout() override {}
-  std::unique_ptr<QuicPathValidationContext> CreateContextForMultiPortPath()
-      override {
-    return nullptr;
+  void CreateContextForMultiPortPath(
+      std::function<void(std::unique_ptr<QuicPathValidationContext>)>
+          create_context) override {
+    create_context(nullptr);
   }
+  void MigrateToMultiPortPath(
+      std::unique_ptr<QuicPathValidationContext> /*context*/) override {}
+  void OnServerPreferredAddressAvailable(
+      const QuicSocketAddress& /*server_preferred_address*/) override;
 
   // QuicStreamFrameDataProducer
   WriteStreamDataResult WriteStreamData(QuicStreamId id,
@@ -207,7 +218,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   virtual void OnCanCreateNewOutgoingStream(bool /*unidirectional*/) {}
 
   // Called on every incoming packet. Passes |packet| through to |connection_|.
-  _virtua void ProcessUdpPacket(const QuicSocketAddress& self_address,
+  virtual void ProcessUdpPacket(const QuicSocketAddress& self_address,
                                 const QuicSocketAddress& peer_address,
                                 const QuicReceivedPacket& packet);
 
@@ -268,30 +279,30 @@ class QUIC_EXPORT_PRIVATE QuicSession
   virtual void ResetStream(QuicStreamId id, QuicRstStreamErrorCode error);
 
   // Called when the session wants to go away and not accept any new streams.
-  _virtua void SendGoAway(QuicErrorCode error_code, const std::string& reason);
+  virtual void SendGoAway(QuicErrorCode error_code, const std::string& reason);
 
   // Sends a BLOCKED frame.
-  _virtua void SendBlocked(QuicStreamId id, QuicStreamOffset byte_offset);
+  virtual void SendBlocked(QuicStreamId id, QuicStreamOffset byte_offset);
 
   // Sends a WINDOW_UPDATE frame.
-  _virtua void SendWindowUpdate(QuicStreamId id, QuicStreamOffset byte_offset);
+  virtual void SendWindowUpdate(QuicStreamId id, QuicStreamOffset byte_offset);
 
   // Called by stream |stream_id| when it gets closed.
-  _virtua void OnStreamClosed(QuicStreamId stream_id);
+  virtual void OnStreamClosed(QuicStreamId stream_id);
 
   // Returns true if outgoing packets will be encrypted, even if the server
   // hasn't confirmed the handshake yet.
-  _virtua bool IsEncryptionEstablished() const;
+  virtual bool IsEncryptionEstablished() const;
 
   // Returns true if 1RTT keys are available.
   bool OneRttKeysAvailable() const;
 
   // Called by the QuicCryptoStream when a new QuicConfig has been negotiated.
-  _virtua void OnConfigNegotiated();
+  virtual void OnConfigNegotiated();
 
   // Called by the TLS handshaker when ALPS data is received.
   // Returns an error message if an error has occurred, or nullopt otherwise.
-  _virtua absl::optional<std::string> OnAlpsData(const uint8_t* alps_data,
+  virtual absl::optional<std::string> OnAlpsData(const uint8_t* alps_data,
                                                  size_t alps_length);
 
   // From HandshakerDelegateInterface
@@ -326,7 +337,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   void RegisterStreamPriority(QuicStreamId id, bool is_static,
                               const QuicStreamPriority& priority) override;
   // Clears priority from the write blocked list.
-  void UnregisterStreamPriority(QuicStreamId id, bool is_static) override;
+  void UnregisterStreamPriority(QuicStreamId id) override;
   // Updates priority on the write blocked list.
   void UpdateStreamPriority(QuicStreamId id,
                             const QuicStreamPriority& new_priority) override;
@@ -355,7 +366,8 @@ class QUIC_EXPORT_PRIVATE QuicSession
 
   // Returns mutable config for this session. Returned config is owned
   // by QuicSession.
-  QuicConfig* config();
+  QuicConfig* config() { return &config_; }
+  const QuicConfig* config() const { return &config_; }
 
   // Returns true if the stream existed previously and has been closed.
   // Returns false if the stream is still active or if the stream has
@@ -382,7 +394,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   // connection-level flow control but not by its own stream-level flow control.
   // The stream will be given a chance to write when a connection-level
   // WINDOW_UPDATE arrives.
-  _virtua void MarkConnectionLevelWriteBlocked(QuicStreamId id);
+  virtual void MarkConnectionLevelWriteBlocked(QuicStreamId id);
 
   // Called to close zombie stream |id|.
   void MaybeCloseZombieStream(QuicStreamId id);
@@ -455,7 +467,8 @@ class QUIC_EXPORT_PRIVATE QuicSession
   //  };
   void ValidatePath(
       std::unique_ptr<QuicPathValidationContext> context,
-      std::unique_ptr<QuicPathValidator::ResultDelegate> result_delegate);
+      std::unique_ptr<QuicPathValidator::ResultDelegate> result_delegate,
+      PathValidationReason reason);
 
   // Return true if there is a path being validated.
   bool HasPendingPathValidation() const;
@@ -518,7 +531,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   void StreamDraining(QuicStreamId id, bool unidirectional);
 
   // Returns true if this stream should yield writes to another blocked stream.
-  _virtua bool ShouldYield(QuicStreamId stream_id);
+  virtual bool ShouldYield(QuicStreamId stream_id);
 
   // Clean up closed_streams_.
   void CleanUpClosedStreams();
@@ -551,7 +564,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   void NeuterCryptoDataOfEncryptionLevel(EncryptionLevel level);
 
   // Returns the ALPN values to negotiate on this session.
-  _virtua std::vector<std::string> GetAlpnsToOffer() const {
+  virtual std::vector<std::string> GetAlpnsToOffer() const {
     // TODO(vasilvv): this currently sets HTTP/3 by default.  Switch all
     // non-HTTP applications to appropriate ALPNs.
     return std::vector<std::string>({AlpnForVersion(connection()->version())});
@@ -559,12 +572,12 @@ class QUIC_EXPORT_PRIVATE QuicSession
 
   // Provided a list of ALPNs offered by the client, selects an ALPN from the
   // list, or alpns.end() if none of the ALPNs are acceptable.
-  _virtua std::vector<absl::string_view>::const_iterator SelectAlpn(
+  virtual std::vector<absl::string_view>::const_iterator SelectAlpn(
       const std::vector<absl::string_view>& alpns) const;
 
   // Called when the ALPN of the connection is established for a connection that
   // uses TLS handshake.
-  _virtua void OnAlpnSelected(absl::string_view alpn);
+  virtual void OnAlpnSelected(absl::string_view alpn);
 
   // Called on clients by the crypto handshaker to provide application state
   // necessary for sending application data in 0-RTT. The state provided here is
@@ -577,18 +590,18 @@ class QUIC_EXPORT_PRIVATE QuicSession
   // those SETTINGS to 0-RTT data. This function returns true if the application
   // state has been successfully processed, and false if there was an error
   // processing the cached state and the connection should be closed.
-  _virtua bool ResumeApplicationState(ApplicationState* /*cached_state*/) {
+  virtual bool ResumeApplicationState(ApplicationState* /*cached_state*/) {
     return true;
   }
 
   // Does actual work of sending RESET_STREAM, if the stream type allows.
   // Also informs the connection so that pending stream frames can be flushed.
-  _virtua void MaybeSendRstStreamFrame(QuicStreamId id,
+  virtual void MaybeSendRstStreamFrame(QuicStreamId id,
                                        QuicResetStreamError error,
                                        QuicStreamOffset bytes_written);
 
   // Sends a STOP_SENDING frame if the stream type allows.
-  _virtua void MaybeSendStopSendingFrame(QuicStreamId id,
+  virtual void MaybeSendStopSendingFrame(QuicStreamId id,
                                          QuicResetStreamError error);
 
   // Returns the encryption level to send application data.
@@ -631,17 +644,33 @@ class QUIC_EXPORT_PRIVATE QuicSession
     client_original_supported_versions_ = client_original_supported_versions;
   }
 
+  // Controls whether the default datagram queue used by the session actually
+  // queues the datagram.  If set to true, the datagrams in the default queue
+  // will be forcefully flushed, potentially bypassing congestion control and
+  // other limitations.
+  void SetForceFlushForDefaultQueue(bool force_flush) {
+    datagram_queue_.SetForceFlush(force_flush);
+  }
+
+  // Find stream with |id|, returns nullptr if the stream does not exist or
+  // closed. static streams and zombie streams are not considered active
+  // streams.
+  QuicStream* GetActiveStream(QuicStreamId id) const;
+
+  // Returns the priority type used by the streams in the session.
+  QuicPriorityType priority_type() const { return QuicPriorityType::kHttp; }
+
  protected:
   using StreamMap =
-    emhash::HashMap<QuicStreamId, std::unique_ptr<QuicStream>>;
+      absl::flat_hash_map<QuicStreamId, std::unique_ptr<QuicStream>>;
 
   using PendingStreamMap =
-    std::map<QuicStreamId, std::unique_ptr<PendingStream>>;
+      absl::flat_hash_map<QuicStreamId, std::unique_ptr<PendingStream>>;
 
   using ClosedStreams = std::vector<std::unique_ptr<QuicStream>>;
 
   using ZombieStreamMap =
-    std::map<QuicStreamId, std::unique_ptr<QuicStream>>;
+      absl::flat_hash_map<QuicStreamId, std::unique_ptr<QuicStream>>;
 
   std::string on_closed_frame_string() const;
 
@@ -682,23 +711,25 @@ class QUIC_EXPORT_PRIVATE QuicSession
   // When this data arrives (via stream frame w. FIN, trailing headers, or RST)
   // this method is called, and correctly updates the connection level flow
   // controller.
-  _virtua void OnFinalByteOffsetReceived(QuicStreamId id,
+  virtual void OnFinalByteOffsetReceived(QuicStreamId id,
                                          QuicStreamOffset final_byte_offset);
 
   // Returns true if a frame with the given type and id can be prcoessed by a
   // PendingStream. However, the frame will always be processed by a QuicStream
   // if one exists with the given stream_id.
-  _virtua bool UsesPendingStreamForFrame(QuicFrameType /*type*/,
+  virtual bool UsesPendingStreamForFrame(QuicFrameType /*type*/,
                                          QuicStreamId /*stream_id*/) const {
     return false;
   }
 
   // Returns true if a pending stream should be converted to a real stream after
   // a corresponding STREAM_FRAME is received.
-  _virtua bool ShouldProcessPendingStreamImmediately() const { return true; }
+  virtual bool ShouldProcessPendingStreamImmediately() const { return true; }
 
   spdy::SpdyPriority GetSpdyPriorityofStream(QuicStreamId stream_id) const {
-    return write_blocked_streams_.GetSpdyPriorityofStream(stream_id);
+    return write_blocked_streams_->GetPriorityOfStream(stream_id)
+        .http()
+        .urgency;
   }
 
   size_t pending_streams_size() const { return pending_stream_map_.size(); }
@@ -708,8 +739,8 @@ class QUIC_EXPORT_PRIVATE QuicSession
   void set_largest_peer_created_stream_id(
       QuicStreamId largest_peer_created_stream_id);
 
-  QuicWriteBlockedList* write_blocked_streams() {
-    return &write_blocked_streams_;
+  QuicWriteBlockedListInterface* write_blocked_streams() {
+    return write_blocked_streams_.get();
   }
 
   // Returns true if the stream is still active.
@@ -723,21 +754,21 @@ class QUIC_EXPORT_PRIVATE QuicSession
   // Prerequisite: IsClosedStream(stream_id) == false
   // Server session might need to override this method to allow server push
   // stream to be promised before creating an active stream.
-  _virtua void HandleFrameOnNonexistentOutgoingStream(QuicStreamId stream_id);
+  virtual void HandleFrameOnNonexistentOutgoingStream(QuicStreamId stream_id);
 
-  _virtua bool MaybeIncreaseLargestPeerStreamId(const QuicStreamId stream_id);
+  virtual bool MaybeIncreaseLargestPeerStreamId(const QuicStreamId stream_id);
 
   void InsertLocallyClosedStreamsHighestOffset(const QuicStreamId id,
                                                QuicStreamOffset offset);
   // If stream is a locally closed stream, this RST will update FIN offset.
   // Otherwise stream is a preserved stream and the behavior of it depends on
   // derived class's own implementation.
-  _virtua void HandleRstOnValidNonexistentStream(
+  virtual void HandleRstOnValidNonexistentStream(
       const QuicRstStreamFrame& frame);
 
   // Returns a stateless reset token which will be included in the public reset
   // packet.
-  _virtua StatelessResetToken GetStatelessResetToken() const;
+  virtual StatelessResetToken GetStatelessResetToken() const;
 
   QuicControlFrameManager& control_frame_manager() {
     return control_frame_manager_;
@@ -765,7 +796,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   // different kinds of sessions' own rules. If the pending stream has been
   // converted to a normal stream, returns a pointer to the new stream;
   // otherwise, returns nullptr.
-  _virtua QuicStream* ProcessPendingStream(PendingStream* /*pending*/) {
+  virtual QuicStream* ProcessPendingStream(PendingStream* /*pending*/) {
     return nullptr;
   }
 
@@ -792,11 +823,6 @@ class QUIC_EXPORT_PRIVATE QuicSession
     connection()->SetLossDetectionTuner(std::move(tuner));
   }
 
-  // Find stream with |id|, returns nullptr if the stream does not exist or
-  // closed. static streams and zombie streams are not considered active
-  // streams.
-  QuicStream* GetActiveStream(QuicStreamId id) const;
-
   const UberQuicStreamIdManager& ietf_streamid_manager() const {
     QUICHE_DCHECK(VersionHasIetfQuicFrames(transport_version()));
     return ietf_streamid_manager_;
@@ -806,7 +832,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   // can be sent to the client as part of the address token, based on the latest
   // bandwidth/rtt information. If return absl::nullopt, address token will not
   // contain the CachedNetworkParameters.
-  _virtua absl::optional<CachedNetworkParameters>
+  virtual absl::optional<CachedNetworkParameters>
   GenerateCachedNetworkParameters() const {
     return absl::nullopt;
   }
@@ -909,7 +935,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   // A list of streams which need to write more data.  Stream register
   // themselves in their constructor, and unregisterm themselves in their
   // destructors, so the write blocked list must outlive all streams.
-  QuicWriteBlockedList write_blocked_streams_;
+  std::unique_ptr<QuicWriteBlockedList> write_blocked_streams_;
 
   ClosedStreams closed_streams_;
 
@@ -1004,9 +1030,6 @@ class QUIC_EXPORT_PRIVATE QuicSession
   // This indicates a liveness testing is in progress, and push back the
   // creation of new outgoing bidirectional streams.
   bool liveness_testing_in_progress_;
-
-  const bool delay_setting_stateless_reset_token_ =
-      GetQuicReloadableFlag(quic_delay_setting_stateless_reset_token);
 };
 
 }  // namespace quic

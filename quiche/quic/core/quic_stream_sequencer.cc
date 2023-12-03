@@ -23,7 +23,7 @@
 #include "quiche/quic/platform/api/quic_flag_utils.h"
 #include "quiche/quic/platform/api/quic_flags.h"
 #include "quiche/quic/platform/api/quic_logging.h"
-//#include "quiche/quic/platform/api/quic_stack_trace.h"
+#include "quiche/quic/platform/api/quic_stack_trace.h"
 
 namespace quic {
 
@@ -41,7 +41,7 @@ QuicStreamSequencer::QuicStreamSequencer(StreamInterface* quic_stream)
 QuicStreamSequencer::~QuicStreamSequencer() {
   if (stream_ == nullptr) {
     QUIC_BUG(quic_bug_10858_1) << "Double free'ing QuicStreamSequencer at "
-                               << this;// << ". " << QuicStackTrace();
+                               << this << ". " << QuicStackTrace();
   }
   stream_ = nullptr;
 }
@@ -95,7 +95,6 @@ void QuicStreamSequencer::OnFrameData(QuicStreamOffset byte_offset,
 
   if (bytes_written == 0) {
     ++num_duplicate_frames_received_;
-    stream_->OnDuplicate();
     // Silently ignore duplicates.
     return;
   }

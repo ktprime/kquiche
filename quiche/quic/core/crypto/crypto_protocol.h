@@ -51,7 +51,6 @@ const QuicTag kC255 = TAG('C', '2', '5', '5');   // ECDH, Curve25519
 // AEAD algorithms
 const QuicTag kAESG = TAG('A', 'E', 'S', 'G');   // AES128 + GCM-12
 const QuicTag kCC20 = TAG('C', 'C', '2', '0');   // ChaCha20 + Poly1305 RFC7539
-const QuicTag kTEXT = TAG('T', 'E', 'X', 'T');   // hybchanged encode
 
 // Congestion control feedback types
 const QuicTag kQBIC = TAG('Q', 'B', 'I', 'C');   // TCP cubic
@@ -127,6 +126,9 @@ const QuicTag kBBQ9 = TAG('B', 'B', 'Q', '9');   // Reduce bw_lo by
 const QuicTag kBBQ0 = TAG('B', 'B', 'Q', '0');   // Increase bytes_acked in
                                                  // PROBE_UP when app limited.
 const QuicTag kBBPD = TAG('B', 'B', 'P', 'D');   // Use 0.91 PROBE_DOWN gain.
+const QuicTag kBBHI = TAG('B', 'B', 'H', 'I');   // Increase inflight_hi in
+                                                 // PROBE_UP if ever inflight_hi
+                                                 // limited in round
 const QuicTag kRENO = TAG('R', 'E', 'N', 'O');   // Reno Congestion Control
 const QuicTag kTPCC = TAG('P', 'C', 'C', '\0');  // Performance-Oriented
                                                  // Congestion Control
@@ -283,6 +285,10 @@ const QuicTag kRVCM = TAG('R', 'V', 'C', 'M');   // Validate the new address
                                                  // upon client address change.
 
 const QuicTag kSPAD = TAG('S', 'P', 'A', 'D');   // Use server preferred address
+const QuicTag kSPA2 = TAG('S', 'P', 'A', '2');   // Start validating server
+                                                 // preferred address once it is
+                                                 // received. Send all coalesced
+                                                 // packets to both addresses.
 
 // Optional support of truncated Connection IDs.  If sent by a peer, the value
 // is the minimum number of bytes allowed for the connection ID sent to the

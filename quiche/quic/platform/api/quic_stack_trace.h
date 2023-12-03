@@ -11,7 +11,7 @@
 
 namespace quic {
 
-inline std::string QuicStackTrace() { return "quiche::QuicheStackTrace()"; }
+inline std::string QuicStackTrace() { return quiche::QuicheStackTrace(); }
 
 }  // namespace quic
 

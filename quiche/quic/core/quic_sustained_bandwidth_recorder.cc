@@ -21,7 +21,7 @@ QuicSustainedBandwidthRecorder::QuicSustainedBandwidthRecorder()
 
 void QuicSustainedBandwidthRecorder::RecordEstimate(
     bool in_recovery, bool in_slow_start, QuicBandwidth bandwidth,
-    QuicTime estimate_time, QuicTime wall_time, QuicTime::Delta srtt) {
+    QuicTime estimate_time, QuicWallTime wall_time, QuicTime::Delta srtt) {
   if (in_recovery) {
     is_recording_ = false;
     QUIC_DVLOG(1) << "Stopped recording at: "
@@ -50,7 +50,7 @@ void QuicSustainedBandwidthRecorder::RecordEstimate(
   // Check for an increase in max bandwidth.
   if (bandwidth > max_bandwidth_estimate_) {
     max_bandwidth_estimate_ = bandwidth;
-    max_bandwidth_timestamp_ = wall_time.ToDebuggingValue();
+    max_bandwidth_timestamp_ = wall_time.ToUNIXSeconds();
     QUIC_DVLOG(1) << "New max bandwidth estimate (KBytes/s): "
                   << max_bandwidth_estimate_.ToKBytesPerSecond();
   }

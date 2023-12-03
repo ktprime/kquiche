@@ -213,6 +213,14 @@ class QUIC_EXPORT_PRIVATE TlsHandshaker : public TlsConnection::Delegate,
   // 1-RTT header protection keys, which are not changed during key update.
   std::vector<uint8_t> one_rtt_read_header_protection_key_;
   std::vector<uint8_t> one_rtt_write_header_protection_key_;
+
+  struct TlsAlert {
+    EncryptionLevel level;
+    // The TLS alert code as listed in
+    // https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-6
+    uint8_t desc;
+  };
+  absl::optional<TlsAlert> last_tls_alert_;
 };
 
 }  // namespace quic

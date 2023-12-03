@@ -54,9 +54,7 @@ QuicStreamSendBuffer::QuicStreamSendBuffer(
       allocator_(allocator),
       stream_bytes_written_(0),
       stream_bytes_outstanding_(0),
-      write_index_(-1) {
-      bytes_acked_.AddEmpty(0);
-}
+      write_index_(-1) {}
 
 QuicStreamSendBuffer::~QuicStreamSendBuffer() {}
 
@@ -80,12 +78,10 @@ void QuicStreamSendBuffer::SaveStreamData(absl::string_view data) {
 void QuicStreamSendBuffer::SaveMemSlice(quiche::QuicheMemSlice slice) {
   QUIC_DVLOG(2) << "Save slice offset " << stream_offset_ << " length "
                 << slice.length();
-#if 0
   if (slice.empty()) {
     QUIC_BUG(quic_bug_10853_1) << "Try to save empty MemSlice to send buffer.";
     return;
   }
-#endif
   size_t length = slice.length();
   // Need to start the offsets at the right interval.
   if (interval_deque_.Empty()) {
@@ -125,7 +121,6 @@ bool QuicStreamSendBuffer::WriteStreamData(QuicStreamOffset offset,
   // The iterator returned from |interval_deque_| will automatically advance
   // the internal write index for the QuicIntervalDeque. The incrementing is
   // done in operator++.
-  QUICHE_DCHECK(data_length);
   for (auto slice_it = interval_deque_.DataAt(offset);
        slice_it != interval_deque_.DataEnd(); ++slice_it) {
     if (data_length == 0 || offset < slice_it->offset) {
@@ -154,20 +149,19 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
     QuicStreamOffset offset, QuicByteCount data_length,
     QuicByteCount* newly_acked_length) {
   *newly_acked_length = 0;
-  QUICHE_DCHECK(data_length);
-  if (false && data_length == 0) {
+  if (data_length == 0) {
     return true;
   }
-  if (offset >= bytes_acked_.rbegin()->max() ||
-      bytes_acked_.IsDisjoint(QuicInterval<QuicStreamOffset>(offset, offset + data_length))) {
+  if (bytes_acked_.Empty() || offset >= bytes_acked_.rbegin()->max() ||
+      bytes_acked_.IsDisjoint(
+          QuicInterval<QuicStreamOffset>(offset, offset + data_length))) {
     // Optimization for the typical case, when all data is newly acked.
     if (stream_bytes_outstanding_ < data_length) {
       return false;
     }
-    bytes_acked_.Add(offset, offset + data_length);
+    bytes_acked_.AddOptimizedForAppend(offset, offset + data_length);
     *newly_acked_length = data_length;
     stream_bytes_outstanding_ -= data_length;
-    if (!pending_retransmissions_.Empty())
     pending_retransmissions_.Difference(offset, offset + data_length);
     if (!FreeMemSlices(offset, offset + data_length)) {
       return false;
@@ -190,7 +184,6 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
   }
   stream_bytes_outstanding_ -= *newly_acked_length;
   bytes_acked_.Add(offset, offset + data_length);
-  if (!pending_retransmissions_.Empty())
   pending_retransmissions_.Difference(offset, offset + data_length);
   if (newly_acked.Empty()) {
     return true;
@@ -204,7 +197,6 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
 
 void QuicStreamSendBuffer::OnStreamDataLost(QuicStreamOffset offset,
                                             QuicByteCount data_length) {
-  QUICHE_DCHECK(data_length);
   if (data_length == 0) {
     return;
   }
@@ -214,18 +206,16 @@ void QuicStreamSendBuffer::OnStreamDataLost(QuicStreamOffset offset,
     return;
   }
   for (const auto& lost : bytes_lost) {
-    pending_retransmissions_.AddOptimizedForAppend(lost.min(), lost.max());
+    pending_retransmissions_.Add(lost.min(), lost.max());
   }
 }
 
 void QuicStreamSendBuffer::OnStreamDataRetransmitted(
     QuicStreamOffset offset, QuicByteCount data_length) {
-  if (!pending_retransmissions_.Empty()) {
-    if (data_length == 0) {
-      printf("======================\n");// return;
-    }
-    pending_retransmissions_.Difference(offset, offset + data_length);
+  if (data_length == 0) {
+    return;
   }
+  pending_retransmissions_.Difference(offset, offset + data_length);
 }
 
 bool QuicStreamSendBuffer::HasPendingRetransmission() const {
@@ -271,7 +261,7 @@ bool QuicStreamSendBuffer::FreeMemSlices(QuicStreamOffset start,
     if (it->offset >= end) {
       break;
     }
-    if (//!it->slice.empty() &&
+    if (!it->slice.empty() &&
         bytes_acked_.Contains(it->offset, it->offset + it->slice.length())) {
       it->slice.Reset();
     }
@@ -294,8 +284,7 @@ void QuicStreamSendBuffer::CleanUpBufferedSlices() {
 
 bool QuicStreamSendBuffer::IsStreamDataOutstanding(
     QuicStreamOffset offset, QuicByteCount data_length) const {
-  QUICHE_DCHECK(data_length);
-  return //data_length > 0 &&
+  return data_length > 0 &&
          !bytes_acked_.Contains(offset, offset + data_length);
 }
 

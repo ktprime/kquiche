@@ -41,9 +41,7 @@ QuicCryptoClientStream::QuicCryptoClientStream(
           server_id, this, session, std::move(verify_context), crypto_config,
           proof_handler);
       break;
-    case PROTOCOL_TLS1_3:
-#ifdef QUIC_TLS_SESSION //hybchanged
-    {
+    case PROTOCOL_TLS1_3: {
       auto handshaker = std::make_unique<TlsClientHandshaker>(
           server_id, this, session, std::move(verify_context), crypto_config,
           proof_handler, has_application_state);
@@ -51,7 +49,6 @@ QuicCryptoClientStream::QuicCryptoClientStream(
       handshaker_ = std::move(handshaker);
       break;
     }
-#endif
     case PROTOCOL_UNSUPPORTED:
       QUIC_BUG(quic_bug_10296_1)
           << "Attempting to create QuicCryptoClientStream for unknown "

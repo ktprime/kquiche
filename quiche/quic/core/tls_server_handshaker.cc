@@ -587,6 +587,7 @@ void TlsServerHandshaker::SetWriteSecret(
           SSL_CIPHER_get_protocol_id(cipher);
     }
     crypto_negotiated_params_->key_exchange_group = SSL_get_curve_id(ssl());
+    crypto_negotiated_params_->encrypted_client_hello = SSL_ech_accepted(ssl());
   }
   TlsHandshaker::SetWriteSecret(level, cipher, write_secret);
 }
@@ -735,6 +736,15 @@ int TlsServerHandshaker::SessionTicketSeal(uint8_t* out, size_t* out_len,
   QUICHE_DCHECK(proof_source_->GetTicketCrypter());
   std::vector<uint8_t> ticket =
       proof_source_->GetTicketCrypter()->Encrypt(in, ticket_encryption_key_);
+  if (GetQuicReloadableFlag(
+          quic_send_placeholder_ticket_when_encrypt_ticket_fails) &&
+      ticket.empty()) {
+    QUIC_CODE_COUNT(quic_tls_server_handshaker_send_placeholder_ticket);
+    const absl::string_view kTicketFailurePlaceholder = "TICKET FAILURE";
+    const absl::string_view kTicketWithSizeLimit =
+        kTicketFailurePlaceholder.substr(0, max_out_len);
+    ticket.assign(kTicketWithSizeLimit.begin(), kTicketWithSizeLimit.end());
+  }
   if (max_out_len < ticket.size()) {
     QUIC_BUG(quic_bug_12423_2)
         << "TicketCrypter returned " << ticket.size()

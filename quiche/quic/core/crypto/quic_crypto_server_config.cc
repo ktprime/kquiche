@@ -272,17 +272,15 @@ void QuicCryptoServerConfig::ProcessClientHelloContext::Succeed(
 QuicCryptoServerConfig::QuicCryptoServerConfig(
     absl::string_view source_address_token_secret,
     QuicRandom* server_nonce_entropy, std::unique_ptr<ProofSource> proof_source,
-    std::unique_ptr<KeyExchangeSource> key_exchange_source, bool tls_session)
+    std::unique_ptr<KeyExchangeSource> key_exchange_source)
     : replay_protection_(true),
       chlo_multiplier_(kMultiplier),
-      //configs_lock_(),
+      configs_lock_(),
       primary_config_(nullptr),
       next_config_promotion_time_(QuicWallTime::Zero()),
       proof_source_(std::move(proof_source)),
       key_exchange_source_(std::move(key_exchange_source)),
-#ifdef QUIC_TLS_SESSION //hybchanged
-      ssl_ctx_(tls_session ? TlsServerConnection::CreateSslCtx(proof_source_.get()) : nullptr),
-#endif
+      ssl_ctx_(TlsServerConnection::CreateSslCtx(proof_source_.get())),
       source_address_token_future_secs_(3600),
       source_address_token_lifetime_secs_(86400),
       enable_serving_sct_(false),
@@ -313,13 +311,8 @@ QuicServerConfigProtobuf QuicCryptoServerConfig::GenerateConfig(
     QuicRandom* rand, const QuicClock* clock, const ConfigOptions& options) {
   CryptoHandshakeMessage msg;
 
-  std::string curve25519_private_key =
+  const std::string curve25519_private_key =
       Curve25519KeyExchange::NewPrivateKey(rand);
-
-  //hybchanged.
-  if (options.orbit.size() == curve25519_private_key.size())
-      curve25519_private_key = options.orbit;
-
   std::unique_ptr<Curve25519KeyExchange> curve25519 =
       Curve25519KeyExchange::New(curve25519_private_key);
   absl::string_view curve25519_public_value = curve25519->public_value();
@@ -374,7 +367,7 @@ QuicServerConfigProtobuf QuicCryptoServerConfig::GenerateConfig(
   }
 
   char orbit_bytes[kOrbitSize];
-  if (options.orbit.size() >= sizeof(orbit_bytes)) {
+  if (options.orbit.size() == sizeof(orbit_bytes)) {
     memcpy(orbit_bytes, options.orbit.data(), sizeof(orbit_bytes));
   } else {
     QUICHE_DCHECK(options.orbit.empty());
@@ -444,7 +437,7 @@ std::unique_ptr<CryptoHandshakeMessage> QuicCryptoServerConfig::AddConfig(
   }
 
   {
-    //QuicWriterMutexLock locked(&configs_lock_);
+    QuicWriterMutexLock locked(&configs_lock_);
     if (configs_.find(config->id) != configs_.end()) {
       QUIC_LOG(WARNING) << "Failed to add config because another with the same "
                            "server config id already exists: "
@@ -507,7 +500,7 @@ bool QuicCryptoServerConfig::SetConfigs(
 
   QUIC_LOG(INFO) << "Updating configs:";
 
-  //QuicWriterMutexLock locked(&configs_lock_);
+  QuicWriterMutexLock locked(&configs_lock_);
   ConfigMap new_configs;
 
   for (const quiche::QuicheReferenceCountedPointer<Config>& config :
@@ -557,13 +550,8 @@ void QuicCryptoServerConfig::SetSourceAddressTokenKeys(
   source_address_token_boxer_.SetKeys(keys);
 }
 
-void QuicCryptoServerConfig::SetServerNonceKeys(
-    const std::vector<std::string>& keys) {
-    server_nonce_boxer_.SetKeys(keys);
-}
-
 std::vector<std::string> QuicCryptoServerConfig::GetConfigIds() const {
-  //QuicReaderMutexLock locked(&configs_lock_);
+  QuicReaderMutexLock locked(&configs_lock_);
   std::vector<std::string> scids;
   for (auto it = configs_.begin(); it != configs_.end(); ++it) {
     scids.push_back(it->first);
@@ -1116,7 +1104,7 @@ void QuicCryptoServerConfig::SendRejectWithFallbackConfigAfterGetProof(
 quiche::QuicheReferenceCountedPointer<QuicCryptoServerConfig::Config>
 QuicCryptoServerConfig::GetConfigWithScid(
     absl::string_view requested_scid) const {
-  //configs_lock_.AssertReaderHeld();
+  configs_lock_.AssertReaderHeld();
 
   if (!requested_scid.empty()) {
     auto it = configs_.find((std::string(requested_scid)));
@@ -1134,21 +1122,21 @@ bool QuicCryptoServerConfig::GetCurrentConfigs(
     const QuicWallTime& now, absl::string_view requested_scid,
     quiche::QuicheReferenceCountedPointer<Config> old_primary_config,
     Configs* configs) const {
-  //QuicReaderMutexLock locked(&configs_lock_);
+  QuicReaderMutexLock locked(&configs_lock_);
 
   if (!primary_config_) {
     return false;
   }
 
   if (IsNextConfigReady(now)) {
-    //configs_lock_.ReaderUnlock();
-    //configs_lock_.WriterLock();
+    configs_lock_.ReaderUnlock();
+    configs_lock_.WriterLock();
     SelectNewPrimaryConfig(now);
     QUICHE_DCHECK(primary_config_.get());
     QUICHE_DCHECK_EQ(configs_.find(primary_config_->id)->second.get(),
                      primary_config_.get());
-    //configs_lock_.WriterUnlock();
-    //configs_lock_.ReaderLock();
+    configs_lock_.WriterUnlock();
+    configs_lock_.ReaderLock();
   }
 
   if (old_primary_config != nullptr) {
@@ -1369,7 +1357,7 @@ void QuicCryptoServerConfig::BuildServerConfigUpdateMessage(
   std::string serialized;
   std::string source_address_token;
   {
-    //QuicReaderMutexLock locked(&configs_lock_);
+    QuicReaderMutexLock locked(&configs_lock_);
     serialized = primary_config_->serialized;
     source_address_token = NewSourceAddressToken(
         *primary_config_->source_address_token_boxer,
@@ -1544,7 +1532,6 @@ void QuicCryptoServerConfig::BuildRejection(
             context.signed_config()->chain->certs;
         std::string ca_subject;
         if (!certs.empty()) {
-#ifdef QUIC_TLS_SESSION2 //hybchanged
           std::unique_ptr<CertificateView> view =
               CertificateView::ParseSingleCertificate(certs[0]);
           if (view != nullptr) {
@@ -1554,7 +1541,6 @@ void QuicCryptoServerConfig::BuildRejection(
               ca_subject = *maybe_ca_subject;
             }
           }
-#endif
         }
         QUIC_LOG_EVERY_N_SEC(WARNING, 60)
             << "SCT is expected but it is empty. sni: '"
@@ -1624,12 +1610,10 @@ QuicCryptoServerConfig::ParseConfigProtobuf(
     QUIC_LOG(WARNING) << "Server config message is missing SCID";
     return nullptr;
   }
-  if (GetQuicRestartFlag(quic_return_error_on_empty_scid) && scid.empty()) {
-    QUIC_RESTART_FLAG_COUNT(quic_return_error_on_empty_scid);
+  if (scid.empty()) {
     QUIC_LOG(WARNING) << "Server config message contains an empty SCID";
     return nullptr;
   }
-  QUICHE_DCHECK(!scid.empty());
   config->id = std::string(scid);
 
   if (msg->GetTaglist(kAEAD, &config->aead) != QUIC_NO_ERROR) {
@@ -1731,7 +1715,7 @@ void QuicCryptoServerConfig::set_enable_serving_sct(bool enable_serving_sct) {
 
 void QuicCryptoServerConfig::AcquirePrimaryConfigChangedCb(
     std::unique_ptr<PrimaryConfigChangedCallback> cb) {
-  //QuicWriterMutexLock locked(&configs_lock_);
+  QuicWriterMutexLock locked(&configs_lock_);
   primary_config_changed_cb_ = std::move(cb);
 }
 
@@ -1772,7 +1756,7 @@ std::string QuicCryptoServerConfig::NewSourceAddressToken(
 }
 
 int QuicCryptoServerConfig::NumberOfConfigs() const {
-  //QuicReaderMutexLock locked(&configs_lock_);
+  QuicReaderMutexLock locked(&configs_lock_);
   return configs_.size();
 }
 
@@ -1780,11 +1764,7 @@ ProofSource* QuicCryptoServerConfig::proof_source() const {
   return proof_source_.get();
 }
 
-#ifdef QUIC_TLS_SESSION
-SSL_CTX* QuicCryptoServerConfig::ssl_ctx() const {
-  return ssl_ctx_.get();
-}
-#endif
+SSL_CTX* QuicCryptoServerConfig::ssl_ctx() const { return ssl_ctx_.get(); }
 
 HandshakeFailureReason QuicCryptoServerConfig::ParseSourceAddressToken(
     const CryptoSecretBoxer& crypto_secret_boxer, absl::string_view token,

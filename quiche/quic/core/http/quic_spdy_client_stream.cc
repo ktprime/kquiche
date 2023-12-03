@@ -28,8 +28,7 @@ QuicSpdyClientStream::QuicSpdyClientStream(QuicStreamId id,
       response_code_(0),
       header_bytes_read_(0),
       header_bytes_written_(0),
-      session_(session),
-      has_preliminary_headers_(false) {}
+      session_(session) {}
 
 QuicSpdyClientStream::QuicSpdyClientStream(PendingStream* pending,
                                            QuicSpdyClientSession* session)
@@ -38,8 +37,7 @@ QuicSpdyClientStream::QuicSpdyClientStream(PendingStream* pending,
       response_code_(0),
       header_bytes_read_(0),
       header_bytes_written_(0),
-      session_(session),
-      has_preliminary_headers_(false) {}
+      session_(session) {}
 
 QuicSpdyClientStream::~QuicSpdyClientStream() = default;
 
@@ -74,13 +72,7 @@ bool QuicSpdyClientStream::ParseAndValidateStatusCode() {
                     << response_headers_[":status"].as_string() << " on stream "
                     << id();
     set_headers_decompressed(false);
-    if (response_code_ == 100 && !has_preliminary_headers_) {
-      // This is 100 Continue, save it to enable "Expect: 100-continue".
-      has_preliminary_headers_ = true;
-      preliminary_headers_ = std::move(response_headers_);
-    } else {
-      response_headers_.clear();
-    }
+    preliminary_headers_.push_back(std::move(response_headers_));
   }
 
   return true;
@@ -205,9 +197,6 @@ size_t QuicSpdyClientStream::SendRequest(Http2HeaderBlock headers,
 
 bool QuicSpdyClientStream::AreHeadersValid(
     const QuicHeaderList& header_list) const {
-  if (!GetQuicReloadableFlag(quic_verify_request_headers_2)) {
-    return true;
-  }
   if (!QuicSpdyStream::AreHeadersValid(header_list)) {
     return false;
   }
