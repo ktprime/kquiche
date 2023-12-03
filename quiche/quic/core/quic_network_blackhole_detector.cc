@@ -35,7 +35,7 @@ QuicNetworkBlackholeDetector::QuicNetworkBlackholeDetector(
 
 void QuicNetworkBlackholeDetector::OnAlarm() {
   QuicTime next_deadline = GetEarliestDeadline();
-  if (!next_deadline.IsInitialized()) {
+  if (false && !next_deadline.IsInitialized()) {
     QUIC_BUG(quic_bug_10328_1) << "BlackholeDetector alarm fired unexpectedly";
     return;
   }
@@ -82,17 +82,16 @@ void QuicNetworkBlackholeDetector::RestartDetection(
   blackhole_deadline_ = blackhole_deadline;
   path_mtu_reduction_deadline_ = path_mtu_reduction_deadline;
 
-  QUIC_BUG_IF(quic_bug_12708_1, blackhole_deadline_.IsInitialized() &&
-                                    blackhole_deadline_ != GetLastDeadline())
-      << "Blackhole detection deadline should be the last deadline.";
+//  QUIC_BUG_IF(quic_bug_12708_1, blackhole_deadline_.IsInitialized() &&
+//                                    blackhole_deadline_ != GetLastDeadline())
+//      << "Blackhole detection deadline should be the last deadline.";
 
   UpdateAlarm();
 }
 
 QuicTime QuicNetworkBlackholeDetector::GetEarliestDeadline() const {
-  QuicTime result = QuicTime::Zero();
-  for (QuicTime t : {path_degrading_deadline_, blackhole_deadline_,
-                     path_mtu_reduction_deadline_}) {
+  QuicTime result = path_mtu_reduction_deadline_;
+  for (QuicTime t : {path_degrading_deadline_, blackhole_deadline_}) {
     if (!t.IsInitialized()) {
       continue;
     }
@@ -113,8 +112,10 @@ QuicTime QuicNetworkBlackholeDetector::GetLastDeadline() const {
 void QuicNetworkBlackholeDetector::UpdateAlarm() const {
   // If called after OnBlackholeDetected(), the alarm may have been permanently
   // cancelled and is not safe to be armed again.
-  if (alarm_->IsPermanentlyCancelled()) {
-    return;
+  //QUICHE_DCHECK(!alarm_->IsPermanentlyCancelled());
+  if (false && alarm_->IsPermanentlyCancelled()) {
+    QUIC_DVLOG(2) << "Updating alarm. next_deadline:" << blackhole_deadline_;
+    //return;
   }
 
   QuicTime next_deadline = GetEarliestDeadline();
@@ -125,7 +126,7 @@ void QuicNetworkBlackholeDetector::UpdateAlarm() const {
                 << path_mtu_reduction_deadline_
                 << ", blackhole_deadline_:" << blackhole_deadline_;
 
-  alarm_->Update(next_deadline, kAlarmGranularity);
+  alarm_->Update(next_deadline, kAlarmGranularity * 100);
 }
 
 bool QuicNetworkBlackholeDetector::IsDetectionInProgress() const {

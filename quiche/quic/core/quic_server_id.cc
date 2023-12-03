@@ -12,11 +12,12 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
-#include "url/third_party/mozilla/url_parse.h"
+//#include "url/third_party/mozilla/url_parse.h"
 #include "quiche/common/platform/api/quiche_logging.h"
 
 namespace quic {
 
+#if 0
 // static
 absl::optional<QuicServerId> QuicServerId::ParseFromHostPortString(
     absl::string_view host_port_string) {
@@ -56,6 +57,7 @@ absl::optional<QuicServerId> QuicServerId::ParseFromHostPortString(
   return QuicServerId(std::move(hostname),
                       static_cast<uint16_t>(parsed_port_number));
 }
+#endif
 
 QuicServerId::QuicServerId() : QuicServerId("", 0, false) {}
 

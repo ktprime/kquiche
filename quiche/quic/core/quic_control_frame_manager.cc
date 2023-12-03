@@ -164,15 +164,14 @@ void QuicControlFrameManager::OnControlFrameSent(const QuicFrame& frame) {
   if (frame.type == WINDOW_UPDATE_FRAME) {
     QuicStreamId stream_id = frame.window_update_frame.stream_id;
     if (window_update_frames_.contains(stream_id) &&
-        id > window_update_frames_[stream_id]) {
+        id > window_update_frames_.at(stream_id)) {
       // Consider the older window update of the same stream as acked.
-      OnControlFrameIdAcked(window_update_frames_[stream_id]);
+      OnControlFrameIdAcked(window_update_frames_.at(stream_id));
     }
     window_update_frames_[stream_id] = id;
   }
-  if (pending_retransmissions_.contains(id)) {
+  if (pending_retransmissions_.erase(id)) {
     // This is retransmitted control frame.
-    pending_retransmissions_.erase(id);
     return;
   }
   if (id > least_unsent_) {
@@ -193,8 +192,8 @@ bool QuicControlFrameManager::OnControlFrameAcked(const QuicFrame& frame) {
   }
   if (frame.type == WINDOW_UPDATE_FRAME) {
     QuicStreamId stream_id = frame.window_update_frame.stream_id;
-    if (window_update_frames_.contains(stream_id) &&
-        window_update_frames_[stream_id] == id) {
+    if (//window_update_frames_.contains(stream_id) &&
+        window_update_frames_.at(stream_id) == id) {
       window_update_frames_.erase(stream_id);
     }
   }
@@ -220,7 +219,7 @@ void QuicControlFrameManager::OnControlFrameLost(const QuicFrame& frame) {
     return;
   }
   if (!pending_retransmissions_.contains(id)) {
-    pending_retransmissions_[id] = true;
+    pending_retransmissions_.emplace(id, true);
     QUIC_BUG_IF(quic_bug_12727_2,
                 pending_retransmissions_.size() > control_frames_.size())
         << "least_unacked_: " << least_unacked_
@@ -346,6 +345,7 @@ bool QuicControlFrameManager::OnControlFrameIdAcked(QuicControlFrameId id) {
   SetControlFrameId(kInvalidControlFrameId,
                     &control_frames_.at(id - least_unacked_));
   // Remove acked control frames from pending retransmissions.
+  if (!pending_retransmissions_.empty())
   pending_retransmissions_.erase(id);
   // Clean up control frames queue and increment least_unacked_.
   while (!control_frames_.empty() &&

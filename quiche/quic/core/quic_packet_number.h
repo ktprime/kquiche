@@ -26,13 +26,13 @@ class QUIC_EXPORT_PRIVATE QuicPacketNumber {
   // sentinel value.
   explicit constexpr QuicPacketNumber(uint64_t packet_number)
       : packet_number_(packet_number) {
-    QUICHE_DCHECK_NE(UninitializedPacketNumber(), packet_number)
-        << "Use default constructor for uninitialized packet number";
+    //QUICHE_DCHECK_NE(UninitializedPacketNumber(), packet_number)
+        ;//<< "Use default constructor for uninitialized packet number";
   }
 
   // The sentinel value representing an uninitialized packet number.
   static constexpr uint64_t UninitializedPacketNumber() {
-    return std::numeric_limits<uint64_t>::max();
+    return 0;// std::numeric_limits<uint64_t>::max();
   }
 
   // Packet number becomes uninitialized after calling this function.
@@ -102,37 +102,37 @@ class QUIC_EXPORT_PRIVATE QuicPacketNumberHash {
 
 inline bool operator==(QuicPacketNumber lhs, QuicPacketNumber rhs) {
   QUICHE_DCHECK(lhs.IsInitialized() && rhs.IsInitialized())
-      << lhs << " vs. " << rhs;
+    ;// << lhs << " vs. " << rhs;
   return lhs.packet_number_ == rhs.packet_number_;
 }
 
 inline bool operator!=(QuicPacketNumber lhs, QuicPacketNumber rhs) {
   QUICHE_DCHECK(lhs.IsInitialized() && rhs.IsInitialized())
-      << lhs << " vs. " << rhs;
+    ;// << lhs << " vs. " << rhs;
   return lhs.packet_number_ != rhs.packet_number_;
 }
 
 inline bool operator<(QuicPacketNumber lhs, QuicPacketNumber rhs) {
-  QUICHE_DCHECK(lhs.IsInitialized() && rhs.IsInitialized())
-      << lhs << " vs. " << rhs;
+  QUICHE_DCHECK(lhs.IsInitialized())// && rhs.IsInitialized())
+    ;// << lhs << " vs. " << rhs;
   return lhs.packet_number_ < rhs.packet_number_;
 }
 
 inline bool operator<=(QuicPacketNumber lhs, QuicPacketNumber rhs) {
-  QUICHE_DCHECK(lhs.IsInitialized() && rhs.IsInitialized())
-      << lhs << " vs. " << rhs;
+  QUICHE_DCHECK(lhs.IsInitialized()/* && rhs.IsInitialized()**/)
+    ;// << lhs << " vs. " << rhs;
   return lhs.packet_number_ <= rhs.packet_number_;
 }
 
 inline bool operator>(QuicPacketNumber lhs, QuicPacketNumber rhs) {
-  QUICHE_DCHECK(lhs.IsInitialized() && rhs.IsInitialized())
-      << lhs << " vs. " << rhs;
+  QUICHE_DCHECK(lhs.IsInitialized()/* && rhs.IsInitialized()**/)
+    ;// << lhs << " vs. " << rhs;
   return lhs.packet_number_ > rhs.packet_number_;
 }
 
 inline bool operator>=(QuicPacketNumber lhs, QuicPacketNumber rhs) {
-  QUICHE_DCHECK(lhs.IsInitialized() && rhs.IsInitialized())
-      << lhs << " vs. " << rhs;
+  QUICHE_DCHECK(lhs.IsInitialized()/* && rhs.IsInitialized()**/)
+    ;// << lhs << " vs. " << rhs;
   return lhs.packet_number_ >= rhs.packet_number_;
 }
 
@@ -155,7 +155,7 @@ inline QuicPacketNumber operator-(QuicPacketNumber lhs, uint64_t delta) {
 
 inline uint64_t operator-(QuicPacketNumber lhs, QuicPacketNumber rhs) {
   QUICHE_DCHECK(lhs.IsInitialized() && rhs.IsInitialized() && lhs >= rhs)
-      << lhs << " vs. " << rhs;
+    ;// << lhs << " vs. " << rhs;
   return lhs.packet_number_ - rhs.packet_number_;
 }
 

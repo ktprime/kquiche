@@ -16,13 +16,14 @@ QuicTransmissionInfo::QuicTransmissionInfo()
       in_flight(false),
       state(OUTSTANDING),
       has_crypto_handshake(false),
-      has_ack_frequency(false),
-      ecn_codepoint(ECN_NOT_ECT) {}
+      has_ack_frequency(false) {}
 
-QuicTransmissionInfo::QuicTransmissionInfo(
-    EncryptionLevel level, TransmissionType transmission_type,
-    QuicTime sent_time, QuicPacketLength bytes_sent, bool has_crypto_handshake,
-    bool has_ack_frequency, QuicEcnCodepoint ecn_codepoint)
+QuicTransmissionInfo::QuicTransmissionInfo(EncryptionLevel level,
+                                           TransmissionType transmission_type,
+                                           QuicTime sent_time,
+                                           QuicPacketLength bytes_sent,
+                                           bool has_crypto_handshake,
+                                           bool has_ack_frequency, QuicFrames& retransmittable_frames) noexcept
     : sent_time(sent_time),
       bytes_sent(bytes_sent),
       encryption_level(level),
@@ -31,12 +32,9 @@ QuicTransmissionInfo::QuicTransmissionInfo(
       state(OUTSTANDING),
       has_crypto_handshake(has_crypto_handshake),
       has_ack_frequency(has_ack_frequency),
-      ecn_codepoint(ecn_codepoint) {}
+      retransmittable_frames(std::move(retransmittable_frames)) {}
 
-QuicTransmissionInfo::QuicTransmissionInfo(const QuicTransmissionInfo& other) =
-    default;
-
-QuicTransmissionInfo::~QuicTransmissionInfo() {}
+QuicTransmissionInfo::~QuicTransmissionInfo() = default;
 
 std::string QuicTransmissionInfo::DebugString() const {
   return absl::StrCat(

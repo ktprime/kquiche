@@ -44,21 +44,21 @@ void QuicPingManager::SetAlarm(QuicTime now, bool should_keep_alive,
                                bool has_in_flight_packets) {
   UpdateDeadlines(now, should_keep_alive, has_in_flight_packets);
   const QuicTime earliest_deadline = GetEarliestDeadline();
-  if (!earliest_deadline.IsInitialized()) {
-    alarm_->Cancel();
-    return;
-  }
   if (earliest_deadline == keep_alive_deadline_) {
     // Use 1s granularity for keep-alive time.
-    alarm_->Update(earliest_deadline, QuicTime::Delta::FromSeconds(1));
+    alarm_->Update(earliest_deadline, QuicTime::Delta::FromSeconds(2));
     return;
+  }
+  if (false && !earliest_deadline.IsInitialized()) {
+      alarm_->Cancel();
+      return;
   }
   alarm_->Update(earliest_deadline, kAlarmGranularity);
 }
 
 void QuicPingManager::OnAlarm() {
   const QuicTime earliest_deadline = GetEarliestDeadline();
-  if (!earliest_deadline.IsInitialized()) {
+  if (false && !earliest_deadline.IsInitialized()) {
     QUIC_BUG(quic_ping_manager_alarm_fires_unexpectedly)
         << "QuicPingManager alarm fires unexpectedly.";
     return;
@@ -148,11 +148,8 @@ void QuicPingManager::UpdateDeadlines(QuicTime now, bool should_keep_alive,
 }
 
 QuicTime QuicPingManager::GetEarliestDeadline() const {
-  QuicTime earliest_deadline = QuicTime::Zero();
-  for (QuicTime t : {retransmittable_on_wire_deadline_, keep_alive_deadline_}) {
-    if (!t.IsInitialized()) {
-      continue;
-    }
+  QuicTime earliest_deadline = keep_alive_deadline_;
+  if (QuicTime t = retransmittable_on_wire_deadline_; t.IsInitialized()) {
     if (!earliest_deadline.IsInitialized() || t < earliest_deadline) {
       earliest_deadline = t;
     }

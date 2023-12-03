@@ -22,8 +22,10 @@ class QUIC_EXPORT_PRIVATE QuicServerId {
   // Attempts to parse a QuicServerId from a "host:port" string. Returns nullopt
   // if input could not be parsed. Requires input to contain both host and port
   // and no other components of a URL authority.
+#if USE_CERT
   static absl::optional<QuicServerId> ParseFromHostPortString(
       absl::string_view host_port_string);
+#endif
 
   QuicServerId();
   QuicServerId(std::string host, uint16_t port);

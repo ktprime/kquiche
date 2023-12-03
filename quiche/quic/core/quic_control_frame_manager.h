@@ -178,13 +178,15 @@ class QUIC_EXPORT_PRIVATE QuicControlFrameManager {
   // TODO(fayang): switch to linked_hash_set when chromium supports it. The bool
   // is not used here.
   // Lost control frames waiting to be retransmitted.
-  quiche::QuicheLinkedHashMap<QuicControlFrameId, bool>
-      pending_retransmissions_;
+  sfl::small_unordered_flat_map<QuicControlFrameId, bool, 3>
+    pending_retransmissions_;
 
   DelegateInterface* delegate_;
 
   // Last sent window update frame for each stream.
-  absl::flat_hash_map<QuicStreamId, QuicControlFrameId> window_update_frames_;
+  //absl::flat_hash_map<QuicStreamId, QuicControlFrameId> window_update_frames_;
+  sfl::small_unordered_flat_map<QuicStreamId, QuicControlFrameId, 3>
+    window_update_frames_;
 };
 
 }  // namespace quic

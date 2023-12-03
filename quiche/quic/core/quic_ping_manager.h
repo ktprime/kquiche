@@ -78,7 +78,7 @@ class QUIC_EXPORT_PRIVATE QuicPingManager {
   // |keep_alive_deadline_|. Returns 0 if both deadlines are not initialized.
   QuicTime GetEarliestDeadline() const;
 
-  Perspective perspective_;
+  const Perspective perspective_;
 
   Delegate* delegate_;  // Not owned.
 

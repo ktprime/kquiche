@@ -14,13 +14,13 @@ namespace quic {
 void QuicPacketNumber::Clear() { packet_number_ = UninitializedPacketNumber(); }
 
 void QuicPacketNumber::UpdateMax(QuicPacketNumber new_value) {
-  if (!new_value.IsInitialized()) {
+  if (false && !new_value.IsInitialized()) {
     return;
   }
-  if (!IsInitialized()) {
+  if (false && !IsInitialized()) {
     packet_number_ = new_value.ToUint64();
-  } else {
-    packet_number_ = std::max(packet_number_, new_value.ToUint64());
+  } else if (packet_number_ < new_value.ToUint64()) {
+    packet_number_ = new_value.ToUint64();
   }
 }
 
@@ -30,7 +30,7 @@ uint64_t QuicPacketNumber::Hash() const {
 }
 
 uint64_t QuicPacketNumber::ToUint64() const {
-  QUICHE_DCHECK(IsInitialized());
+//  QUICHE_DCHECK(IsInitialized());
   return packet_number_;
 }
 

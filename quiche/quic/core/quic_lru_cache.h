@@ -24,14 +24,14 @@ template <class K, class V, class Hash = std::hash<K>,
 class QUIC_NO_EXPORT QuicLRUCache {
  private:
   using HashMapType =
-      typename quiche::QuicheLinkedHashMap<K, std::unique_ptr<V>, Hash, Eq>;
+      typename sfl::small_unordered_flat_map<K, std::unique_ptr<V>, 2>;
 
  public:
   // The iterator, if valid, points to std::pair<K, std::unique_ptr<V>>.
   using iterator = typename HashMapType::iterator;
   using const_iterator = typename HashMapType::const_iterator;
-  using reverse_iterator = typename HashMapType::reverse_iterator;
-  using const_reverse_iterator = typename HashMapType::const_reverse_iterator;
+//  using reverse_iterator = typename HashMapType::reverse_iterator;
+//  using const_reverse_iterator = typename HashMapType::const_reverse_iterator;
 
   explicit QuicLRUCache(size_t capacity) : capacity_(capacity) {}
   QuicLRUCache(const QuicLRUCache&) = delete;
@@ -43,11 +43,11 @@ class QUIC_NO_EXPORT QuicLRUCache {
   iterator end() { return cache_.end(); }
   const_iterator end() const { return cache_.end(); }
 
-  reverse_iterator rbegin() { return cache_.rbegin(); }
-  const_reverse_iterator rbegin() const { return cache_.rbegin(); }
+//  reverse_iterator rbegin() { return cache_.rbegin(); }
+//  const_reverse_iterator rbegin() const { return cache_.rbegin(); }
 
-  reverse_iterator rend() { return cache_.rend(); }
-  const_reverse_iterator rend() const { return cache_.rend(); }
+//  reverse_iterator rend() { return cache_.rend(); }
+//  const_reverse_iterator rend() const { return cache_.rend(); }
 
   // Inserts one unit of |key|, |value| pair to the cache. Cache takes ownership
   // of inserted |value|.
@@ -89,7 +89,7 @@ class QUIC_NO_EXPORT QuicLRUCache {
   size_t Size() const { return cache_.size(); }
 
  private:
-  quiche::QuicheLinkedHashMap<K, std::unique_ptr<V>, Hash, Eq> cache_;
+  HashMapType cache_;
   const size_t capacity_;
 };
 

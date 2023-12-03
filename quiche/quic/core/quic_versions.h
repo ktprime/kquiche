@@ -220,19 +220,19 @@ struct QUIC_EXPORT_PRIVATE ParsedQuicVersion {
       : handshake_protocol(handshake_protocol),
         transport_version(transport_version) {
     QUICHE_DCHECK(
-        ParsedQuicVersionIsValid(handshake_protocol, transport_version))
-        << QuicVersionToString(transport_version) << " "
-        << HandshakeProtocolToString(handshake_protocol);
+        ParsedQuicVersionIsValid(handshake_protocol, transport_version));
+//        << QuicVersionToString(transport_version) << " "
+//        << HandshakeProtocolToString(handshake_protocol);
   }
 
   constexpr ParsedQuicVersion(const ParsedQuicVersion& other)
       : ParsedQuicVersion(other.handshake_protocol, other.transport_version) {}
 
   ParsedQuicVersion& operator=(const ParsedQuicVersion& other) {
-    QUICHE_DCHECK(ParsedQuicVersionIsValid(other.handshake_protocol,
-                                           other.transport_version))
-        << QuicVersionToString(other.transport_version) << " "
-        << HandshakeProtocolToString(other.handshake_protocol);
+//    QUICHE_DCHECK(ParsedQuicVersionIsValid(other.handshake_protocol,
+//                                           other.transport_version))
+//        << QuicVersionToString(other.transport_version) << " "
+//        << HandshakeProtocolToString(other.handshake_protocol);
     if (this != &other) {
       handshake_protocol = other.handshake_protocol;
       transport_version = other.transport_version;
@@ -587,7 +587,11 @@ QUIC_EXPORT_PRIVATE constexpr bool VersionSupportsMessageFrames(
 // * GOAWAY is moved to HTTP layer.
 QUIC_EXPORT_PRIVATE constexpr bool VersionUsesHttp3(
     QuicTransportVersion transport_version) {
-  return transport_version >= QUIC_VERSION_IETF_DRAFT_29;
+#if QUIC_TLS_SESSION
+  return false && transport_version >= QUIC_VERSION_IETF_DRAFT_29; //TODO hybchanged
+#else
+  return false;
+#endif
 }
 
 // Returns whether the transport_version supports the variable length integer

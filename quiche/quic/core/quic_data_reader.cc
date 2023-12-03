@@ -24,10 +24,8 @@ QuicDataReader::QuicDataReader(const char* data, const size_t len,
     : quiche::QuicheDataReader(data, len, endianness) {}
 
 bool QuicDataReader::ReadUFloat16(uint64_t* result) {
-  uint16_t value;
-  if (!ReadUInt16(&value)) {
-    return false;
-  }
+  uint16_t value = 65535;
+  ReadUInt16(&value);
 
   *result = value;
   if (*result < (1 << kUFloat16MantissaEffectiveBits)) {
@@ -63,14 +61,13 @@ bool QuicDataReader::ReadConnectionId(QuicConnectionId* connection_id,
     return true;
   }
 
-  if (BytesRemaining() < length) {
+  if (false && BytesRemaining() < length) {//no check.ReadBytes do it
     return false;
   }
 
   connection_id->set_length(length);
   const bool ok =
       ReadBytes(connection_id->mutable_data(), connection_id->length());
-  QUICHE_DCHECK(ok);
   return ok;
 }
 

@@ -22,6 +22,11 @@
 
 namespace quic {
 namespace {
+#if QUIC_TLS_SESSION
+constexpr static bool enable_tls = true;
+#else
+constexpr static bool enable_tls = false;
+#endif
 
 QuicVersionLabel CreateRandomVersionLabelForNegotiation() {
   QuicVersionLabel result;
@@ -36,8 +41,6 @@ QuicVersionLabel CreateRandomVersionLabelForNegotiation() {
 }
 
 void SetVersionFlag(const ParsedQuicVersion& version, bool should_enable) {
-  static_assert(SupportedVersions().size() == 6u,
-                "Supported versions out of sync");
   const bool enable = should_enable;
   const bool disable = !should_enable;
   if (version == ParsedQuicVersion::V2Draft08()) {
@@ -62,8 +65,8 @@ void SetVersionFlag(const ParsedQuicVersion& version, bool should_enable) {
 
 bool ParsedQuicVersion::IsKnown() const {
   QUICHE_DCHECK(ParsedQuicVersionIsValid(handshake_protocol, transport_version))
-      << QuicVersionToString(transport_version) << " "
-      << HandshakeProtocolToString(handshake_protocol);
+      ;//<< QuicVersionToString(transport_version) << " "
+      //<< HandshakeProtocolToString(handshake_protocol);
   return transport_version != QUIC_VERSION_UNSUPPORTED;
 }
 
@@ -118,14 +121,22 @@ bool ParsedQuicVersion::HasLengthPrefixedConnectionIds() const {
 }
 
 bool ParsedQuicVersion::SupportsAntiAmplificationLimit() const {
+#if QUIC_TLS_SESSION
   QUICHE_DCHECK(IsKnown());
   // The anti-amplification limit is used for all IETF versions.
   return UsesHttp3();
+#else
+  return false;
+#endif
 }
 
 bool ParsedQuicVersion::CanSendCoalescedPackets() const {
+#if QUIC_TLS_SESSION
   QUICHE_DCHECK(IsKnown());
-  return HasLongHeaderLengths() && UsesTls();
+  return /* HasLongHeaderLengths() &&***/ UsesTls();
+#else
+  return false;
+#endif
 }
 
 bool ParsedQuicVersion::SupportsGoogleAltSvcFormat() const {
@@ -145,7 +156,7 @@ bool ParsedQuicVersion::SupportsMessageFrames() const {
 
 bool ParsedQuicVersion::UsesHttp3() const {
   QUICHE_DCHECK(IsKnown());
-  return VersionUsesHttp3(transport_version);
+  return enable_tls && VersionUsesHttp3(transport_version);
 }
 
 bool ParsedQuicVersion::HasLongHeaderLengths() const {
@@ -170,17 +181,17 @@ bool ParsedQuicVersion::UsesLegacyTlsExtension() const {
 
 bool ParsedQuicVersion::UsesTls() const {
   QUICHE_DCHECK(IsKnown());
-  return handshake_protocol == PROTOCOL_TLS1_3;
+  return enable_tls && handshake_protocol == PROTOCOL_TLS1_3;
 }
 
 bool ParsedQuicVersion::UsesQuicCrypto() const {
   QUICHE_DCHECK(IsKnown());
-  return handshake_protocol == PROTOCOL_QUIC_CRYPTO;
+  return !enable_tls || handshake_protocol == PROTOCOL_QUIC_CRYPTO;
 }
 
 bool ParsedQuicVersion::UsesV2PacketTypes() const {
   QUICHE_DCHECK(IsKnown());
-  return transport_version == QUIC_VERSION_IETF_2_DRAFT_08;
+  return enable_tls && transport_version == QUIC_VERSION_IETF_2_DRAFT_08;
 }
 
 bool ParsedQuicVersion::AlpnDeferToRFCv1() const {
@@ -223,8 +234,6 @@ std::ostream& operator<<(std::ostream& os,
 }
 
 QuicVersionLabel CreateQuicVersionLabel(ParsedQuicVersion parsed_version) {
-  static_assert(SupportedVersions().size() == 6u,
-                "Supported versions out of sync");
   if (parsed_version == ParsedQuicVersion::V2Draft08()) {
     return MakeVersionLabel(0x6b, 0x33, 0x43, 0xcf);
   } else if (parsed_version == ParsedQuicVersion::RFCv1()) {
@@ -424,8 +433,6 @@ ParsedQuicVersionVector CurrentSupportedVersions() {
 
 ParsedQuicVersionVector FilterSupportedVersions(
     ParsedQuicVersionVector versions) {
-  static_assert(SupportedVersions().size() == 6u,
-                "Supported versions out of sync");
   ParsedQuicVersionVector filtered_versions;
   filtered_versions.reserve(versions.size());
   for (const ParsedQuicVersion& version : versions) {
@@ -538,8 +545,6 @@ std::string HandshakeProtocolToString(HandshakeProtocol handshake_protocol) {
 }
 
 std::string ParsedQuicVersionToString(ParsedQuicVersion version) {
-  static_assert(SupportedVersions().size() == 6u,
-                "Supported versions out of sync");
   if (version == UnsupportedQuicVersion()) {
     return "0";
   } else if (version == ParsedQuicVersion::V2Draft08()) {

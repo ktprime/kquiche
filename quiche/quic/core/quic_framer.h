@@ -165,11 +165,8 @@ class QUIC_EXPORT_PRIVATE QuicFramerVisitorInterface {
                               QuicTime timestamp) = 0;
 
   // Called after the last ack range in an AckFrame has been parsed.
-  // |start| is the starting value of the last ack range. |ecn_counts| are
-  // the reported ECN counts in the ack frame, if present.
-  virtual bool OnAckFrameEnd(
-      QuicPacketNumber start,
-      const absl::optional<QuicEcnCounts>& ecn_counts) = 0;
+  // |start| is the starting value of the last ack range.
+  virtual bool OnAckFrameEnd(QuicPacketNumber start) = 0;
 
   // Called when a StopWaitingFrame has been parsed.
   virtual bool OnStopWaitingFrame(const QuicStopWaitingFrame& frame) = 0;
@@ -449,7 +446,7 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
       QuicConnectionId* source_connection_id,
       QuicLongHeaderType* long_packet_type,
       quiche::QuicheVariableLengthIntegerLength* retry_token_length_length,
-      absl::string_view* retry_token, std::string* detailed_error);
+      absl::string_view* retry_token, std::string_view* detailed_error);
 
   // Parses the unencrypted fields in |packet| and stores them in the other
   // parameters. This can only be called on the server.
@@ -466,7 +463,7 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
       QuicConnectionId* destination_connection_id,
       QuicConnectionId* source_connection_id,
       absl::optional<absl::string_view>* retry_token,
-      std::string* detailed_error);
+      std::string_view* detailed_error);
 
   // Parses the unencrypted fields in |packet| and stores them in the other
   // parameters. The only callers that should use this method are ones where
@@ -484,7 +481,7 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
       QuicConnectionId* destination_connection_id,
       QuicConnectionId* source_connection_id,
       absl::optional<absl::string_view>* retry_token,
-      std::string* detailed_error, ConnectionIdGeneratorInterface& generator);
+      std::string_view* detailed_error, ConnectionIdGeneratorInterface& generator);
 
   // Serializes a packet containing |frames| into |buffer|.
   // Returns the length of the packet, which must not be longer than
@@ -652,7 +649,13 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
 
   void set_validate_flags(bool value) { validate_flags_ = value; }
 
+#if QUIC_SERVER_SESSION == 1
   Perspective perspective() const { return perspective_; }
+#elif QUIC_SERVER_SESSION == 0
+  Perspective perspective() const { return Perspective::IS_CLIENT; }
+#else
+  Perspective perspective() const { return Perspective::IS_SERVER; }
+#endif
 
   QuicStreamFrameDataProducer* data_producer() const { return data_producer_; }
 
@@ -796,7 +799,7 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
                               const QuicEncryptedPacket& packet,
                               QuicPacketHeader* header,
                               uint64_t* full_packet_number,
-                              std::vector<char>* associated_data);
+                              absl::InlinedVector<char, 128>* associated_data);
 
   bool ProcessDataPacket(QuicDataReader* reader, QuicPacketHeader* header,
                          const QuicEncryptedPacket& packet,
@@ -948,7 +951,7 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
       QuicDataReader* reader, uint8_t* first_byte, PacketHeaderFormat* format,
       bool* version_present, QuicVersionLabel* version_label,
       ParsedQuicVersion* parsed_version,
-      QuicConnectionId* destination_connection_id, std::string* detailed_error);
+      QuicConnectionId* destination_connection_id, std::string_view* detailed_error);
 
   bool ValidateReceivedConnectionIds(const QuicPacketHeader& header);
 
@@ -1130,7 +1133,13 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
   std::unique_ptr<QuicEncrypter> encrypter_[NUM_ENCRYPTION_LEVELS];
   // Tracks if the framer is being used by the entity that received the
   // connection or the entity that initiated it.
-  Perspective perspective_;
+#if QUIC_SERVER_SESSION == 0
+  constexpr static Perspective perspective_ = Perspective::IS_CLIENT;
+#elif QUIC_SERVER_SESSION == 2
+  constexpr static Perspective perspective_ = Perspective::IS_SERVER;
+#else
+  const Perspective perspective_;
+#endif
   // If false, skip validation that the public flags are set to legal values.
   bool validate_flags_;
   // The diversification nonce from the last received packet.
@@ -1196,7 +1205,11 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
   uint8_t expected_client_connection_id_length_;
 
   // Indicates whether this framer supports multiple packet number spaces.
+#if QUIC_TLS_SESSION
   bool supports_multiple_packet_number_spaces_;
+#else
+  static constexpr bool supports_multiple_packet_number_spaces_ = false;
+#endif
 
   // Indicates whether received RETRY packets should be dropped.
   bool drop_incoming_retry_packets_ = false;

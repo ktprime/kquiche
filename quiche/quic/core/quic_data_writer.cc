@@ -68,9 +68,9 @@ bool QuicDataWriter::WriteUFloat16(uint64_t value) {
 }
 
 bool QuicDataWriter::WriteConnectionId(QuicConnectionId connection_id) {
-  if (connection_id.IsEmpty()) {
-    return true;
-  }
+  //if (connection_id.IsEmpty()) {
+   // return true;
+  //}
   return WriteBytes(connection_id.data(), connection_id.length());
 }
 

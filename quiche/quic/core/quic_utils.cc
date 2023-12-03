@@ -236,7 +236,8 @@ AddressChangeType QuicUtils::DetermineAddressChangeType(
 
 // static
 bool QuicUtils::IsAckable(SentPacketState state) {
-  return state != NEVER_SENT && state != ACKED && state != UNACKABLE;
+  return state < NEVER_SENT || state > UNACKABLE;
+//    (state != NEVER_SENT && state != ACKED && state != UNACKABLE);
 }
 
 // static
@@ -258,8 +259,8 @@ bool QuicUtils::IsRetransmittableFrame(QuicFrameType type) {
 bool QuicUtils::IsHandshakeFrame(const QuicFrame& frame,
                                  QuicTransportVersion transport_version) {
   if (!QuicVersionUsesCryptoFrames(transport_version)) {
-    return frame.type == STREAM_FRAME &&
-           frame.stream_frame.stream_id == GetCryptoStreamId(transport_version);
+    //QUICHE_DCHECK(frame.type == STREAM_FRAME);
+    return frame.stream_frame.stream_id == GetCryptoStreamId(transport_version);
   } else {
     return frame.type == CRYPTO_FRAME;
   }
@@ -301,7 +302,7 @@ SentPacketState QuicUtils::RetransmissionTypeToPacketState(
 
 // static
 bool QuicUtils::IsIetfPacketHeader(uint8_t first_byte) {
-  return (first_byte & FLAGS_LONG_HEADER) || (first_byte & FLAGS_FIXED_BIT) ||
+  return (first_byte & (FLAGS_LONG_HEADER | FLAGS_FIXED_BIT)) ||
          !(first_byte & FLAGS_DEMULTIPLEXING_BIT);
 }
 
@@ -321,13 +322,13 @@ QuicStreamId QuicUtils::GetInvalidStreamId(QuicTransportVersion version) {
 QuicStreamId QuicUtils::GetCryptoStreamId(QuicTransportVersion version) {
   QUIC_BUG_IF(quic_bug_12982_1, QuicVersionUsesCryptoFrames(version))
       << "CRYPTO data aren't in stream frames; they have no stream ID.";
-  return QuicVersionUsesCryptoFrames(version) ? GetInvalidStreamId(version) : 1;
+  return 1; //QuicVersionUsesCryptoFrames(version) ? GetInvalidStreamId(version) : 1; TODO hybchanged
 }
 
 // static
 bool QuicUtils::IsCryptoStreamId(QuicTransportVersion version,
                                  QuicStreamId stream_id) {
-  if (QuicVersionUsesCryptoFrames(version)) {
+  if (stream_id != 1 || QuicVersionUsesCryptoFrames(version)) {
     return false;
   }
   return stream_id == GetCryptoStreamId(version);
@@ -533,13 +534,13 @@ QuicStreamCount QuicUtils::GetMaxStreamCount() {
 PacketNumberSpace QuicUtils::GetPacketNumberSpace(
     EncryptionLevel encryption_level) {
   switch (encryption_level) {
+    case ENCRYPTION_FORWARD_SECURE:
+    case ENCRYPTION_ZERO_RTT:
+      return APPLICATION_DATA;
     case ENCRYPTION_INITIAL:
       return INITIAL_DATA;
     case ENCRYPTION_HANDSHAKE:
       return HANDSHAKE_DATA;
-    case ENCRYPTION_ZERO_RTT:
-    case ENCRYPTION_FORWARD_SECURE:
-      return APPLICATION_DATA;
     default:
       QUIC_BUG(quic_bug_10839_3)
           << "Try to get packet number space of encryption level: "
@@ -552,12 +553,12 @@ PacketNumberSpace QuicUtils::GetPacketNumberSpace(
 EncryptionLevel QuicUtils::GetEncryptionLevelToSendAckofSpace(
     PacketNumberSpace packet_number_space) {
   switch (packet_number_space) {
+    case APPLICATION_DATA:
+      return ENCRYPTION_FORWARD_SECURE;
     case INITIAL_DATA:
       return ENCRYPTION_INITIAL;
     case HANDSHAKE_DATA:
       return ENCRYPTION_HANDSHAKE;
-    case APPLICATION_DATA:
-      return ENCRYPTION_FORWARD_SECURE;
     default:
       QUICHE_DCHECK(false);
       return NUM_ENCRYPTION_LEVELS;

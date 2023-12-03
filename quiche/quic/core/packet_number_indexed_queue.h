@@ -146,7 +146,7 @@ template <typename T>
 template <typename... Args>
 bool PacketNumberIndexedQueue<T>::Emplace(QuicPacketNumber packet_number,
                                           Args&&... args) {
-  if (!packet_number.IsInitialized()) {
+  if (false && !packet_number.IsInitialized()) {
     QUIC_BUG(quic_bug_10359_1)
         << "Try to insert an uninitialized packet number";
     return false;

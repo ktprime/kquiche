@@ -88,34 +88,36 @@ void QuicIdleNetworkDetector::StopDetection() {
   alarm_->PermanentCancel();
   handshake_timeout_ = QuicTime::Delta::Infinite();
   idle_network_timeout_ = QuicTime::Delta::Infinite();
-  handshake_timeout_ = QuicTime::Delta::Infinite();
+  bandwidth_update_timeout_ = QuicTime::Delta::Infinite();
   stopped_ = true;
 }
 
 void QuicIdleNetworkDetector::OnPacketSent(QuicTime now,
                                            QuicTime::Delta pto_delay) {
-  if (time_of_first_packet_sent_after_receiving_ >
+  if (time_of_first_packet_sent_after_receiving_ >=
       time_of_last_received_packet_) {
     return;
   }
-  time_of_first_packet_sent_after_receiving_ =
-      std::max(time_of_first_packet_sent_after_receiving_, now);
-  if (shorter_idle_timeout_on_sent_packet_) {
+  QUICHE_DCHECK(time_of_first_packet_sent_after_receiving_ <= now);
+  time_of_first_packet_sent_after_receiving_ = now;
+//      std::max(time_of_first_packet_sent_after_receiving_, now);
+  if (false && shorter_idle_timeout_on_sent_packet_) {
     MaybeSetAlarmOnSentPacket(pto_delay);
     return;
   }
-
-  SetAlarm();
+//  if (!alarm_->IsSet())
+//    SetAlarm();
 }
 
 void QuicIdleNetworkDetector::OnPacketReceived(QuicTime now) {
-  time_of_last_received_packet_ = std::max(time_of_last_received_packet_, now);
-
-  SetAlarm();
+  QUICHE_DCHECK(time_of_last_received_packet_ <= now);
+  time_of_last_received_packet_ = now;
+  MaybeSetAlarmOnSentPacket(kAlarmGranularity * 1000);
+  //SetAlarm(); //TODO hybchanged
 }
 
 void QuicIdleNetworkDetector::SetAlarm() {
-  if (stopped_) {
+  if (false && stopped_) {
     // TODO(wub): If this QUIC_BUG fires, it indicates a problem in the
     // QuicConnection, which somehow called this function while disconnected.
     // That problem needs to be fixed.
@@ -128,7 +130,8 @@ void QuicIdleNetworkDetector::SetAlarm() {
   if (!handshake_timeout_.IsInfinite()) {
     new_deadline = start_time_ + handshake_timeout_;
   }
-  if (!idle_network_timeout_.IsInfinite()) {
+  //QUICHE_DCHECK(!idle_network_timeout_.IsInfinite());
+  if (true || !idle_network_timeout_.IsInfinite()) {
     const QuicTime idle_network_deadline = GetIdleNetworkDeadline();
     if (new_deadline.IsInitialized()) {
       new_deadline = std::min(new_deadline, idle_network_deadline);
@@ -139,27 +142,28 @@ void QuicIdleNetworkDetector::SetAlarm() {
   if (!bandwidth_update_timeout_.IsInfinite()) {
     new_deadline = std::min(new_deadline, GetBandwidthUpdateDeadline());
   }
-  alarm_->Update(new_deadline, kAlarmGranularity);
+  alarm_->Update(new_deadline, kAlarmGranularity * 100);
 }
 
 void QuicIdleNetworkDetector::MaybeSetAlarmOnSentPacket(
     QuicTime::Delta pto_delay) {
-  QUICHE_DCHECK(shorter_idle_timeout_on_sent_packet_);
-  if (!handshake_timeout_.IsInfinite() || !alarm_->IsSet()) {
+  if (!handshake_timeout_.IsInfinite() /* || !alarm_->IsSet()***/) {
     SetAlarm();
     return;
   }
+
   // Make sure connection will be alive for another PTO.
   const QuicTime deadline = alarm_->deadline();
   const QuicTime min_deadline = last_network_activity_time() + pto_delay;
   if (deadline > min_deadline) {
     return;
   }
-  alarm_->Update(min_deadline, kAlarmGranularity);
+  SetAlarm();
+  //alarm_->Update(min_deadline, kAlarmGranularity);
 }
 
 QuicTime QuicIdleNetworkDetector::GetIdleNetworkDeadline() const {
-  if (idle_network_timeout_.IsInfinite()) {
+  if (false && idle_network_timeout_.IsInfinite()) {
     return QuicTime::Zero();
   }
   return last_network_activity_time() + idle_network_timeout_;

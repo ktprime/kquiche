@@ -61,9 +61,11 @@
 #include <vector>
 
 #include "quiche/quic/core/quic_interval.h"
+#include "quiche/quic/core/bitmap_allocator.h"
 #include "quiche/quic/platform/api/quic_flags.h"
 #include "quiche/common/platform/api/quiche_containers.h"
 #include "quiche/common/platform/api/quiche_logging.h"
+#include "base/containers/small_flat_set.hpp"
 
 namespace quic {
 
@@ -87,7 +89,12 @@ class QUIC_NO_EXPORT QuicIntervalSet {
     bool operator()(T&& point, const value_type& a) const;
   };
 
-  using Set = quiche::QuicheSmallOrderedSet<value_type, IntervalLess>;
+#if 1
+//  using Set = absl::btree_set<value_type, IntervalLess, std::allocator<value_type>>;
+  using Set = sfl::small_flat_set<value_type, 8, IntervalLess>;
+#else
+  using Set = std::set<value_type, IntervalLess, stm::allocator<value_type>>;
+#endif
 
  public:
   using const_iterator = typename Set::const_iterator;
@@ -99,11 +106,11 @@ class QUIC_NO_EXPORT QuicIntervalSet {
   // Instantiates a QuicIntervalSet containing exactly one initial half-open
   // interval [min, max), unless the given interval is empty, in which case the
   // QuicIntervalSet will be empty.
-  explicit QuicIntervalSet(const value_type& interval) { Add(interval); }
+  explicit QuicIntervalSet(const value_type& interval): intervals_(interval){ }
 
   // Instantiates a QuicIntervalSet containing the half-open interval [min,
   // max).
-  QuicIntervalSet(const T& min, const T& max) { Add(min, max); }
+  QuicIntervalSet(const T& min, const T& max) : intervals_(value_type(min, max)){ }
 
   QuicIntervalSet(std::initializer_list<value_type> il) { assign(il); }
 
@@ -120,41 +127,37 @@ class QUIC_NO_EXPORT QuicIntervalSet {
   // Adds "interval" to this QuicIntervalSet. Adding the empty interval has no
   // effect.
   void Add(const value_type& interval);
+  void AddInter(const value_type& interval);
 
   // Adds the interval [min, max) to this QuicIntervalSet. Adding the empty
   // interval has no effect.
-  void Add(const T& min, const T& max) { Add(value_type(min, max)); }
+  //void Add(const T& min, const T& max) { Add(value_type(min, max)); }
+  void AddEmpty(const T& min) {
+      QUICHE_DCHECK(intervals_.empty());
+      intervals_.append(value_type(min, min));
+  }
 
   // Same semantics as Add(const value_type&), but optimized for the case where
   // rbegin()->min() <= |interval|.min() <= rbegin()->max().
   void AddOptimizedForAppend(const value_type& interval) {
-    if (Empty() || !GetQuicFlag(quic_interval_set_enable_add_optimization)) {
-      Add(interval);
+    if (Empty()) {// || !GetQuicFlag(quic_interval_set_enable_add_optimization)) {
+      intervals_.append(interval);
       return;
     }
 
-    const_reverse_iterator last_interval = intervals_.rbegin();
+    auto last_interval = intervals_.rbegin();
 
     // If interval.min() is outside of [last_interval->min, last_interval->max],
     // we can not simply extend last_interval->max.
-    if (interval.min() < last_interval->min() ||
-        interval.min() > last_interval->max()) {
-      Add(interval);
-      return;
+    if (interval.min() == last_interval->max()) {
+      const_cast<value_type*>(&(*last_interval))->SetMax(interval.max());
     }
-
-    if (interval.max() <= last_interval->max()) {
-      // interval is fully contained by last_interval.
-      return;
+    else if (interval.min() > last_interval->max()) {
+      intervals_.insert(intervals_.end(), interval);
     }
-
-    // Extend last_interval.max to interval.max, in place.
-    //
-    // Set does not allow in-place updates due to the potential of violating its
-    // ordering requirements. But we know setting the max of the last interval
-    // is safe w.r.t set ordering and other invariants of QuicIntervalSet, so we
-    // force an in-place update for performance.
-    const_cast<value_type*>(&(*last_interval))->SetMax(interval.max());
+    else {
+      AddInter(interval);
+    }
   }
 
   // Same semantics as Add(const T&, const T&), but optimized for the case where
@@ -181,9 +184,16 @@ class QUIC_NO_EXPORT QuicIntervalSet {
   // Returns true if some intervals are trimmed.
   bool TrimLessThan(const T& value) {
     // Number of intervals that are fully or partially trimmed.
-    size_t num_intervals_trimmed = 0;
+    if (intervals_.empty())
+      return false;
 
-    while (!intervals_.empty()) {
+    if (intervals_.rbegin()->max() <= value) {
+      intervals_.clear();
+      return true;
+    }
+
+    size_t num_intervals_trimmed = 0;
+    while (true) {
       const_iterator first_interval = intervals_.begin();
       if (first_interval->min() >= value) {
         break;
@@ -194,6 +204,8 @@ class QUIC_NO_EXPORT QuicIntervalSet {
       if (first_interval->max() <= value) {
         // a) Trim the entire interval.
         intervals_.erase(first_interval);
+        if (intervals_.empty())
+          break;
         continue;
       }
 
@@ -206,6 +218,7 @@ class QUIC_NO_EXPORT QuicIntervalSet {
       break;
     }
 
+    QUICHE_DCHECK(Valid());
     return num_intervals_trimmed != 0;
   }
 
@@ -467,17 +480,16 @@ auto operator<<(std::ostream& out, const QuicIntervalSet<T>& seq)
 template <typename T>
 typename QuicIntervalSet<T>::value_type QuicIntervalSet<T>::SpanningInterval()
     const {
-  value_type result;
-  if (!intervals_.empty()) {
-    result.SetMin(intervals_.begin()->min());
-    result.SetMax(intervals_.rbegin()->max());
-  }
+  value_type result(intervals_.begin()->min(), intervals_.rbegin()->max());
+//  if (!intervals_.empty()) {
+//    result.SetMin(intervals_.begin()->min());
+//    result.SetMax(intervals_.rbegin()->max());
+//  }
   return result;
 }
 
 template <typename T>
-void QuicIntervalSet<T>::Add(const value_type& interval) {
-  if (interval.Empty()) return;
+void QuicIntervalSet<T>::AddInter(const value_type& interval) {
   const_iterator it = intervals_.lower_bound(interval.min());
   value_type the_union = interval;
   if (it != intervals_.begin()) {
@@ -497,10 +509,59 @@ void QuicIntervalSet<T>::Add(const value_type& interval) {
   }
   intervals_.erase(start, it);
   intervals_.insert(the_union);
+  QUICHE_DCHECK(Valid());
+}
+
+template <typename T>
+void QuicIntervalSet<T>::Add(const value_type& interval) {
+
+  QUICHE_DCHECK(!intervals_.empty() && !interval.Empty());
+#if 1
+  //update last
+  const T& lmax = intervals_.rbegin()->max();
+  if (lmax == interval.min()) {
+    const_cast<T&>(lmax) = interval.max();
+    return;
+  }
+
+  //add to last
+  else if (lmax < interval.min()) {
+    intervals_.insert(intervals_.end(), interval);
+    return;
+  }
+
+  //update first empty interval
+  else if (intervals_.begin()->min() == interval.min()) {
+    if (intervals_.begin()->Empty())
+    PopFront();
+  }
+#endif
+
+  AddInter(interval);
 }
 
 template <typename T>
 bool QuicIntervalSet<T>::Contains(const T& value) const {
+#if 1
+  //if (intervals_.empty())
+  //  return false;
+   if (intervals_.rbegin()->max() <= value)
+    return false;
+
+  auto first = intervals_.begin();
+  if (first->max() <= value) {
+    if (value < (++first)->min())
+      return false;
+#if 0
+    if (first->max() <= value) {
+      if (value < (++first)->min())
+        return false;
+    } else if (first->min() <= value)
+      return true;
+#endif
+  } else if (first->min() <= value)
+      return true;
+#endif
   // Find the first interval with min() > value, then move back one step
   const_iterator it = intervals_.upper_bound(value);
   if (it == intervals_.begin()) return false;
@@ -510,6 +571,21 @@ bool QuicIntervalSet<T>::Contains(const T& value) const {
 
 template <typename T>
 bool QuicIntervalSet<T>::Contains(const value_type& interval) const {
+//  QUICHE_DCHECK(!intervals_.empty());
+//  QUICHE_DCHECK(!interval.Empty());
+//  if (intervals_.empty())    return false;
+#if 1
+  auto bfirst = intervals_.begin()->Contains(interval);
+  if (bfirst)
+    return true;
+  else if (intervals_.size() == 1)
+    return false;
+
+  auto blast = intervals_.rbegin()->Contains(interval);
+  if (blast)
+    return true;
+#endif
+
   // Find the first interval with min() > value, then move back one step.
   const_iterator it = intervals_.upper_bound(interval.min());
   if (it == intervals_.begin()) return false;
@@ -517,6 +593,7 @@ bool QuicIntervalSet<T>::Contains(const value_type& interval) const {
   return it->Contains(interval);
 }
 
+#if 0
 template <typename T>
 bool QuicIntervalSet<T>::Contains(const QuicIntervalSet<T>& other) const {
   if (!SpanningInterval().Contains(other.SpanningInterval())) {
@@ -601,10 +678,27 @@ typename QuicIntervalSet<T>::const_iterator QuicIntervalSet<T>::UpperBound(
     const T& value) const {
   return intervals_.upper_bound(value);
 }
+#endif
 
 template <typename T>
 bool QuicIntervalSet<T>::IsDisjoint(const value_type& interval) const {
-  if (interval.Empty()) return true;
+//  if (interval.Empty())    return true;
+#if 1
+  auto first = intervals_.begin();
+  if (first->Contains(interval) || intervals_.size() == 1)
+   return false;
+
+  auto next = std::next(first);
+  if (interval.max() <= next->min() && first->max() <= interval.min())
+    return true;
+
+  if (intervals_.size() > 2) {
+    auto prev = ++intervals_.rbegin();
+    if (prev->max() <= interval.min() && interval.max() <= intervals_.rbegin()->min())
+      return true;
+  }
+#endif
+
   // Find the first interval with min() > interval.min()
   const_iterator it = intervals_.upper_bound(interval.min());
   if (it != intervals_.end() && interval.max() > it->min()) return false;
@@ -613,12 +707,13 @@ bool QuicIntervalSet<T>::IsDisjoint(const value_type& interval) const {
   return it->max() <= interval.min();
 }
 
+#if 0
 template <typename T>
 void QuicIntervalSet<T>::Union(const QuicIntervalSet& other) {
   for (const value_type& interval : other.intervals_) {
     Add(interval);
   }
-}
+#endif
 
 template <typename T>
 typename QuicIntervalSet<T>::const_iterator
@@ -652,7 +747,7 @@ bool QuicIntervalSet<T>::FindNextIntersectingPairImpl(X* x,
                                                       const_iterator* mine,
                                                       const_iterator* theirs,
                                                       Func on_hole) {
-  QUICHE_CHECK(x != nullptr);
+  QUICHE_DCHECK(x != nullptr);
   if ((*mine == x->intervals_.end()) || (*theirs == y.intervals_.end())) {
     return false;
   }
@@ -747,7 +842,17 @@ void QuicIntervalSet<T>::Difference(const value_type& interval) {
 
 template <typename T>
 void QuicIntervalSet<T>::Difference(const T& min, const T& max) {
-  Difference(value_type(min, max));
+  value_type interval(min, max);
+  if (interval == *intervals_.begin()) {
+      //ass(intervals_.size() == 1);
+    intervals_.erase(intervals_.begin());
+    return;
+  }
+  if (!SpanningInterval().Intersects(interval)) {
+    return;
+  }
+
+  Difference(QuicIntervalSet<T>(min, max));
 }
 
 template <typename T>
@@ -761,7 +866,12 @@ void QuicIntervalSet<T>::Difference(const QuicIntervalSet& other) {
   // We look at all the elements of intervals_, so that's O(Size()).
   //
   // We also look at all the elements of other.intervals_, for O(other.Size()).
-  if (Empty()) return;
+  //if (Empty()) return;
+  if (other.Contains(*intervals_.begin()) && intervals_.size() == 1) {
+    intervals_.clear();
+    return;
+  }
+
   Set result;
   const_iterator mine = intervals_.begin();
   value_type myinterval = *mine;
@@ -830,7 +940,7 @@ bool QuicIntervalSet<T>::Valid() const {
   const_iterator prev = end();
   for (const_iterator it = begin(); it != end(); ++it) {
     // invalid or empty interval.
-    if (it->min() >= it->max()) return false;
+    if (it->min() > it->max()) return false;
     // Not sorted, not disjoint, or adjacent.
     if (prev != end() && prev->max() >= it->min()) return false;
     prev = it;
