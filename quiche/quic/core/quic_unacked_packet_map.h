@@ -42,8 +42,7 @@ class QUIC_EXPORT_PRIVATE QuicUnackedPacketMap {
   // |mutable_packet| into the QuicTransmissionInfo.
   void AddSentPacket(SerializedPacket* mutable_packet,
                      TransmissionType transmission_type, QuicTime sent_time,
-                     bool set_in_flight, bool measure_rtt,
-                     QuicEcnCodepoint ecn_codepoint);
+                     bool set_in_flight, bool measure_rtt);
 
   // Returns true if the packet |packet_number| is unacked.
   bool IsUnacked(QuicPacketNumber packet_number) const;
@@ -96,9 +95,9 @@ class QUIC_EXPORT_PRIVATE QuicUnackedPacketMap {
   // Returns the largest packet number that has been sent.
   QuicPacketNumber largest_sent_packet() const { return largest_sent_packet_; }
 
-  QuicPacketNumber largest_sent_largest_acked() const {
-    return largest_sent_largest_acked_;
-  }
+//  QuicPacketNumber largest_sent_largest_acked() const {
+//    return largest_sent_largest_acked_;
+//  }
 
   // Returns the largest packet number that has been acked.
   QuicPacketNumber largest_acked() const { return largest_acked_; }
@@ -284,7 +283,7 @@ class QUIC_EXPORT_PRIVATE QuicUnackedPacketMap {
   QuicPacketNumber
       largest_sent_retransmittable_packets_[NUM_PACKET_NUMBER_SPACES];
   // The largest sent largest_acked in an ACK frame.
-  QuicPacketNumber largest_sent_largest_acked_;
+  //QuicPacketNumber largest_sent_largest_acked_;
   // The largest received largest_acked from an ACK frame.
   QuicPacketNumber largest_acked_;
   // The largest received largest_acked from ACK frame per packet number space.
@@ -325,7 +324,11 @@ class QUIC_EXPORT_PRIVATE QuicUnackedPacketMap {
   SessionNotifierInterface* session_notifier_;
 
   // If true, supports multiple packet number spaces.
+#if QUIC_TLS_SESSION
   bool supports_multiple_packet_number_spaces_;
+#else
+  static constexpr bool supports_multiple_packet_number_spaces_ = false;
+#endif
 
   // Latched value of the quic_simple_inflight_time flag.
   bool simple_inflight_time_;

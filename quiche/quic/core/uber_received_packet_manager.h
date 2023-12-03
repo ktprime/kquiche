@@ -31,8 +31,7 @@ class QUIC_EXPORT_PRIVATE UberReceivedPacketManager {
   // been parsed.
   void RecordPacketReceived(EncryptionLevel decrypted_packet_level,
                             const QuicPacketHeader& header,
-                            QuicTime receipt_time,
-                            QuicEcnCodepoint ecn_codepoint);
+                            QuicTime receipt_time);
 
   // Retrieves a frame containing a QuicAckFrame. The ack frame must be
   // serialized before another packet is received, or it will change.
@@ -102,9 +101,13 @@ class QUIC_EXPORT_PRIVATE UberReceivedPacketManager {
   // One received packet manager per packet number space. If
   // supports_multiple_packet_number_spaces_ is false, only the first (0 index)
   // received_packet_manager is used.
+#if QUIC_TLS_SESSION
   QuicReceivedPacketManager received_packet_managers_[NUM_PACKET_NUMBER_SPACES];
-
   bool supports_multiple_packet_number_spaces_;
+#else
+  QuicReceivedPacketManager received_packet_managers_[1];
+  static constexpr bool supports_multiple_packet_number_spaces_ = false;
+#endif
 };
 
 }  // namespace quic

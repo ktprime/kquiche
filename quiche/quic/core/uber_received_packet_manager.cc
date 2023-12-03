@@ -11,7 +11,10 @@
 namespace quic {
 
 UberReceivedPacketManager::UberReceivedPacketManager(QuicConnectionStats* stats)
-    : supports_multiple_packet_number_spaces_(false) {
+#if QUIC_TLS_SESSION
+    : supports_multiple_packet_number_spaces_(false)
+#endif
+{
   for (auto& received_packet_manager : received_packet_managers_) {
     received_packet_manager.set_connection_stats(stats);
   }
@@ -48,15 +51,14 @@ const QuicFrame UberReceivedPacketManager::GetUpdatedAckFrame(
 
 void UberReceivedPacketManager::RecordPacketReceived(
     EncryptionLevel decrypted_packet_level, const QuicPacketHeader& header,
-    QuicTime receipt_time, QuicEcnCodepoint ecn_codepoint) {
+    QuicTime receipt_time) {
   if (!supports_multiple_packet_number_spaces_) {
-    received_packet_managers_[0].RecordPacketReceived(header, receipt_time,
-                                                      ecn_codepoint);
+    received_packet_managers_[0].RecordPacketReceived(header, receipt_time);
     return;
   }
   received_packet_managers_[QuicUtils::GetPacketNumberSpace(
                                 decrypted_packet_level)]
-      .RecordPacketReceived(header, receipt_time, ecn_codepoint);
+      .RecordPacketReceived(header, receipt_time);
 }
 
 void UberReceivedPacketManager::DontWaitForPacketsBefore(
@@ -127,8 +129,9 @@ void UberReceivedPacketManager::EnableMultiplePacketNumberSpacesSupport(
   }
   received_packet_managers_[HANDSHAKE_DATA].set_local_max_ack_delay(
       kAlarmGranularity);
-
+#if QUIC_TLS_SESSION
   supports_multiple_packet_number_spaces_ = true;
+#endif
 }
 
 bool UberReceivedPacketManager::IsAckFrameUpdated() const {
@@ -162,6 +165,10 @@ QuicTime UberReceivedPacketManager::GetAckTimeout(
 }
 
 QuicTime UberReceivedPacketManager::GetEarliestAckTimeout() const {
+  if (!supports_multiple_packet_number_spaces_) {
+    return received_packet_managers_[0].ack_timeout();
+  }
+
   QuicTime ack_timeout = QuicTime::Zero();
   // Returns the earliest non-zero ack timeout.
   for (const auto& received_packet_manager : received_packet_managers_) {

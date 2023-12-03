@@ -51,7 +51,7 @@ class QUIC_EXPORT_PRIVATE QuicPacketCreator {
     virtual QuicPacketBuffer GetPacketBuffer() = 0;
     // Called when a packet is serialized. Delegate take the ownership of
     // |serialized_packet|.
-    virtual void OnSerializedPacket(SerializedPacket serialized_packet) = 0;
+    virtual void OnSerializedPacket(SerializedPacket& serialized_packet) = 0;
 
     // Called when an unrecoverable error is encountered.
     virtual void OnUnrecoverableError(QuicErrorCode error,
@@ -420,7 +420,7 @@ class QUIC_EXPORT_PRIVATE QuicPacketCreator {
   QuicPacketNumber NextSendingPacketNumber() const;
 
   void set_debug_delegate(DebugDelegate* debug_delegate) {
-    debug_delegate_ = debug_delegate;
+    //debug_delegate_ = debug_delegate;
   }
 
   QuicByteCount pending_padding_bytes() const { return pending_padding_bytes_; }
@@ -479,7 +479,7 @@ class QUIC_EXPORT_PRIVATE QuicPacketCreator {
 
   // Use this address to sent to the peer from now on. If this address is
   // different from the current one, flush all the queue frames first.
-  void SetDefaultPeerAddress(QuicSocketAddress address);
+  void SetDefaultPeerAddress(const QuicSocketAddress& address);
 
   // Return true if retry_token_ is not empty.
   bool HasRetryToken() const;
@@ -618,7 +618,7 @@ class QUIC_EXPORT_PRIVATE QuicPacketCreator {
 
   // Does not own these delegates or the framer.
   DelegateInterface* delegate_;
-  DebugDelegate* debug_delegate_;
+  static constexpr DebugDelegate* debug_delegate_ = nullptr;
   QuicFramer* framer_;
   QuicRandom* random_;
 
