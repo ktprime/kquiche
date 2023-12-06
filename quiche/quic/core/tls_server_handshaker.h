@@ -27,7 +27,7 @@ namespace quic {
 
 // An implementation of QuicCryptoServerStreamBase which uses
 // TLS 1.3 for the crypto handshake protocol.
-class QUIC_EXPORT_PRIVATE TlsServerHandshaker
+class QUIC_EXPORT_PRIVATE TlsServerHandshaker final
     : public TlsHandshaker,
       public TlsServerConnection::Delegate,
       public ProofSourceHandleCallback,

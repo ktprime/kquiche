@@ -13,7 +13,7 @@
 
 namespace quic {
 
-struct QUIC_EXPORT_PRIVATE QuicStopWaitingFrame
+struct QUIC_EXPORT_PRIVATE QuicStopWaitingFrame final
     : public QuicInlinedFrame<QuicStopWaitingFrame> {
   QuicStopWaitingFrame();
 

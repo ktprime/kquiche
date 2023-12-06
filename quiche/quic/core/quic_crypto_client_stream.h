@@ -98,7 +98,7 @@ class QUIC_EXPORT_PRIVATE QuicCryptoClientStreamBase : public QuicCryptoStream {
   }
 };
 
-class QUIC_EXPORT_PRIVATE QuicCryptoClientStream
+class QUIC_EXPORT_PRIVATE QuicCryptoClientStream final
     : public QuicCryptoClientStreamBase {
  public:
   // kMaxClientHellos is the maximum number of times that we'll send a client

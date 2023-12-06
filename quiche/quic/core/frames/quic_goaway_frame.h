@@ -14,7 +14,7 @@
 
 namespace quic {
 
-struct QUIC_EXPORT_PRIVATE QuicGoAwayFrame {
+struct QUIC_EXPORT_PRIVATE QuicGoAwayFrame final {
   QuicGoAwayFrame() = default;
   QuicGoAwayFrame(QuicControlFrameId control_frame_id, QuicErrorCode error_code,
                   QuicStreamId last_good_stream_id, const std::string& reason);

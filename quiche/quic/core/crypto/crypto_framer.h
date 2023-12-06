@@ -36,7 +36,7 @@ class QUIC_EXPORT_PRIVATE CryptoFramerVisitorInterface {
 
 // A class for framing the crypto messages that are exchanged in a QUIC
 // session.
-class QUIC_EXPORT_PRIVATE CryptoFramer : public CryptoMessageParser {
+class QUIC_EXPORT_PRIVATE CryptoFramer final: public CryptoMessageParser {
  public:
   CryptoFramer();
 

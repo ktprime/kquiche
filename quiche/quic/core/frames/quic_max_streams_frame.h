@@ -17,7 +17,7 @@ namespace quic {
 // IETF format MAX_STREAMS frame.
 // This frame is used by the sender to inform the peer of the number of
 // streams that the peer may open and that the sender will accept.
-struct QUIC_EXPORT_PRIVATE QuicMaxStreamsFrame
+struct QUIC_EXPORT_PRIVATE QuicMaxStreamsFrame final
     : public QuicInlinedFrame<QuicMaxStreamsFrame> {
   QuicMaxStreamsFrame();
   QuicMaxStreamsFrame(QuicControlFrameId control_frame_id,

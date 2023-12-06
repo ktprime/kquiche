@@ -14,7 +14,7 @@
 
 namespace quic {
 
-struct QUIC_EXPORT_PRIVATE QuicStopSendingFrame
+struct QUIC_EXPORT_PRIVATE QuicStopSendingFrame final
     : public QuicInlinedFrame<QuicStopSendingFrame> {
   QuicStopSendingFrame();
   QuicStopSendingFrame(QuicControlFrameId control_frame_id,

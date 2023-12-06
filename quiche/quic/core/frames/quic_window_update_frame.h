@@ -16,7 +16,7 @@ namespace quic {
 // Flow control updates per-stream and at the connection level.
 // Based on SPDY's WINDOW_UPDATE frame, but uses an absolute max data bytes
 // rather than a window delta.
-struct QUIC_EXPORT_PRIVATE QuicWindowUpdateFrame
+struct QUIC_EXPORT_PRIVATE QuicWindowUpdateFrame final
     : public QuicInlinedFrame<QuicWindowUpdateFrame> {
   QuicWindowUpdateFrame();
   QuicWindowUpdateFrame(QuicControlFrameId control_frame_id,

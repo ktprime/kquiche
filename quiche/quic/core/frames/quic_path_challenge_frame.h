@@ -14,7 +14,7 @@
 
 namespace quic {
 
-struct QUIC_EXPORT_PRIVATE QuicPathChallengeFrame
+struct QUIC_EXPORT_PRIVATE QuicPathChallengeFrame final
     : public QuicInlinedFrame<QuicPathChallengeFrame> {
   QuicPathChallengeFrame();
   QuicPathChallengeFrame(QuicControlFrameId control_frame_id,

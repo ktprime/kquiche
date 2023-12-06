@@ -13,7 +13,7 @@ namespace quic {
 
 // TlsServerConnection receives calls for client-specific BoringSSL callbacks
 // and calls its Delegate for the implementation of those callbacks.
-class QUIC_EXPORT_PRIVATE TlsServerConnection : public TlsConnection {
+class QUIC_EXPORT_PRIVATE TlsServerConnection final: public TlsConnection {
  public:
   // A TlsServerConnection::Delegate implement the server-specific methods that
   // are set as callbacks for an SSL object.

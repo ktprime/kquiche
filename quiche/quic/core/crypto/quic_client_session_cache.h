@@ -19,7 +19,7 @@ class QuicClientSessionCachePeer;
 
 // QuicClientSessionCache maps from QuicServerId to information used to resume
 // TLS sessions for that server.
-class QUIC_EXPORT_PRIVATE QuicClientSessionCache : public SessionCache {
+class QUIC_EXPORT_PRIVATE QuicClientSessionCache final: public SessionCache {
  public:
   QuicClientSessionCache();
   explicit QuicClientSessionCache(size_t max_entries);

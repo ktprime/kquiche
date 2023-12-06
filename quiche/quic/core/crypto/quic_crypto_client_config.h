@@ -97,7 +97,7 @@ class QUIC_EXPORT_PRIVATE SessionCache {
 // QuicCryptoClientConfig contains crypto-related configuration settings for a
 // client. Note that this object isn't thread-safe. It's designed to be used on
 // a single thread at a time.
-class QUIC_EXPORT_PRIVATE QuicCryptoClientConfig : public QuicCryptoConfig {
+class QUIC_EXPORT_PRIVATE QuicCryptoClientConfig final : public QuicCryptoConfig {
  public:
   // A CachedState contains the information that the client needs in order to
   // perform a 0-RTT handshake with a server. This information can be reused

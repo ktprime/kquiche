@@ -14,7 +14,7 @@ namespace quic {
 
 // A HANDSHAKE_DONE frame contains no payload, and it is retransmittable,
 // and ACK'd just like other normal frames.
-struct QUIC_EXPORT_PRIVATE QuicHandshakeDoneFrame
+struct QUIC_EXPORT_PRIVATE QuicHandshakeDoneFrame final
     : public QuicInlinedFrame<QuicHandshakeDoneFrame> {
   QuicHandshakeDoneFrame();
   explicit QuicHandshakeDoneFrame(QuicControlFrameId control_frame_id);

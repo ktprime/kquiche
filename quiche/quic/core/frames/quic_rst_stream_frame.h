@@ -13,7 +13,7 @@
 
 namespace quic {
 
-struct QUIC_EXPORT_PRIVATE QuicRstStreamFrame {
+struct QUIC_EXPORT_PRIVATE QuicRstStreamFrame final {
   QuicRstStreamFrame() = default;
   QuicRstStreamFrame(QuicControlFrameId control_frame_id,
                      QuicStreamId stream_id, QuicRstStreamErrorCode error_code,

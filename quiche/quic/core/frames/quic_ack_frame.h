@@ -18,7 +18,7 @@ namespace quic {
 // A sequence of packet numbers where each number is unique. Intended to be used
 // in a sliding window fashion, where smaller old packet numbers are removed and
 // larger new packet numbers are added, with the occasional random access.
-class QUIC_EXPORT_PRIVATE PacketNumberQueue {
+class QUIC_EXPORT_PRIVATE PacketNumberQueue final {
  public:
   PacketNumberQueue();
   PacketNumberQueue(const PacketNumberQueue& other);

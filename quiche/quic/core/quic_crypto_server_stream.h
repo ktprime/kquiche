@@ -21,7 +21,7 @@ namespace test {
 class QuicCryptoServerStreamPeer;
 }  // namespace test
 
-class QUIC_EXPORT_PRIVATE QuicCryptoServerStream
+class QUIC_EXPORT_PRIVATE QuicCryptoServerStream final
     : public QuicCryptoServerStreamBase,
       public QuicCryptoHandshaker {
  public:

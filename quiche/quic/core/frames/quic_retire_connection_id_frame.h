@@ -13,7 +13,7 @@
 
 namespace quic {
 
-struct QUIC_EXPORT_PRIVATE QuicRetireConnectionIdFrame {
+struct QUIC_EXPORT_PRIVATE QuicRetireConnectionIdFrame final {
   QuicRetireConnectionIdFrame() = default;
   QuicRetireConnectionIdFrame(QuicControlFrameId control_frame_id,
                               QuicConnectionIdSequenceNumber sequence_number);

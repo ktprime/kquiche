@@ -15,7 +15,7 @@ namespace quic {
 
 using QuicMessageData = absl::InlinedVector<quiche::QuicheMemSlice, 1>;
 
-struct QUIC_EXPORT_PRIVATE QuicMessageFrame {
+struct QUIC_EXPORT_PRIVATE QuicMessageFrame final {
   QuicMessageFrame() = default;
   explicit QuicMessageFrame(QuicMessageId message_id);
   QuicMessageFrame(QuicMessageId message_id,

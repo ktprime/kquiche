@@ -15,7 +15,7 @@
 
 namespace quic {
 
-struct QUIC_EXPORT_PRIVATE QuicStreamFrame
+struct QUIC_EXPORT_PRIVATE QuicStreamFrame final
     : public QuicInlinedFrame<QuicStreamFrame> {
   QuicStreamFrame();
   QuicStreamFrame(QuicStreamId stream_id, bool fin, QuicStreamOffset offset,

@@ -13,7 +13,7 @@ namespace quic {
 
 // A path MTU discovery frame contains no payload and is serialized as a ping
 // frame.
-struct QUIC_EXPORT_PRIVATE QuicMtuDiscoveryFrame
+struct QUIC_EXPORT_PRIVATE QuicMtuDiscoveryFrame final
     : public QuicInlinedFrame<QuicMtuDiscoveryFrame> {
   QuicMtuDiscoveryFrame() : QuicInlinedFrame(MTU_DISCOVERY_FRAME) {}
 

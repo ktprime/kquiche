@@ -15,7 +15,7 @@
 
 namespace quic {
 
-struct QUIC_EXPORT_PRIVATE QuicConnectionCloseFrame {
+struct QUIC_EXPORT_PRIVATE QuicConnectionCloseFrame final {
   QuicConnectionCloseFrame() = default;
 
   // Builds a connection close frame based on the transport version

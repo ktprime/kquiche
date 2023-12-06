@@ -15,7 +15,7 @@
 
 namespace quic {
 
-struct QUIC_EXPORT_PRIVATE QuicNewTokenFrame {
+struct QUIC_EXPORT_PRIVATE QuicNewTokenFrame final {
   QuicNewTokenFrame() = default;
   QuicNewTokenFrame(QuicControlFrameId control_frame_id,
                     absl::string_view token);

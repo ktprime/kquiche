@@ -19,7 +19,7 @@ namespace quic {
 
 // ProofSourceX509 accepts X.509 certificates with private keys and picks a
 // certificate internally based on its SubjectAltName value.
-class QUIC_EXPORT_PRIVATE ProofSourceX509 : public ProofSource {
+class QUIC_EXPORT_PRIVATE ProofSourceX509 final: public ProofSource {
  public:
   // Creates a proof source that uses |default_chain| when no SubjectAltName
   // value matches.  Returns nullptr if |default_chain| is invalid.

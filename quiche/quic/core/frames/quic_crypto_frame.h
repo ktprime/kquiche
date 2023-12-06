@@ -14,7 +14,7 @@
 
 namespace quic {
 
-struct QUIC_EXPORT_PRIVATE QuicCryptoFrame {
+struct QUIC_EXPORT_PRIVATE QuicCryptoFrame final {
   QuicCryptoFrame() = default;
   QuicCryptoFrame(EncryptionLevel level, QuicStreamOffset offset,
                   QuicPacketLength data_length);

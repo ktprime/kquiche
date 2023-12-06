@@ -14,7 +14,7 @@
 
 namespace quic {
 
-struct QUIC_EXPORT_PRIVATE QuicNewConnectionIdFrame {
+struct QUIC_EXPORT_PRIVATE QuicNewConnectionIdFrame final {
   QuicNewConnectionIdFrame() = default;
   QuicNewConnectionIdFrame(QuicControlFrameId control_frame_id,
                            QuicConnectionId connection_id,

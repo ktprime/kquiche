@@ -15,7 +15,7 @@
 namespace quic {
 
 // A padding frame contains no payload.
-struct QUIC_EXPORT_PRIVATE QuicPaddingFrame
+struct QUIC_EXPORT_PRIVATE QuicPaddingFrame final
     : public QuicInlinedFrame<QuicPaddingFrame> {
   QuicPaddingFrame() : QuicInlinedFrame(PADDING_FRAME) {}
   explicit QuicPaddingFrame(int num_padding_bytes)

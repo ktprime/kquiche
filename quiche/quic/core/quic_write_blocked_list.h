@@ -75,7 +75,7 @@ class QUICHE_EXPORT QuicWriteBlockedListInterface {
 };
 
 // Default implementation of QuicWriteBlockedListInterface.
-class QUIC_EXPORT_PRIVATE QuicWriteBlockedList
+class QUIC_EXPORT_PRIVATE QuicWriteBlockedList final
     : public QuicWriteBlockedListInterface {
  public:
   explicit QuicWriteBlockedList();

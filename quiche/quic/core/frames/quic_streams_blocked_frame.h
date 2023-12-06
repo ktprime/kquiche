@@ -17,7 +17,7 @@ namespace quic {
 // IETF format STREAMS_BLOCKED frame.
 // The sender uses this to inform the peer that the sender wished to
 // open a new stream, exceeding the limit on the number of streams.
-struct QUIC_EXPORT_PRIVATE QuicStreamsBlockedFrame
+struct QUIC_EXPORT_PRIVATE QuicStreamsBlockedFrame final
     : public QuicInlinedFrame<QuicStreamsBlockedFrame> {
   QuicStreamsBlockedFrame();
   QuicStreamsBlockedFrame(QuicControlFrameId control_frame_id,

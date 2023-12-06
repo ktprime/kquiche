@@ -14,7 +14,7 @@ namespace quic {
 
 // A ping frame contains no payload, though it is retransmittable,
 // and ACK'd just like other normal frames.
-struct QUIC_EXPORT_PRIVATE QuicPingFrame
+struct QUIC_EXPORT_PRIVATE QuicPingFrame final
     : public QuicInlinedFrame<QuicPingFrame> {
   QuicPingFrame();
   explicit QuicPingFrame(QuicControlFrameId control_frame_id);
