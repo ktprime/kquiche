@@ -248,7 +248,7 @@ class QUIC_EXPORT_PRIVATE QuicConnectionVisitorInterface {
 class QUIC_EXPORT_PRIVATE QuicConnectionDebugVisitor final
     : public QuicSentPacketManager::DebugDelegate {
  public:
-  ~QuicConnectionDebugVisitor() override {}
+  ~QuicConnectionDebugVisitor() final {}
 
   // Called when a packet has been sent.
   virtual void OnPacketSent(QuicPacketNumber /*packet_number*/,
@@ -477,7 +477,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
                  ConnectionIdGeneratorInterface& generator);
   QuicConnection(const QuicConnection&) = delete;
   QuicConnection& operator=(const QuicConnection&) = delete;
-  ~QuicConnection() override;
+  ~QuicConnection() final;
 
   struct MultiPortStats {
     // general rtt stats of the multi-port path.
@@ -586,9 +586,9 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // QuicBlockedWriterInterface
   // Called when the underlying connection becomes writable to allow queued
   // writes to happen.
-  void OnBlockedWriterCanWrite() override;
+  void OnBlockedWriterCanWrite() final;
 
-  bool IsWriterBlocked() const override {
+  bool IsWriterBlocked() const final {
     return writer_ != nullptr && writer_->IsWriteBlocked();
   }
 
@@ -650,99 +650,99 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   }
 
   // From QuicFramerVisitorInterface
-  void OnError(QuicFramer* framer) override;
-  bool OnProtocolVersionMismatch(ParsedQuicVersion received_version) override;
-  void OnPacket() override;
-  void OnPublicResetPacket(const QuicPublicResetPacket& packet) override;
+  void OnError(QuicFramer* framer) final;
+  bool OnProtocolVersionMismatch(ParsedQuicVersion received_version) final;
+  void OnPacket() final;
+  void OnPublicResetPacket(const QuicPublicResetPacket& packet) final;
   void OnVersionNegotiationPacket(
-      const QuicVersionNegotiationPacket& packet) override;
+      const QuicVersionNegotiationPacket& packet) final;
   void OnRetryPacket(QuicConnectionId original_connection_id,
                      QuicConnectionId new_connection_id,
                      absl::string_view retry_token,
                      absl::string_view retry_integrity_tag,
-                     absl::string_view retry_without_tag) override;
-  bool OnUnauthenticatedPublicHeader(const QuicPacketHeader& header) override;
-  bool OnUnauthenticatedHeader(const QuicPacketHeader& header) override;
-  void OnDecryptedPacket(size_t length, EncryptionLevel level) override;
-  bool OnPacketHeader(const QuicPacketHeader& header) override;
-  void OnCoalescedPacket(const QuicEncryptedPacket& packet) override;
+                     absl::string_view retry_without_tag) final;
+  bool OnUnauthenticatedPublicHeader(const QuicPacketHeader& header) final;
+  bool OnUnauthenticatedHeader(const QuicPacketHeader& header) final;
+  void OnDecryptedPacket(size_t length, EncryptionLevel level) final;
+  bool OnPacketHeader(const QuicPacketHeader& header) final;
+  void OnCoalescedPacket(const QuicEncryptedPacket& packet) final;
   void OnUndecryptablePacket(const QuicEncryptedPacket& packet,
                              EncryptionLevel decryption_level,
-                             bool has_decryption_key) override;
-  bool OnStreamFrame(const QuicStreamFrame& frame) override;
-  bool OnCryptoFrame(const QuicCryptoFrame& frame) override;
+                             bool has_decryption_key) final;
+  bool OnStreamFrame(const QuicStreamFrame& frame) final;
+  bool OnCryptoFrame(const QuicCryptoFrame& frame) final;
   bool OnAckFrameStart(QuicPacketNumber largest_acked,
-                       QuicTime::Delta ack_delay_time) override;
-  bool OnAckRange(QuicPacketNumber start, QuicPacketNumber end) override;
+                       QuicTime::Delta ack_delay_time) final;
+  bool OnAckRange(QuicPacketNumber start, QuicPacketNumber end) final;
   bool OnAckTimestamp(QuicPacketNumber packet_number,
-                      QuicTime timestamp) override;
-  bool OnAckFrameEnd(QuicPacketNumber start) override;
-  bool OnStopWaitingFrame(const QuicStopWaitingFrame& frame) override;
-  bool OnPaddingFrame(const QuicPaddingFrame& frame) override;
-  bool OnPingFrame(const QuicPingFrame& frame) override;
-  bool OnRstStreamFrame(const QuicRstStreamFrame& frame) override;
-  bool OnConnectionCloseFrame(const QuicConnectionCloseFrame& frame) override;
-  bool OnStopSendingFrame(const QuicStopSendingFrame& frame) override;
-  bool OnPathChallengeFrame(const QuicPathChallengeFrame& frame) override;
-  bool OnPathResponseFrame(const QuicPathResponseFrame& frame) override;
-  bool OnGoAwayFrame(const QuicGoAwayFrame& frame) override;
-  bool OnMaxStreamsFrame(const QuicMaxStreamsFrame& frame) override;
-  bool OnStreamsBlockedFrame(const QuicStreamsBlockedFrame& frame) override;
-  bool OnWindowUpdateFrame(const QuicWindowUpdateFrame& frame) override;
-  bool OnBlockedFrame(const QuicBlockedFrame& frame) override;
-  bool OnNewConnectionIdFrame(const QuicNewConnectionIdFrame& frame) override;
+                      QuicTime timestamp) final;
+  bool OnAckFrameEnd(QuicPacketNumber start) final;
+  bool OnStopWaitingFrame(const QuicStopWaitingFrame& frame) final;
+  bool OnPaddingFrame(const QuicPaddingFrame& frame) final;
+  bool OnPingFrame(const QuicPingFrame& frame) final;
+  bool OnRstStreamFrame(const QuicRstStreamFrame& frame) final;
+  bool OnConnectionCloseFrame(const QuicConnectionCloseFrame& frame) final;
+  bool OnStopSendingFrame(const QuicStopSendingFrame& frame) final;
+  bool OnPathChallengeFrame(const QuicPathChallengeFrame& frame) final;
+  bool OnPathResponseFrame(const QuicPathResponseFrame& frame) final;
+  bool OnGoAwayFrame(const QuicGoAwayFrame& frame) final;
+  bool OnMaxStreamsFrame(const QuicMaxStreamsFrame& frame) final;
+  bool OnStreamsBlockedFrame(const QuicStreamsBlockedFrame& frame) final;
+  bool OnWindowUpdateFrame(const QuicWindowUpdateFrame& frame) final;
+  bool OnBlockedFrame(const QuicBlockedFrame& frame) final;
+  bool OnNewConnectionIdFrame(const QuicNewConnectionIdFrame& frame) final;
   bool OnRetireConnectionIdFrame(
-      const QuicRetireConnectionIdFrame& frame) override;
-  bool OnNewTokenFrame(const QuicNewTokenFrame& frame) override;
-  bool OnMessageFrame(const QuicMessageFrame& frame) override;
-  bool OnHandshakeDoneFrame(const QuicHandshakeDoneFrame& frame) override;
-  bool OnAckFrequencyFrame(const QuicAckFrequencyFrame& frame) override;
-  void OnPacketComplete() override;
+      const QuicRetireConnectionIdFrame& frame) final;
+  bool OnNewTokenFrame(const QuicNewTokenFrame& frame) final;
+  bool OnMessageFrame(const QuicMessageFrame& frame) final;
+  bool OnHandshakeDoneFrame(const QuicHandshakeDoneFrame& frame) final;
+  bool OnAckFrequencyFrame(const QuicAckFrequencyFrame& frame) final;
+  void OnPacketComplete() final;
   bool IsValidStatelessResetToken(
-      const StatelessResetToken& token) const override;
+      const StatelessResetToken& token) const final;
   void OnAuthenticatedIetfStatelessResetPacket(
-      const QuicIetfStatelessResetPacket& packet) override;
-  void OnKeyUpdate(KeyUpdateReason reason) override;
-  void OnDecryptedFirstPacketInKeyPhase() override;
+      const QuicIetfStatelessResetPacket& packet) final;
+  void OnKeyUpdate(KeyUpdateReason reason) final;
+  void OnDecryptedFirstPacketInKeyPhase() final;
   std::unique_ptr<QuicDecrypter> AdvanceKeysAndCreateCurrentOneRttDecrypter()
-      override;
-  std::unique_ptr<QuicEncrypter> CreateCurrentOneRttEncrypter() override;
+      final;
+  std::unique_ptr<QuicEncrypter> CreateCurrentOneRttEncrypter() final;
 
   // QuicPacketCreator::DelegateInterface
   bool ShouldGeneratePacket(HasRetransmittableData retransmittable,
-                            IsHandshake handshake) override;
-  const QuicFrames MaybeBundleAckOpportunistically() override;
-  QuicPacketBuffer GetPacketBuffer() override;
-  void OnSerializedPacket(SerializedPacket& packet) override;
+                            IsHandshake handshake) final;
+  const QuicFrames MaybeBundleAckOpportunistically() final;
+  QuicPacketBuffer GetPacketBuffer() final;
+  void OnSerializedPacket(SerializedPacket& packet) final;
   void OnUnrecoverableError(QuicErrorCode error,
-                            const std::string& error_details) override;
+                            const std::string& error_details) final;
   SerializedPacketFate GetSerializedPacketFate(
-      bool is_mtu_discovery, EncryptionLevel encryption_level) override;
+      bool is_mtu_discovery, EncryptionLevel encryption_level) final;
 
   // QuicSentPacketManager::NetworkChangeVisitor
-  void OnCongestionChange() override;
-  void OnPathMtuIncreased(QuicPacketLength packet_size) override;
+  void OnCongestionChange() final;
+  void OnPathMtuIncreased(QuicPacketLength packet_size) final;
 
   // QuicNetworkBlackholeDetector::Delegate
-  void OnPathDegradingDetected() override;
-  void OnBlackholeDetected() override;
-  void OnPathMtuReductionDetected() override;
+  void OnPathDegradingDetected() final;
+  void OnBlackholeDetected() final;
+  void OnPathMtuReductionDetected() final;
 
   // QuicIdleNetworkDetector::Delegate
-  void OnHandshakeTimeout() override;
-  void OnIdleNetworkDetected() override;
-  void OnBandwidthUpdateTimeout() override;
+  void OnHandshakeTimeout() final;
+  void OnIdleNetworkDetected() final;
+  void OnBandwidthUpdateTimeout() final;
 
   // QuicPingManager::Delegate
-  void OnKeepAliveTimeout() override;
-  void OnRetransmittableOnWireTimeout() override;
+  void OnKeepAliveTimeout() final;
+  void OnRetransmittableOnWireTimeout() final;
 
   // QuicConnectionIdManagerVisitorInterface
-  void OnPeerIssuedConnectionIdRetired() override;
-  bool SendNewConnectionId(const QuicNewConnectionIdFrame& frame) override;
-  bool MaybeReserveConnectionId(const QuicConnectionId& connection_id) override;
+  void OnPeerIssuedConnectionIdRetired() final;
+  bool SendNewConnectionId(const QuicNewConnectionIdFrame& frame) final;
+  bool MaybeReserveConnectionId(const QuicConnectionId& connection_id) final;
   void OnSelfIssuedConnectionIdRetired(
-      const QuicConnectionId& connection_id) override;
+      const QuicConnectionId& connection_id) final;
 
   // Please note, this is not a const function. For logging purpose, please use
   // ack_frame().
@@ -1195,12 +1195,12 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
                          const QuicSocketAddress& self_address,
                          const QuicSocketAddress& peer_address,
                          const QuicSocketAddress& effective_peer_address,
-                         QuicPacketWriter* writer) override;
+                         QuicPacketWriter* writer) final;
   // If |writer| is the default writer and |peer_address| is the same as
   // peer_address(), return the PTO of this connection. Otherwise, return 3 *
   // kInitialRtt.
   QuicTime GetRetryTimeout(const QuicSocketAddress& peer_address_to_use,
-                           QuicPacketWriter* writer_to_use) const override;
+                           QuicPacketWriter* writer_to_use) const final;
 
   // Start vaildating the path defined by |context| asynchronously and call the
   // |result_delegate| after validation finishes. If the connection is
@@ -1521,10 +1521,10 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
 
     void OnPathValidationSuccess(
         std::unique_ptr<QuicPathValidationContext> context,
-        QuicTime start_time) override;
+        QuicTime start_time) final;
 
     void OnPathValidationFailure(
-        std::unique_ptr<QuicPathValidationContext> context) override;
+        std::unique_ptr<QuicPathValidationContext> context) final;
 
    private:
     QuicConnection* connection_;
@@ -1545,10 +1545,10 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
 
     void OnPathValidationSuccess(
         std::unique_ptr<QuicPathValidationContext> context,
-        QuicTime start_time) override;
+        QuicTime start_time) final;
 
     void OnPathValidationFailure(
-        std::unique_ptr<QuicPathValidationContext> context) override;
+        std::unique_ptr<QuicPathValidationContext> context) final;
 
    private:
     QuicConnection* connection_;
@@ -2179,8 +2179,8 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // saved and responded to.
   // TODO(danzh) deprecate this field when deprecating
   // --quic_send_path_response.
-  quiche::QuicheCircularDeque<QuicPathFrameBuffer>
-      received_path_challenge_payloads_;
+  //quiche::QuicheCircularDeque<QuicPathFrameBuffer>
+  //    received_path_challenge_payloads_;
 
   // When we receive a RETRY packet or some INITIAL packets, we replace
   // |server_connection_id_| with the value from that packet and save off the
@@ -2262,7 +2262,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // default path such that it needs to store the previous validated default
   // path.
   // Note that if alternative_path_ stores a validated path information (case
-  // 2), do not override it on receiving PATH_CHALLENGE (case 1).
+  // 2), do not final it on receiving PATH_CHALLENGE (case 1).
   PathState alternative_path_;
 
   // If true, upon seeing a new client address, validate the client address.

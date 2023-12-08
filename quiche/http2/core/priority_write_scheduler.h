@@ -21,10 +21,10 @@
 #include "quiche/common/platform/api/quiche_bug_tracker.h"
 #include "quiche/common/platform/api/quiche_export.h"
 #include "quiche/common/platform/api/quiche_logging.h"
-#include "quiche/common/quiche_circular_deque.h"
+//#include "quiche/common/quiche_circular_deque.h"
 #include "quiche/spdy/core/spdy_protocol.h"
-#include "base/containers/hash_table.hpp"
 #include "base/containers/small_unordered_flat_map.hpp"
+#include "absl/container/inlined_vector.h"
 
 namespace http2 {
 
@@ -72,11 +72,11 @@ class QUICHE_EXPORT PriorityWriteScheduler {
   void RegisterStream(StreamIdType stream_id, PriorityType priority) {
     auto stream_info = std::make_unique<StreamInfo>(
         StreamInfo{std::move(priority), stream_id, false});
-//    bool inserted =
-    stream_infos_.emplace(stream_id, std::move(stream_info));
-//            .second;
-//    QUICHE_BUG_IF(spdy_bug_19_2, !inserted)
-//        << "Stream " << stream_id << " already registered";
+    bool inserted =
+        stream_infos_.emplace(stream_id, std::move(stream_info))
+            .second;
+    QUICHE_BUG_IF(spdy_bug_19_2, !inserted)
+        << "Stream " << stream_id << " already registered";
   }
 
   // Unregisters the given stream from the scheduler, which will no longer keep
@@ -91,9 +91,11 @@ class QUICHE_EXPORT PriorityWriteScheduler {
     }
     const StreamInfo* const stream_info = it->second.get();
     if (stream_info->ready) {
+      bool erased =
           Erase(&priority_infos_[PriorityTypeToInt()(stream_info->priority)]
                      .ready_list,
                 stream_info);
+      QUICHE_DCHECK(erased);
     }
     stream_infos_.erase(it);
   }
@@ -136,9 +138,11 @@ class QUICHE_EXPORT PriorityWriteScheduler {
     if (PriorityTypeToInt()(stream_info->priority) !=
             PriorityTypeToInt()(priority) &&
         stream_info->ready) {
+      bool erased =
           Erase(&priority_infos_[PriorityTypeToInt()(stream_info->priority)]
                      .ready_list,
                 stream_info);
+      QUICHE_DCHECK(erased);
       priority_infos_[PriorityTypeToInt()(priority)].ready_list.push_back(
           stream_info);
       ++num_ready_streams_;
@@ -205,7 +209,7 @@ class QUICHE_EXPORT PriorityWriteScheduler {
       ReadyList& ready_list = priority_infos_[p].ready_list;
       if (!ready_list.empty()) {
         StreamInfo* const info = ready_list.front();
-        ready_list.pop_front();
+        ready_list.erase(ready_list.begin());
         --num_ready_streams_;
 
         QUICHE_DCHECK(stream_infos_.find(info->stream_id) !=
@@ -230,21 +234,17 @@ class QUICHE_EXPORT PriorityWriteScheduler {
       return false;
     }
 
-#if 1 //close it TODO hybchanged
     // If there's a higher priority stream, this stream should yield.
-    const StreamInfo* const stream_info = it->second.get();
-    for (int p = kHighestPriority;
-         p < PriorityTypeToInt()(stream_info->priority); ++p) {
+    const auto priority = PriorityTypeToInt()(it->second->priority);
+    for (int p = kHighestPriority; p < priority; ++p) {
       if (!priority_infos_[p].ready_list.empty()) {
         return true;
       }
     }
-#endif
 
     // If this priority level is empty, or this stream is the next up, there's
     // no need to yield.
-    const auto& ready_list =
-        priority_infos_[PriorityTypeToInt()(it->second->priority)].ready_list;
+    const auto& ready_list = priority_infos_[priority].ready_list;
     if (ready_list.empty() || ready_list.front()->stream_id == stream_id) {
       return false;
     }
@@ -271,8 +271,8 @@ class QUICHE_EXPORT PriorityWriteScheduler {
     }
     ReadyList& ready_list =
         priority_infos_[PriorityTypeToInt()(stream_info->priority)].ready_list;
-    if (add_to_front) {
-      ready_list.push_front(stream_info);
+    if (add_to_front && !ready_list.empty()) {
+      ready_list.insert(ready_list.begin(), stream_info);
     } else {
       ready_list.push_back(stream_info);
     }
@@ -294,9 +294,10 @@ class QUICHE_EXPORT PriorityWriteScheduler {
     if (!stream_info->ready) {
       return;
     }
-   Erase(
+    bool erased = Erase(
         &priority_infos_[PriorityTypeToInt()(stream_info->priority)].ready_list,
         stream_info);
+    QUICHE_DCHECK(erased);
     stream_info->ready = false;
   }
 
@@ -339,7 +340,11 @@ class QUICHE_EXPORT PriorityWriteScheduler {
   };
 
   // O(1) size lookup, O(1) insert at front or back (amortized).
+#if 0
   using ReadyList = quiche::QuicheCircularDeque<StreamInfo*>;
+#else
+  using ReadyList = absl::InlinedVector<StreamInfo*, 2>;
+#endif
 
   // State kept for each priority level.
   struct QUICHE_EXPORT PriorityInfo {
@@ -351,8 +356,6 @@ class QUICHE_EXPORT PriorityWriteScheduler {
 
   // Use std::unique_ptr, because absl::flat_hash_map does not have pointer
   // stability, but ReadyList stores pointers to the StreamInfo objects.
-//  using StreamInfoMap =
-//      emhash5::HashMap<StreamIdType, std::unique_ptr<StreamInfo>>;
   using StreamInfoMap =
     sfl::small_unordered_flat_map<StreamIdType, std::unique_ptr<StreamInfo>, 4>;
 
@@ -360,9 +363,8 @@ class QUICHE_EXPORT PriorityWriteScheduler {
   // false otherwise. Decrements `num_ready_streams_` if an entry is erased.
   bool Erase(ReadyList* ready_list, const StreamInfo* info) {
     auto it = std::remove(ready_list->begin(), ready_list->end(), info);
-    if (it == ready_list->end()) {
+    if (false && it == ready_list->end()) {
       // `info` was not found.
-      assert(false);
       return false;
     }
     ready_list->pop_back();

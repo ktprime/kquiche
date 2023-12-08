@@ -38,7 +38,7 @@ QuicControlFrameManager::QuicControlFrameManager(QuicSession* session)
 QuicControlFrameManager::~QuicControlFrameManager() {
   while (!control_frames_.empty()) {
     DeleteFrame(&control_frames_.front());
-    control_frames_.pop_front();
+    control_frames_.erase(control_frames_.begin());
   }
 }
 
@@ -351,7 +351,7 @@ bool QuicControlFrameManager::OnControlFrameIdAcked(QuicControlFrameId id) {
   while (!control_frames_.empty() &&
          GetControlFrameId(control_frames_.front()) == kInvalidControlFrameId) {
     DeleteFrame(&control_frames_.front());
-    control_frames_.pop_front();
+    control_frames_.erase(control_frames_.begin());
     ++least_unacked_;
   }
   return true;

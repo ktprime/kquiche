@@ -82,13 +82,14 @@ QuicFrame::QuicFrame(QuicAckFrequencyFrame* frame)
 
 void DeleteFrames(QuicFrames* frames) {
   for (QuicFrame& frame : *frames) {
+    if (frame.type != STREAM_FRAME)
     DeleteFrame(&frame);
   }
   frames->clear();
 }
 
 void DeleteFrame(QuicFrame* frame) {
-#if QUIC_FRAME_DEBUG
+#if QUIC_FRAME_DEBUG == 1
   // If the frame is not inlined, check that it can be safely deleted.
   if (frame->type != PADDING_FRAME && frame->type != MTU_DISCOVERY_FRAME &&
       frame->type != PING_FRAME && frame->type != MAX_STREAMS_FRAME &&
@@ -99,13 +100,12 @@ void DeleteFrame(QuicFrame* frame) {
       frame->type != STOP_SENDING_FRAME &&
       frame->type != PATH_CHALLENGE_FRAME &&
       frame->type != PATH_RESPONSE_FRAME) {
-    QUICHE_CHECK(!frame->delete_forbidden) << *frame;
-  }
-#endif  // QUIC_FRAME_DEBUG
-  if (frame->type == STREAM_FRAME)
+    QUICHE_CHECK(!frame->delete_forbidden);// << *frame;
+  } else
     return;
-
+#endif  // QUIC_FRAME_DEBUG
   switch (frame->type) {
+#if QUIC_FRAME_DEBUG == 0
     // Frames smaller than a pointer are inlined, so don't need to be deleted.
     case PADDING_FRAME:
     case MTU_DISCOVERY_FRAME:
@@ -121,6 +121,7 @@ void DeleteFrame(QuicFrame* frame) {
     case PATH_CHALLENGE_FRAME:
     case PATH_RESPONSE_FRAME:
       break;
+#endif
     case ACK_FRAME:
       delete frame->ack_frame;
       break;

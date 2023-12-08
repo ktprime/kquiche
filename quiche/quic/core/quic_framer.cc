@@ -4857,14 +4857,16 @@ bool QuicFramer::DecryptPayload(size_t udp_packet_length,
   bool key_phase;
   bool attempt_key_update = false;
   if (version().KnowsWhichDecrypterToUse()) {
-    if (header.form == GOOGLE_QUIC_PACKET) {
+    if (false && header.form == GOOGLE_QUIC_PACKET) {
       QUIC_BUG(quic_bug_10850_68)
           << "Attempted to decrypt GOOGLE_QUIC_PACKET with a version that "
              "knows which decrypter to use";
       return false;
     }
+
     level = GetEncryptionLevel(header);
-    if (!EncryptionLevelIsValid(level)) {
+    QUICHE_DCHECK_IMPL(header.form == GOOGLE_QUIC_PACKET && EncryptionLevelIsValid(level));
+    if (false && !EncryptionLevelIsValid(level)) {
       QUIC_BUG(quic_bug_10850_69) << "Attempted to decrypt with bad level";
       return false;
     }
@@ -4954,6 +4956,7 @@ bool QuicFramer::DecryptPayload(size_t udp_packet_length,
     }
     *decrypted_level = level;
     potential_peer_key_update_attempt_count_ = 0;
+ #if QUIC_TLS_SESSION
     if (attempt_key_update) {
       if (!DoKeyUpdate(KeyUpdateReason::kRemote)) {
         set_detailed_error("Key update failed due to internal error");
@@ -4975,6 +4978,7 @@ bool QuicFramer::DecryptPayload(size_t udp_packet_length,
       current_key_phase_first_received_packet_number_ = header.packet_number;
       visitor_->OnDecryptedFirstPacketInKeyPhase();
     }
+#endif
   } else if (alternative_decrypter != nullptr) {
     if (header.nonce != nullptr) {
       QUICHE_DCHECK_EQ(perspective_, Perspective::IS_CLIENT);
@@ -5021,9 +5025,9 @@ bool QuicFramer::DecryptPayload(size_t udp_packet_length,
     }
   }
 
-  if (!success) {
-    //QUIC_DVLOG(1) << ENDPOINT << "DecryptPacket failed for: " << header;
-    //return false;
+  if (false && !success) {
+    QUIC_DVLOG(1) << ENDPOINT << "DecryptPacket failed for: " << header;
+    return false;
   }
 
   return success;

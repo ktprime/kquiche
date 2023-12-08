@@ -371,7 +371,7 @@ QuicStream::QuicStream(QuicStreamId id, QuicSession* session,
                                            session->version())
                 : type),
       creation_time_(session->connection()->clock()->ApproximateNow())
-#if QUIC_SERVER_SESSION == 1 
+#if QUIC_SERVER_SESSION == 1
       ,perspective_(session->perspective())
 #endif
 {

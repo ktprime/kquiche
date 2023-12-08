@@ -2561,7 +2561,7 @@ bool QuicConnection::SendControlFrame(const QuicFrame& frame) {
       debug_visitor_->OnPingSent();
     }
   }
-  if (frame.type == BLOCKED_FRAME) {
+  else if (frame.type == BLOCKED_FRAME) {
     stats_.blocked_frames_sent++;
   }
   return true;
@@ -4759,29 +4759,31 @@ QuicConnection::ScopedPacketFlusher::~ScopedPacketFlusher() {
 
   //if (flush_and_set_pending_retransmission_alarm_on_delete_)
 #if 1
-    const QuicTime ack_timeout =
-        connection_->uber_received_packet_manager_.GetEarliestAckTimeout();
-    if (ack_timeout.IsInitialized() && !connection_->ack_alarm_->IsSet())
-      connection_->ack_alarm_->Set(ack_timeout);
+    const QuicTime ack_timeout = connection_->uber_received_packet_manager_.GetEarliestAckTimeout();
+    auto& ack_alarm = connection_->ack_alarm_;
+    if (ack_timeout.IsInitialized() && !ack_alarm->IsSet())
+      ack_alarm->Set(ack_timeout);
+    else if (ack_alarm->IsSet() && ack_alarm->deadline() <= connection_->clock_->ApproximateNow())
+      connection_->SendAck();
 #elif 0
     if (ack_timeout.IsInitialized()) {
       const auto now_time = connection_->clock_->ApproximateNow();
       if (false && ack_timeout <= now_time && !connection_->CanWrite(NO_RETRANSMITTABLE_DATA)) {
         // Cancel ACK alarm if connection is write blocked, and ACK will be
         // sent when connection gets unblocked.
-        connection_->ack_alarm_->Cancel();
-      } else if (!connection_->ack_alarm_->IsSet() ||
-                 connection_->ack_alarm_->deadline() > ack_timeout + kAlarmGranularity) {
-        connection_->ack_alarm_->Set(ack_timeout);
+        ack_alarm->Cancel();
+      } else if (!ack_alarm->IsSet() ||
+                 ack_alarm->deadline() > ack_timeout + kAlarmGranularity) {
+        ack_alarm->Set(ack_timeout);
       }
 
-      if (connection_->ack_alarm_->deadline() <= now_time && connection_->ack_alarm_->IsSet()) {
+      if (ack_alarm->deadline() <= now_time && ack_alarm->IsSet()) {
         // An ACK needs to be sent right now. This ACK did not get bundled
         // because either there was no data to write or packets were marked as
         // received after frames were queued in the generator.
         if (connection_->send_alarm_->IsSet() && connection_->send_alarm_->deadline() <= now_time) {
           // If send alarm will go off soon, let send alarm send the ACK.
-          connection_->ack_alarm_->Cancel();
+          ack_alarm->Cancel();
         }
 #if QUIC_TLS_SESSION
         else if (connection_->SupportsMultiplePacketNumberSpaces()) {
@@ -4820,7 +4822,7 @@ QuicConnection::ScopedPacketFlusher::~ScopedPacketFlusher() {
       //return;
     //}
 
-    if (connection_->handshake_packet_sent_ && !handshake_packet_sent_) {
+    if (false && connection_->handshake_packet_sent_ && !handshake_packet_sent_) { //TODO hybchanged never called
       // This would cause INITIAL key to be dropped. Drop keys here to avoid
       // missing the write keys in the middle of writing.
       connection_->visitor_->OnHandshakePacketSent();

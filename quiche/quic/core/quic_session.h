@@ -124,62 +124,62 @@ class QUIC_EXPORT_PRIVATE QuicSession
   virtual const QuicCryptoStream* GetCryptoStream() const = 0;
 
   // QuicConnectionVisitorInterface methods:
-  void OnStreamFrame(const QuicStreamFrame& frame) override;
-  void OnCryptoFrame(const QuicCryptoFrame& frame) override;
-  void OnRstStream(const QuicRstStreamFrame& frame) override;
-  void OnGoAway(const QuicGoAwayFrame& frame) override;
+  void OnStreamFrame(const QuicStreamFrame& frame) final;
+  void OnCryptoFrame(const QuicCryptoFrame& frame) final;
+  void OnRstStream(const QuicRstStreamFrame& frame) final;
+  void OnGoAway(const QuicGoAwayFrame& frame) final;
   void OnMessageReceived(absl::string_view message) override;
-  void OnHandshakeDoneReceived() override;
-  void OnNewTokenReceived(absl::string_view token) override;
-  void OnWindowUpdateFrame(const QuicWindowUpdateFrame& frame) override;
-  void OnBlockedFrame(const QuicBlockedFrame& frame) override;
+  void OnHandshakeDoneReceived() final;
+  void OnNewTokenReceived(absl::string_view token) final;
+  void OnWindowUpdateFrame(const QuicWindowUpdateFrame& frame) final;
+  void OnBlockedFrame(const QuicBlockedFrame& frame) final;
   void OnConnectionClosed(const QuicConnectionCloseFrame& frame,
                           ConnectionCloseSource source) override;
-  void OnWriteBlocked() override;
+  void OnWriteBlocked() final;
   void OnSuccessfulVersionNegotiation(
-      const ParsedQuicVersion& version) override;
+      const ParsedQuicVersion& version) final;
   void OnPacketReceived(const QuicSocketAddress& self_address,
                         const QuicSocketAddress& peer_address,
-                        bool is_connectivity_probe) override;
-  void OnCanWrite() override;
-  void OnCongestionWindowChange(QuicTime /*now*/) override {}
+                        bool is_connectivity_probe) final;
+  void OnCanWrite() final;
+  void OnCongestionWindowChange(QuicTime /*now*/) final {}
   void OnConnectionMigration(AddressChangeType /*type*/) override {}
   // Adds a connection level WINDOW_UPDATE frame.
-  void OnAckNeedsRetransmittableFrame() override;
-  void SendAckFrequency(const QuicAckFrequencyFrame& frame) override;
-  void SendNewConnectionId(const QuicNewConnectionIdFrame& frame) override;
-  void SendRetireConnectionId(uint64_t sequence_number) override;
+  void OnAckNeedsRetransmittableFrame() final;
+  void SendAckFrequency(const QuicAckFrequencyFrame& frame) final;
+  void SendNewConnectionId(const QuicNewConnectionIdFrame& frame) final;
+  void SendRetireConnectionId(uint64_t sequence_number) final;
   // Returns true if server_connection_id can be issued. If returns true,
   // |visitor_| may establish a mapping from |server_connection_id| to this
   // session, if that's not desired,
   // OnServerConnectionIdRetired(server_connection_id) can be used to remove the
   // mapping.
   bool MaybeReserveConnectionId(
-      const QuicConnectionId& server_connection_id) override;
+      const QuicConnectionId& server_connection_id) final;
   void OnServerConnectionIdRetired(
-      const QuicConnectionId& server_connection_id) override;
-  bool WillingAndAbleToWrite() const override;
-  std::string GetStreamsInfoForLogging() const override;
-  void OnPathDegrading() override;
-  void OnForwardProgressMadeAfterPathDegrading() override;
+      const QuicConnectionId& server_connection_id) final;
+  bool WillingAndAbleToWrite() const final;
+  std::string GetStreamsInfoForLogging() const final;
+  void OnPathDegrading() final;
+  void OnForwardProgressMadeAfterPathDegrading() final;
   bool AllowSelfAddressChange() const override;
-  HandshakeState GetHandshakeState() const override;
-  bool OnMaxStreamsFrame(const QuicMaxStreamsFrame& frame) override;
-  bool OnStreamsBlockedFrame(const QuicStreamsBlockedFrame& frame) override;
-  void OnStopSendingFrame(const QuicStopSendingFrame& frame) override;
-  void OnPacketDecrypted(EncryptionLevel level) override;
-  void OnOneRttPacketAcknowledged() override;
-  void OnHandshakePacketSent() override;
-  void OnKeyUpdate(KeyUpdateReason /*reason*/) override {}
+  HandshakeState GetHandshakeState() const final;
+  bool OnMaxStreamsFrame(const QuicMaxStreamsFrame& frame) final;
+  bool OnStreamsBlockedFrame(const QuicStreamsBlockedFrame& frame) final;
+  void OnStopSendingFrame(const QuicStopSendingFrame& frame) final;
+  void OnPacketDecrypted(EncryptionLevel level) final;
+  void OnOneRttPacketAcknowledged() final;
+  void OnHandshakePacketSent() final;
+  void OnKeyUpdate(KeyUpdateReason /*reason*/) final {}
   std::unique_ptr<QuicDecrypter> AdvanceKeysAndCreateCurrentOneRttDecrypter()
-      override;
-  std::unique_ptr<QuicEncrypter> CreateCurrentOneRttEncrypter() override;
-  void BeforeConnectionCloseSent() override {}
-  bool ValidateToken(absl::string_view token) override;
-  bool MaybeSendAddressToken() override;
-  void OnBandwidthUpdateTimeout() override {}
+      final;
+  std::unique_ptr<QuicEncrypter> CreateCurrentOneRttEncrypter() final;
+  void BeforeConnectionCloseSent() final {}
+  bool ValidateToken(absl::string_view token) final;
+  bool MaybeSendAddressToken() final;
+  void OnBandwidthUpdateTimeout() final {}
   std::unique_ptr<QuicPathValidationContext> CreateContextForMultiPortPath()
-      override {
+      final {
     return nullptr;
   }
 
@@ -187,25 +187,25 @@ class QUIC_EXPORT_PRIVATE QuicSession
   WriteStreamDataResult WriteStreamData(QuicStreamId id,
                                         QuicStreamOffset offset,
                                         QuicByteCount data_length,
-                                        QuicDataWriter* writer) override;
+                                        QuicDataWriter* writer) final;
   bool WriteCryptoData(EncryptionLevel level, QuicStreamOffset offset,
                        QuicByteCount data_length,
-                       QuicDataWriter* writer) override;
+                       QuicDataWriter* writer) final;
 
   // SessionNotifierInterface methods:
   bool OnFrameAcked(const QuicFrame& frame, QuicTime::Delta ack_delay_time,
-                    QuicTime receive_timestamp) override;
-  void OnStreamFrameRetransmitted(const QuicStreamFrame& frame) override;
+                    QuicTime receive_timestamp) final;
+  void OnStreamFrameRetransmitted(const QuicStreamFrame& frame) final;
   void OnFrameLost(const QuicFrame& frame) override;
   bool RetransmitFrames(const QuicFrames& frames,
-                        TransmissionType type) override;
-  bool IsFrameOutstanding(const QuicFrame& frame) const override;
-  bool HasUnackedCryptoData() const override;
-  bool HasUnackedStreamData() const override;
+                        TransmissionType type) final;
+  bool IsFrameOutstanding(const QuicFrame& frame) const final;
+  bool HasUnackedCryptoData() const final;
+  bool HasUnackedStreamData() const final;
 
   void SendMaxStreams(QuicStreamCount stream_count,
-                      bool unidirectional) override;
-  // The default implementation does nothing. Subclasses should override if
+                      bool unidirectional) final;
+  // The default implementation does nothing. Subclasses should final if
   // for example they queue up stream requests.
   virtual void OnCanCreateNewOutgoingStream(bool /*unidirectional*/) {}
 
@@ -259,12 +259,12 @@ class QUIC_EXPORT_PRIVATE QuicSession
   // QuicControlFrameManager::DelegateInterface
   // Close the connection on error.
   void OnControlFrameManagerError(QuicErrorCode error_code,
-                                  std::string error_details) override;
+                                  std::string error_details) final;
   // Called by control frame manager when it wants to write control frames to
   // the peer. Returns true if |frame| is consumed, false otherwise. The frame
   // will be sent in specified transmission |type|.
   bool WriteControlFrame(const QuicFrame& frame,
-                         TransmissionType type) override;
+                         TransmissionType type) final;
 
   // Called to send RST_STREAM (and STOP_SENDING) and close stream. If stream
   // |id| does not exist, just send RST_STREAM (and STOP_SENDING).
@@ -301,38 +301,38 @@ class QUIC_EXPORT_PRIVATE QuicSession
   bool OnNewDecryptionKeyAvailable(EncryptionLevel level,
                                    std::unique_ptr<QuicDecrypter> decrypter,
                                    bool set_alternative_decrypter,
-                                   bool latch_once_used) override;
+                                   bool latch_once_used) final;
   void OnNewEncryptionKeyAvailable(
-      EncryptionLevel level, std::unique_ptr<QuicEncrypter> encrypter) override;
+      EncryptionLevel level, std::unique_ptr<QuicEncrypter> encrypter) final;
   void SetDefaultEncryptionLevel(EncryptionLevel level) override;
   void OnTlsHandshakeComplete() override;
-  void DiscardOldDecryptionKey(EncryptionLevel level) override;
-  void DiscardOldEncryptionKey(EncryptionLevel level) override;
-  void NeuterUnencryptedData() override;
-  void NeuterHandshakeData() override;
-  void OnZeroRttRejected(int reason) override;
-  bool FillTransportParameters(TransportParameters* params) override;
+  void DiscardOldDecryptionKey(EncryptionLevel level) final;
+  void DiscardOldEncryptionKey(EncryptionLevel level) final;
+  void NeuterUnencryptedData() final;
+  void NeuterHandshakeData() final;
+  void OnZeroRttRejected(int reason) final;
+  bool FillTransportParameters(TransportParameters* params) final;
   QuicErrorCode ProcessTransportParameters(const TransportParameters& params,
                                            bool is_resumption,
-                                           std::string* error_details) override;
-  void OnHandshakeCallbackDone() override;
-  bool PacketFlusherAttached() const override;
-  ParsedQuicVersion parsed_version() const override { return version(); }
+                                           std::string* error_details) final;
+  void OnHandshakeCallbackDone() final;
+  bool PacketFlusherAttached() const final;
+  ParsedQuicVersion parsed_version() const final { return version(); }
 
   // Implement StreamDelegateInterface.
   void OnStreamError(QuicErrorCode error_code,
-                     std::string error_details) override;
+                     std::string error_details) final;
   void OnStreamError(QuicErrorCode error_code,
                      QuicIetfTransportErrorCodes ietf_error,
-                     std::string error_details) override;
+                     std::string error_details) final;
   // Sets priority in the write blocked list.
   void RegisterStreamPriority(QuicStreamId id, bool is_static,
-                              const QuicStreamPriority& priority) override;
+                              const QuicStreamPriority& priority) final;
   // Clears priority from the write blocked list.
-  void UnregisterStreamPriority(QuicStreamId id) override;
+  void UnregisterStreamPriority(QuicStreamId id) final;
   // Updates priority on the write blocked list.
   void UpdateStreamPriority(QuicStreamId id,
-                            const QuicStreamPriority& new_priority) override;
+                            const QuicStreamPriority& new_priority) final;
 
   // Called by streams when they want to write data to the peer.
   // Returns a pair with the number of bytes consumed from data, and a boolean
@@ -342,11 +342,11 @@ class QUIC_EXPORT_PRIVATE QuicSession
   QuicConsumedData WritevData(QuicStreamId id, size_t write_length,
                               QuicStreamOffset offset, StreamSendingState state,
                               TransmissionType type,
-                              EncryptionLevel level) override;
+                              EncryptionLevel level) final;
 
   size_t SendCryptoData(EncryptionLevel level, size_t write_length,
                         QuicStreamOffset offset,
-                        TransmissionType type) override;
+                        TransmissionType type) final;
 
   // Called by the QuicCryptoStream when a handshake message is sent.
   virtual void OnCryptoHandshakeMessageSent(
@@ -414,7 +414,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   //        : QuicPathValidationContext(self_address, peer_address),
   //          alternative_writer_(std::move(writer)) {}
   //
-  //    QuicPacketWriter* WriterToUse() override {
+  //    QuicPacketWriter* WriterToUse() final {
   //         return alternative_writer_.get();
   //    }
   //
@@ -433,7 +433,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   //        : QuicPathValidator::ResultDelegate(), connection_(connection) {}
   //
   //    void OnPathValidationSuccess(
-  //        std::unique_ptr<QuicPathValidationContext> context) override {
+  //        std::unique_ptr<QuicPathValidationContext> context) final {
   //    // Do some work to prepare for migration.
   //    // ...
   //
@@ -450,7 +450,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   //  }
   //
   //    void OnPathValidationFailure(
-  //        std::unique_ptr<QuicPathValidationContext> /*context*/) override {
+  //        std::unique_ptr<QuicPathValidationContext> /*context*/) final {
   //    // Handle validation failure.
   //  }
   //
@@ -752,7 +752,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   // Close connection when receive a frame for a locally-created nonexistent
   // stream.
   // Prerequisite: IsClosedStream(stream_id) == false
-  // Server session might need to override this method to allow server push
+  // Server session might need to final this method to allow server push
   // stream to be promised before creating an active stream.
   _virtua void HandleFrameOnNonexistentOutgoingStream(QuicStreamId stream_id);
 
