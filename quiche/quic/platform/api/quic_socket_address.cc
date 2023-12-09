@@ -94,7 +94,7 @@ std::string QuicSocketAddress::ToString() const {
     case IpAddressFamily::IP_V6:
       return absl::StrCat("[", host_.ToString(), "]:", port_);
     default:
-      return "";
+      return "unix_domain";
   }
 }
 

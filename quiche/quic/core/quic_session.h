@@ -59,8 +59,8 @@ class QuicSessionPeer;
 }  // namespace test
 
 class QUIC_EXPORT_PRIVATE QuicSession
-    : public QuicConnectionVisitorInterface,
-      public SessionNotifierInterface,
+//    : public QuicConnectionVisitorInterface,
+      : public SessionNotifierInterface,
       public QuicStreamFrameDataProducer,
       public QuicStreamIdManager::DelegateInterface,
       public HandshakerDelegateInterface,
@@ -124,64 +124,61 @@ class QUIC_EXPORT_PRIVATE QuicSession
   virtual const QuicCryptoStream* GetCryptoStream() const = 0;
 
   // QuicConnectionVisitorInterface methods:
-  void OnStreamFrame(const QuicStreamFrame& frame) final;
-  void OnCryptoFrame(const QuicCryptoFrame& frame) final;
-  void OnRstStream(const QuicRstStreamFrame& frame) final;
-  void OnGoAway(const QuicGoAwayFrame& frame) final;
-  void OnMessageReceived(absl::string_view message) override;
-  void OnHandshakeDoneReceived() final;
-  void OnNewTokenReceived(absl::string_view token) final;
-  void OnWindowUpdateFrame(const QuicWindowUpdateFrame& frame) final;
-  void OnBlockedFrame(const QuicBlockedFrame& frame) final;
-  void OnConnectionClosed(const QuicConnectionCloseFrame& frame,
-                          ConnectionCloseSource source) override;
-  void OnWriteBlocked() final;
+  void OnStreamFrame(const QuicStreamFrame& frame);
+  void OnCryptoFrame(const QuicCryptoFrame& frame);
+  void OnRstStream(const QuicRstStreamFrame& frame);
+  void OnGoAway(const QuicGoAwayFrame& frame);
+  virtual void OnMessageReceived(absl::string_view message);
+  void OnHandshakeDoneReceived();
+  void OnNewTokenReceived(absl::string_view token);
+  void OnWindowUpdateFrame(const QuicWindowUpdateFrame& frame);
+  void OnBlockedFrame(const QuicBlockedFrame& frame);
+  virtual void OnConnectionClosed(const QuicConnectionCloseFrame& frame,
+                          ConnectionCloseSource source);
+  virtual bool ShouldKeepConnectionAlive() const { return true; }
+  void OnWriteBlocked();
   void OnSuccessfulVersionNegotiation(
-      const ParsedQuicVersion& version) final;
+      const ParsedQuicVersion& version);
   void OnPacketReceived(const QuicSocketAddress& self_address,
                         const QuicSocketAddress& peer_address,
-                        bool is_connectivity_probe) final;
-  void OnCanWrite() final;
-  void OnCongestionWindowChange(QuicTime /*now*/) final {}
-  void OnConnectionMigration(AddressChangeType /*type*/) override {}
+                        bool is_connectivity_probe);
+  void OnCanWrite();
+  void OnCongestionWindowChange(QuicTime /*now*/) {}
+  virtual void OnConnectionMigration(AddressChangeType /*type*/) {}
   // Adds a connection level WINDOW_UPDATE frame.
-  void OnAckNeedsRetransmittableFrame() final;
-  void SendAckFrequency(const QuicAckFrequencyFrame& frame) final;
-  void SendNewConnectionId(const QuicNewConnectionIdFrame& frame) final;
-  void SendRetireConnectionId(uint64_t sequence_number) final;
+  void OnAckNeedsRetransmittableFrame();
+  void SendAckFrequency(const QuicAckFrequencyFrame& frame);
+  void SendNewConnectionId(const QuicNewConnectionIdFrame& frame);
+  void SendRetireConnectionId(uint64_t sequence_number);
   // Returns true if server_connection_id can be issued. If returns true,
   // |visitor_| may establish a mapping from |server_connection_id| to this
   // session, if that's not desired,
   // OnServerConnectionIdRetired(server_connection_id) can be used to remove the
   // mapping.
   bool MaybeReserveConnectionId(
-      const QuicConnectionId& server_connection_id) final;
+      const QuicConnectionId& server_connection_id);
   void OnServerConnectionIdRetired(
-      const QuicConnectionId& server_connection_id) final;
-  bool WillingAndAbleToWrite() const final;
-  std::string GetStreamsInfoForLogging() const final;
-  void OnPathDegrading() final;
-  void OnForwardProgressMadeAfterPathDegrading() final;
-  bool AllowSelfAddressChange() const override;
-  HandshakeState GetHandshakeState() const final;
-  bool OnMaxStreamsFrame(const QuicMaxStreamsFrame& frame) final;
-  bool OnStreamsBlockedFrame(const QuicStreamsBlockedFrame& frame) final;
-  void OnStopSendingFrame(const QuicStopSendingFrame& frame) final;
-  void OnPacketDecrypted(EncryptionLevel level) final;
-  void OnOneRttPacketAcknowledged() final;
-  void OnHandshakePacketSent() final;
-  void OnKeyUpdate(KeyUpdateReason /*reason*/) final {}
-  std::unique_ptr<QuicDecrypter> AdvanceKeysAndCreateCurrentOneRttDecrypter()
-      final;
-  std::unique_ptr<QuicEncrypter> CreateCurrentOneRttEncrypter() final;
-  void BeforeConnectionCloseSent() final {}
-  bool ValidateToken(absl::string_view token) final;
-  bool MaybeSendAddressToken() final;
-  void OnBandwidthUpdateTimeout() final {}
-  std::unique_ptr<QuicPathValidationContext> CreateContextForMultiPortPath()
-      final {
-    return nullptr;
-  }
+      const QuicConnectionId& server_connection_id);
+  bool WillingAndAbleToWrite() const;
+  std::string GetStreamsInfoForLogging() const;
+  void OnPathDegrading();
+  void OnForwardProgressMadeAfterPathDegrading();
+  virtual bool AllowSelfAddressChange() const;
+  HandshakeState GetHandshakeState() const;
+  bool OnMaxStreamsFrame(const QuicMaxStreamsFrame& frame);
+  bool OnStreamsBlockedFrame(const QuicStreamsBlockedFrame& frame);
+  void OnStopSendingFrame(const QuicStopSendingFrame& frame);
+  void OnPacketDecrypted(EncryptionLevel level);
+  void OnOneRttPacketAcknowledged();
+  void OnHandshakePacketSent();
+  void OnKeyUpdate(KeyUpdateReason /*reason*/) {}
+  std::unique_ptr<QuicDecrypter> AdvanceKeysAndCreateCurrentOneRttDecrypter();
+  std::unique_ptr<QuicEncrypter> CreateCurrentOneRttEncrypter();
+  void BeforeConnectionCloseSent() {}
+  bool ValidateToken(absl::string_view token);
+  bool MaybeSendAddressToken();
+  void OnBandwidthUpdateTimeout() {}
+  std::unique_ptr<QuicPathValidationContext> CreateContextForMultiPortPath()  {  return nullptr; }
 
   // QuicStreamFrameDataProducer
   WriteStreamDataResult WriteStreamData(QuicStreamId id,

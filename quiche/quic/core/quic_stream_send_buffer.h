@@ -65,7 +65,7 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
   // Size of blocks used by this buffer.
   // Choose 8K to make block large enough to hold multiple frames, each of
   // which could be up to 1.5 KB.
-  static constexpr size_t kBlockSizeBytes = 32 * 1024;  // 8KB
+  static constexpr size_t kBlockSizeBytes = 16 * 1024;  // 8KB
   static constexpr size_t kSmallBlocks = 64 * 1024 / kBlockSizeBytes;
   //static_assert(kBlockSizeBytes > kMaxIncomingPacketSize);
 

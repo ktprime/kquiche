@@ -65,9 +65,10 @@
 
 namespace quic {
 
-class QuicClock;
-class QuicConfig;
-class QuicConnection;
+//class QuicClock;
+//class QuicConfig;
+//class QuicConnection;
+class QuicSession;
 
 namespace test {
 class QuicConnectionPeer;
@@ -453,8 +454,8 @@ class QUIC_EXPORT_PRIVATE QuicConnectionHelperInterface {
 };
 
 class QUIC_EXPORT_PRIVATE QuicConnection final
-    : public QuicFramerVisitorInterface,
-      public QuicBlockedWriterInterface,
+    :  public QuicBlockedWriterInterface,
+//    : public QuicFramerVisitorInterface,
       public QuicPacketCreator::DelegateInterface,
       public QuicSentPacketManager::NetworkChangeVisitor,
       public QuicNetworkBlackholeDetector::Delegate,
@@ -650,63 +651,62 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   }
 
   // From QuicFramerVisitorInterface
-  void OnError(QuicFramer* framer) final;
-  bool OnProtocolVersionMismatch(ParsedQuicVersion received_version) final;
-  void OnPacket() final;
-  void OnPublicResetPacket(const QuicPublicResetPacket& packet) final;
+  void OnError(QuicFramer* framer);
+  bool OnProtocolVersionMismatch(ParsedQuicVersion received_version);
+  void OnPacket();
+  void OnPublicResetPacket(const QuicPublicResetPacket& packet);
   void OnVersionNegotiationPacket(
-      const QuicVersionNegotiationPacket& packet) final;
+      const QuicVersionNegotiationPacket& packet);
   void OnRetryPacket(QuicConnectionId original_connection_id,
                      QuicConnectionId new_connection_id,
                      absl::string_view retry_token,
                      absl::string_view retry_integrity_tag,
-                     absl::string_view retry_without_tag) final;
-  bool OnUnauthenticatedPublicHeader(const QuicPacketHeader& header) final;
-  bool OnUnauthenticatedHeader(const QuicPacketHeader& header) final;
-  void OnDecryptedPacket(size_t length, EncryptionLevel level) final;
-  bool OnPacketHeader(const QuicPacketHeader& header) final;
-  void OnCoalescedPacket(const QuicEncryptedPacket& packet) final;
+                     absl::string_view retry_without_tag);
+  bool OnUnauthenticatedPublicHeader(const QuicPacketHeader& header);
+  bool OnUnauthenticatedHeader(const QuicPacketHeader& header);
+  void OnDecryptedPacket(size_t length, EncryptionLevel level);
+  bool OnPacketHeader(const QuicPacketHeader& header);
+  void OnCoalescedPacket(const QuicEncryptedPacket& packet);
   void OnUndecryptablePacket(const QuicEncryptedPacket& packet,
                              EncryptionLevel decryption_level,
-                             bool has_decryption_key) final;
-  bool OnStreamFrame(const QuicStreamFrame& frame) final;
-  bool OnCryptoFrame(const QuicCryptoFrame& frame) final;
+                             bool has_decryption_key);
+  bool OnStreamFrame(const QuicStreamFrame& frame);
+  bool OnCryptoFrame(const QuicCryptoFrame& frame);
   bool OnAckFrameStart(QuicPacketNumber largest_acked,
-                       QuicTime::Delta ack_delay_time) final;
-  bool OnAckRange(QuicPacketNumber start, QuicPacketNumber end) final;
+                       QuicTime::Delta ack_delay_time);
+  bool OnAckRange(QuicPacketNumber start, QuicPacketNumber end);
   bool OnAckTimestamp(QuicPacketNumber packet_number,
-                      QuicTime timestamp) final;
-  bool OnAckFrameEnd(QuicPacketNumber start) final;
-  bool OnStopWaitingFrame(const QuicStopWaitingFrame& frame) final;
-  bool OnPaddingFrame(const QuicPaddingFrame& frame) final;
-  bool OnPingFrame(const QuicPingFrame& frame) final;
-  bool OnRstStreamFrame(const QuicRstStreamFrame& frame) final;
-  bool OnConnectionCloseFrame(const QuicConnectionCloseFrame& frame) final;
-  bool OnStopSendingFrame(const QuicStopSendingFrame& frame) final;
-  bool OnPathChallengeFrame(const QuicPathChallengeFrame& frame) final;
-  bool OnPathResponseFrame(const QuicPathResponseFrame& frame) final;
-  bool OnGoAwayFrame(const QuicGoAwayFrame& frame) final;
-  bool OnMaxStreamsFrame(const QuicMaxStreamsFrame& frame) final;
-  bool OnStreamsBlockedFrame(const QuicStreamsBlockedFrame& frame) final;
-  bool OnWindowUpdateFrame(const QuicWindowUpdateFrame& frame) final;
-  bool OnBlockedFrame(const QuicBlockedFrame& frame) final;
-  bool OnNewConnectionIdFrame(const QuicNewConnectionIdFrame& frame) final;
+                      QuicTime timestamp);
+  bool OnAckFrameEnd(QuicPacketNumber start);
+  bool OnStopWaitingFrame(const QuicStopWaitingFrame& frame);
+  bool OnPaddingFrame(const QuicPaddingFrame& frame);
+  bool OnPingFrame(const QuicPingFrame& frame);
+  bool OnRstStreamFrame(const QuicRstStreamFrame& frame);
+  bool OnConnectionCloseFrame(const QuicConnectionCloseFrame& frame);
+  bool OnStopSendingFrame(const QuicStopSendingFrame& frame);
+  bool OnPathChallengeFrame(const QuicPathChallengeFrame& frame);
+  bool OnPathResponseFrame(const QuicPathResponseFrame& frame);
+  bool OnGoAwayFrame(const QuicGoAwayFrame& frame);
+  bool OnMaxStreamsFrame(const QuicMaxStreamsFrame& frame);
+  bool OnStreamsBlockedFrame(const QuicStreamsBlockedFrame& frame);
+  bool OnWindowUpdateFrame(const QuicWindowUpdateFrame& frame);
+  bool OnBlockedFrame(const QuicBlockedFrame& frame);
+  bool OnNewConnectionIdFrame(const QuicNewConnectionIdFrame& frame);
   bool OnRetireConnectionIdFrame(
-      const QuicRetireConnectionIdFrame& frame) final;
-  bool OnNewTokenFrame(const QuicNewTokenFrame& frame) final;
-  bool OnMessageFrame(const QuicMessageFrame& frame) final;
-  bool OnHandshakeDoneFrame(const QuicHandshakeDoneFrame& frame) final;
-  bool OnAckFrequencyFrame(const QuicAckFrequencyFrame& frame) final;
-  void OnPacketComplete() final;
+      const QuicRetireConnectionIdFrame& frame);
+  bool OnNewTokenFrame(const QuicNewTokenFrame& frame);
+  bool OnMessageFrame(const QuicMessageFrame& frame);
+  bool OnHandshakeDoneFrame(const QuicHandshakeDoneFrame& frame);
+  bool OnAckFrequencyFrame(const QuicAckFrequencyFrame& frame);
+  void OnPacketComplete();
   bool IsValidStatelessResetToken(
-      const StatelessResetToken& token) const final;
+      const StatelessResetToken& token) const;
   void OnAuthenticatedIetfStatelessResetPacket(
-      const QuicIetfStatelessResetPacket& packet) final;
-  void OnKeyUpdate(KeyUpdateReason reason) final;
-  void OnDecryptedFirstPacketInKeyPhase() final;
-  std::unique_ptr<QuicDecrypter> AdvanceKeysAndCreateCurrentOneRttDecrypter()
-      final;
-  std::unique_ptr<QuicEncrypter> CreateCurrentOneRttEncrypter() final;
+      const QuicIetfStatelessResetPacket& packet);
+  void OnKeyUpdate(KeyUpdateReason reason);
+  void OnDecryptedFirstPacketInKeyPhase();
+  std::unique_ptr<QuicDecrypter> AdvanceKeysAndCreateCurrentOneRttDecrypter();
+  std::unique_ptr<QuicEncrypter> CreateCurrentOneRttEncrypter();
 
   // QuicPacketCreator::DelegateInterface
   bool ShouldGeneratePacket(HasRetransmittableData retransmittable,
@@ -771,7 +771,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   void MaybeProbeMultiPortPath();
 
   // Accessors
-  void set_visitor(QuicConnectionVisitorInterface* visitor) {
+  void set_visitor(QuicSession* visitor) {
     visitor_ = visitor;
   }
   void set_debug_visitor(QuicConnectionDebugVisitor* debug_visitor) {
@@ -2073,7 +2073,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // An alarm that fires to keep probing the multi-port path.
   QuicArenaScopedPtr<QuicAlarm> multi_port_probing_alarm_;
   // Neither visitor is owned by this class.
-  QuicConnectionVisitorInterface* visitor_;
+  QuicSession* visitor_;
   static constexpr QuicConnectionDebugVisitor* debug_visitor_ = nullptr;
 
   QuicPacketCreator packet_creator_;

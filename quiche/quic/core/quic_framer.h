@@ -26,6 +26,7 @@ namespace test {
 class QuicFramerPeer;
 }  // namespace test
 
+class QuicConnection;
 class QuicDataReader;
 class QuicDataWriter;
 class QuicFramer;
@@ -286,7 +287,7 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
   // else the framer will likely crash.  It is acceptable for the visitor
   // to do nothing.  If this is called multiple times, only the last visitor
   // will be used.
-  void set_visitor(QuicFramerVisitorInterface* visitor) { visitor_ = visitor; }
+  void set_visitor(QuicConnection* visitor) { visitor_ = visitor; }
 
   const ParsedQuicVersionVector& supported_versions() const {
     return supported_versions_;
@@ -1099,7 +1100,7 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
   }
 
   std::string detailed_error_;
-  QuicFramerVisitorInterface* visitor_;
+  QuicConnection* visitor_;
   QuicErrorCode error_;
   // Updated by ProcessPacketHeader when it succeeds decrypting a larger packet.
   QuicPacketNumber largest_packet_number_;

@@ -36,6 +36,7 @@
 #include "quiche/quic/core/frames/quic_ack_frequency_frame.h"
 #include "quiche/quic/core/quic_connection_context.h"
 #include "quiche/quic/core/quic_connection_id.h"
+#include "quiche/quic/core/quic_connection.h"
 #include "quiche/quic/core/quic_constants.h"
 #include "quiche/quic/core/quic_data_reader.h"
 #include "quiche/quic/core/quic_data_writer.h"

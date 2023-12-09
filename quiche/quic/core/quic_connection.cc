@@ -31,6 +31,7 @@
 #include "quiche/quic/core/quic_config.h"
 #include "quiche/quic/core/quic_connection_id.h"
 #include "quiche/quic/core/quic_constants.h"
+#include "quiche/quic/core/quic_session.h"
 #include "quiche/quic/core/quic_error_codes.h"
 #include "quiche/quic/core/quic_packet_creator.h"
 #include "quiche/quic/core/quic_packet_writer.h"

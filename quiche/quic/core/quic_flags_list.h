@@ -20,7 +20,7 @@ QUIC_FLAG(quic_reloadable_flag_quic_no_write_control_frame_upon_connection_close
 // If true, QUIC BBR2 will ignore non-positive RTT samples.
 QUIC_FLAG(quic_reloadable_flag_quic_bbr2_ignore_bad_rtt_sample, false)
 // If true, QUIC server will not respond to gQUIC probing packet(PING + PADDING) but treat it as a regular packet.
-QUIC_FLAG(quic_reloadable_flag_quic_ignore_gquic_probing, false)
+QUIC_FLAG(quic_reloadable_flag_quic_ignore_gquic_probing, true)
 // If true, QUIC will default enable MTU discovery at server, with a target of 1450 bytes.
 QUIC_FLAG(quic_reloadable_flag_quic_enable_mtu_discovery_at_server, false)
 // If true, QuicGsoBatchWriter will support release time if it is available and the process has the permission to do so.
@@ -62,7 +62,7 @@ QUIC_FLAG(quic_reloadable_flag_quic_flush_pending_frames_and_padding_bytes_on_mi
 // If true, include stream information in idle timeout connection close detail.
 QUIC_FLAG(quic_reloadable_flag_quic_add_stream_info_to_idle_close_detail, true)
 // If true, reject or send error response code upon receiving invalid request or response headers.
-QUIC_FLAG(quic_reloadable_flag_quic_act_upon_invalid_header, false)
+QUIC_FLAG(quic_reloadable_flag_quic_act_upon_invalid_header, true)
 // If true, remove the non-initial burst in QUIC PacingSender.
 QUIC_FLAG(quic_reloadable_flag_quic_pacing_remove_non_initial_burst, false)
 // If true, require handshake confirmation for QUIC connections, functionally disabling 0-rtt handshakes.
@@ -96,9 +96,9 @@ QUIC_FLAG(quic_restart_flag_quic_platform_tos_sockopt, false)
 // When true, defaults to BBR congestion control instead of Cubic.
 QUIC_FLAG(quic_reloadable_flag_quic_default_to_bbr, false)
 // When true, quiche UDP sockets report Explicit Congestion Notification (ECN) [RFC3168, RFC9330] results.
-QUIC_FLAG(quic_restart_flag_quic_quiche_ecn_sockets, true)
+QUIC_FLAG(quic_restart_flag_quic_quiche_ecn_sockets, false)
 // When true, report received ECN markings to the peer.
-QUIC_FLAG(quic_restart_flag_quic_receive_ecn, true)
+QUIC_FLAG(quic_restart_flag_quic_receive_ecn, false)
 QUIC_FLAG(quic_restart_flag_quic_receive_ecn2, false)
 // When true, sends QUIC packets marked ECT(1).
 QUIC_FLAG(quic_reloadable_flag_quic_send_ect1, false)

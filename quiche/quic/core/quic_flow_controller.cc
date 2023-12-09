@@ -183,7 +183,7 @@ void QuicFlowController::IncreaseWindowSize() {
 }
 
 QuicByteCount QuicFlowController::WindowUpdateThreshold() {
-  return receive_window_size_ / 2;
+  return receive_window_size_ * 3 / 4;
 }
 
 void QuicFlowController::MaybeSendWindowUpdate() {
