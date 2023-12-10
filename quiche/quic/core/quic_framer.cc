@@ -4866,7 +4866,7 @@ bool QuicFramer::DecryptPayload(size_t udp_packet_length,
     }
 
     level = GetEncryptionLevel(header);
-    QUICHE_DCHECK_IMPL(header.form == GOOGLE_QUIC_PACKET && EncryptionLevelIsValid(level));
+    QUICHE_DCHECK_IMPL(header.form != GOOGLE_QUIC_PACKET && EncryptionLevelIsValid(level));
     if (false && !EncryptionLevelIsValid(level)) {
       QUIC_BUG(quic_bug_10850_69) << "Attempted to decrypt with bad level";
       return false;

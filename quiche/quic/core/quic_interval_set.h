@@ -65,7 +65,7 @@
 #include "quiche/quic/platform/api/quic_flags.h"
 #include "quiche/common/platform/api/quiche_containers.h"
 #include "quiche/common/platform/api/quiche_logging.h"
-#include "base/containers/small_flat_set.hpp"
+#include "quiche/common/small_flat_set.hpp"
 
 namespace quic {
 

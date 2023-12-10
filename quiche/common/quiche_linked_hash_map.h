@@ -25,7 +25,7 @@
 //#include "absl/container/flat_hash_map.h"
 #include "absl/hash/hash.h"
 //#include "base/containers/hash_table.hpp"
-#include "base/containers/small_unordered_flat_map.hpp"
+#include "quiche/common/small_unordered_flat_map.hpp"
 #include "quiche/common/platform/api/quiche_export.h"
 #include "quiche/common/platform/api/quiche_logging.h"
 #include "quiche/quic/core/bitmap_allocator.h"
