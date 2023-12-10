@@ -15,7 +15,8 @@
 
 #ifndef QUICHE_QUIC_CORE_QUIC_CONNECTION_H_
 #define QUICHE_QUIC_CORE_QUIC_CONNECTION_H_
-#define QUIC_SDK_0508
+#define QUIC_SDK_0508  1
+#define QUIC_TEXT_0508 1
 
 #include <cstddef>
 #include <cstdint>
