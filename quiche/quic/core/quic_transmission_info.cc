@@ -11,12 +11,13 @@ namespace quic {
 QuicTransmissionInfo::QuicTransmissionInfo()
     : sent_time(QuicTime::Zero()),
       bytes_sent(0),
-      encryption_level(ENCRYPTION_INITIAL),
+//      encryption_level(ENCRYPTION_INITIAL),
       transmission_type(NOT_RETRANSMISSION),
       in_flight(false),
-      state(OUTSTANDING),
-      has_crypto_handshake(false),
-      has_ack_frequency(false) {}
+      state(NEVER_SENT)
+//      has_crypto_handshake(false),
+//      has_ack_frequency(false) 
+      {}
 
 QuicTransmissionInfo::QuicTransmissionInfo(EncryptionLevel level,
                                            TransmissionType transmission_type,
@@ -24,15 +25,15 @@ QuicTransmissionInfo::QuicTransmissionInfo(EncryptionLevel level,
                                            QuicPacketLength bytes_sent,
                                            bool has_crypto_handshake,
                                            bool has_ack_frequency, QuicFrames& retransmittable_frames) noexcept
-    : sent_time(sent_time),
+    : retransmittable_frames(std::move(retransmittable_frames)), 
+      sent_time(sent_time),
       bytes_sent(bytes_sent),
       encryption_level(level),
       transmission_type(transmission_type),
       in_flight(false),
       state(OUTSTANDING),
       has_crypto_handshake(has_crypto_handshake),
-      has_ack_frequency(has_ack_frequency),
-      retransmittable_frames(std::move(retransmittable_frames)) {}
+      has_ack_frequency(has_ack_frequency) {}
 
 QuicTransmissionInfo::~QuicTransmissionInfo() = default;
 

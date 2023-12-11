@@ -80,7 +80,7 @@ void QuicStreamSequencer::OnFrameData(QuicStreamOffset byte_offset,
                                       const char* data_buffer) {
   highest_offset_ = std::max(highest_offset_, byte_offset + data_len);
   const size_t previous_readable_bytes = buffered_frames_.ReadableBytes();
-  size_t bytes_written;
+  size_t bytes_written = 0;
   std::string_view error_details;
   QuicErrorCode result = buffered_frames_.OnStreamData(
       byte_offset, absl::string_view(data_buffer, data_len), &bytes_written,

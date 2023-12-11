@@ -3346,7 +3346,7 @@ QuicTime QuicConnection::CalculatePacketSentTime() {
 }
 
 bool QuicConnection::WritePacket(SerializedPacket* packet) {
-  if (//sent_packet_manager_.GetLargestSentPacket().IsInitialized() &&
+  if (false && //sent_packet_manager_.GetLargestSentPacket().IsInitialized() && //TODO hybchanged
       packet->packet_number < sent_packet_manager_.GetLargestSentPacket()) {
     QUIC_BUG(quic_bug_10511_23)
         << "Attempt to write packet:" << packet->packet_number
@@ -3355,8 +3355,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
                     ConnectionCloseBehavior::SEND_CONNECTION_CLOSE_PACKET);
     return true;
   }
-  const bool is_mtu_discovery = QuicUtils::ContainsFrameType(
-      packet->nonretransmittable_frames, MTU_DISCOVERY_FRAME);
+  constexpr bool is_mtu_discovery = false;// TODO hybchanged QuicUtils::ContainsFrameType(packet->nonretransmittable_frames, MTU_DISCOVERY_FRAME);
   const SerializedPacketFate fate = packet->fate;
   // Termination packets are encrypted and saved, so don't exit early.
   QuicErrorCode error_code = QUIC_NO_ERROR;
@@ -3413,7 +3412,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
   QuicSocketAddress send_to_address = packet->peer_address;
   // Self address is always the default self address on this code path.
   const bool send_on_current_path = send_to_address == peer_address();
-  if (!send_on_current_path) {
+  if (false && !send_on_current_path) { //TODO hybchanged
     QUIC_BUG_IF(quic_send_non_probing_frames_on_alternative_path,
                 ContainsNonProbingFrame(*packet))
         << "Packet " << packet->packet_number
@@ -3568,8 +3567,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
     packet_send_time = packet_send_time + result.send_time_offset;
   }
 
-  if (IsRetransmittable(*packet) == HAS_RETRANSMITTABLE_DATA &&
-      !is_termination_packet) {
+  if (IsRetransmittable(*packet) == HAS_RETRANSMITTABLE_DATA /** && !is_termination_packet **/) { //TODO hybchanged
     // Start blackhole/path degrading detections if the sent packet is not
     // termination packet and contains retransmittable data.
     // Do not restart detection if detection is in progress indicating no

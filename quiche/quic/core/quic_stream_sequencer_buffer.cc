@@ -134,9 +134,8 @@ void QuicStreamSequencerBuffer::MaybeAddMoreBlocks(
 QuicErrorCode QuicStreamSequencerBuffer::OnStreamData(
     QuicStreamOffset starting_offset, absl::string_view data,
     size_t* const bytes_buffered, std::string_view* error_details) {
-  *bytes_buffered = 0;
   size_t size = data.size();
- // QUICHE_DCHECK(size);
+  QUICHE_DCHECK(size && *bytes_buffered == 0);
   if (size == 0) {
     *error_details = "Received empty stream frame without FIN.";
     return QUIC_EMPTY_STREAM_FRAME_NO_FIN;
@@ -163,21 +162,34 @@ QuicErrorCode QuicStreamSequencerBuffer::OnStreamData(
 #endif
 
   QuicInterval<QuicStreamOffset> off(starting_offset, ending_offset);
-  if (starting_offset >= bytes_received_.rbegin()->max() || bytes_received_.IsDisjoint(off)) {
-    // Optimization for the typical case, when all data is newly received.
-    bytes_received_.Add(off);
+  const auto& lmax = bytes_received_.rbegin()->max();
+  if (starting_offset == lmax) {
+    // Optimization for the normal case, when all data is newly received.
+    const_cast<size_t&>(lmax) = ending_offset; 
+    CopyStreamData(starting_offset, data, bytes_buffered, error_details);
+    QUICHE_DCHECK(*bytes_buffered == size);
+    num_bytes_buffered_ += size;
+    return QUIC_NO_ERROR;
+  }
+  else if (starting_offset > lmax) {
+    // Optimization for the normal case, when all data is newly received.
+    bytes_received_.AppendBack(off);
     if (bytes_received_.Size() >= kMaxNumDataIntervalsAllowed) {
-      // This frame is going to create more intervals than allowed. Stop
-      // processing.
+      // This frame is going to create more intervals than allowed. Stop processing.
       *error_details = "Too many data intervals received for this stream.";
       return QUIC_TOO_MANY_STREAM_DATA_INTERVALS;
     }
-
-    size_t bytes_copy = 0;
-    auto ret = CopyStreamData(starting_offset, data, &bytes_copy, error_details);
-    *bytes_buffered += bytes_copy;
-    num_bytes_buffered_ += *bytes_buffered;
-    QUICHE_DCHECK(bytes_copy && starting_offset >= total_bytes_read_);
+    CopyStreamData(starting_offset, data, bytes_buffered, error_details);
+    QUICHE_DCHECK(*bytes_buffered == size);
+    num_bytes_buffered_ += size;
+    return QUIC_NO_ERROR;
+  }
+  else if (bytes_received_.IsDisjoint(off)) {
+    bytes_received_.AddInter(off);
+    CopyStreamData(starting_offset, data, bytes_buffered, error_details);
+    QUICHE_DCHECK(*bytes_buffered == size);
+    QUICHE_DCHECK(starting_offset >= total_bytes_read_);
+    num_bytes_buffered_ += size;
     return QUIC_NO_ERROR;
   } else if (bytes_received_.Contains(off)) {
     return QUIC_NO_ERROR;
@@ -187,9 +199,6 @@ QuicErrorCode QuicStreamSequencerBuffer::OnStreamData(
   QuicIntervalSet<QuicStreamOffset> newly_received(off);
   newly_received.Difference(bytes_received_);
   QUICHE_DCHECK(!newly_received.Empty());
-
-  if (bytes_received_.begin()->max() == 0)
-    bytes_received_.PopFront(); //no error
 
   bytes_received_.AddInter(off);
   //MaybeAddMoreBlocks(ending_offset);
@@ -212,7 +221,7 @@ bool QuicStreamSequencerBuffer::CopyStreamData(QuicStreamOffset offset,
                                                absl::string_view data,
                                                size_t* bytes_copy,
                                                std::string_view* error_details) {
-  *bytes_copy = 0;
+  //*bytes_copy = 0;
   size_t source_remaining = data.size();
   if (false && source_remaining == 0) {
     return true;

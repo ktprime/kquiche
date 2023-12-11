@@ -243,27 +243,47 @@ bool QuicStreamSendBuffer::WriteStreamData(QuicStreamOffset offset,
 bool QuicStreamSendBuffer::OnStreamDataAcked(
     QuicStreamOffset offset, QuicByteCount data_length,
     QuicByteCount* newly_acked_length) {
-  *newly_acked_length = 0;
-  QUICHE_DCHECK(data_length);
+//  *newly_acked_length = 0;
+  QUICHE_DCHECK(data_length && *newly_acked_length == 0);
   if (false && data_length == 0) {
     return true;
   }
 
-  QuicInterval<QuicStreamOffset> off(offset, offset + data_length);
-  if (offset >= bytes_acked_.rbegin()->max() || bytes_acked_.IsDisjoint(off)) {
-    // Optimization for the typical case, when all data is newly acked.
-    QUICHE_DCHECK(stream_bytes_outstanding_ >= data_length);
-    if (false && stream_bytes_outstanding_ < data_length) {
-      return false;
+  const size_t ending_offset = offset + data_length;
+  QuicInterval<QuicStreamOffset> off(offset, ending_offset);
+  const auto& lmax = bytes_acked_.rbegin()->max();
+  if (offset == lmax) {
+    // Optimization for the normal case.
+    const_cast<size_t&>(lmax) = ending_offset;
+    *newly_acked_length = data_length;
+    stream_bytes_outstanding_ -= data_length;
+//    QUICHE_DCHECK(pending_retransmissions_.Empty() || !pending_retransmissions_.SpanningInterval().Intersects(off));
+    if (!pending_retransmissions_.Empty())
+      pending_retransmissions_.Difference(off);
+    return FreeMemSlicesv(offset, ending_offset);
+  }
+  else if (offset > lmax) {
+    // Optimization for the typical case, hole happend.
+    if (bytes_acked_.Size() >= kMaxPacketGap*5) {
+      // This frame is going to create more intervals than allowed. Stop processing.
+      return QUIC_TOO_MANY_STREAM_DATA_INTERVALS;
     }
-    bytes_acked_.Add(off);
+    bytes_acked_.AppendBack(off);
+    QUICHE_DCHECK(pending_retransmissions_.Empty() || !pending_retransmissions_.SpanningInterval().Intersects(off));
+    *newly_acked_length = data_length;
+    stream_bytes_outstanding_ -= data_length;
+    return true;
+  }
+  else if (bytes_acked_.IsDisjoint(off)) {
+    // Optimization for the typical case, maybe update pending.
+    bytes_acked_.AddInter(off);
     *newly_acked_length = data_length;
     stream_bytes_outstanding_ -= data_length;
     if (!pending_retransmissions_.Empty())
       pending_retransmissions_.Difference(off);
-    return FreeMemSlicesv(offset, offset + data_length);
+    return FreeMemSlicesv(offset, ending_offset);
   }
-  // Exit if no new data gets acked.
+  // Exit if dupliacted
   else if (bytes_acked_.Contains(off)) {
     return true;
   }

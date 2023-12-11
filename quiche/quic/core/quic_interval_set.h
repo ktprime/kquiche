@@ -91,7 +91,7 @@ class QUIC_NO_EXPORT QuicIntervalSet {
 
 #if 1
 //  using Set = absl::btree_set<value_type, IntervalLess, std::allocator<value_type>>;
-  using Set = sfl::small_flat_set<value_type, 8, IntervalLess>;
+  using Set = sfl::small_flat_set<value_type, 32, IntervalLess>;
 #else
   using Set = std::set<value_type, IntervalLess, stm::allocator<value_type>>;
 #endif
@@ -127,6 +127,7 @@ class QUIC_NO_EXPORT QuicIntervalSet {
   // Adds "interval" to this QuicIntervalSet. Adding the empty interval has no
   // effect.
   void Add(const value_type& interval);
+  void AppendBack(const value_type& interval);
   void AddInter(const value_type& interval);
 
   // Adds the interval [min, max) to this QuicIntervalSet. Adding the empty
@@ -490,6 +491,8 @@ typename QuicIntervalSet<T>::value_type QuicIntervalSet<T>::SpanningInterval()
 
 template <typename T>
 void QuicIntervalSet<T>::AddInter(const value_type& interval) {
+  if (intervals_.begin()->Empty() && interval.min() == intervals_.begin()->max())
+    PopFront();
   const_iterator it = intervals_.lower_bound(interval.min());
   value_type the_union = interval;
   if (it != intervals_.begin()) {
@@ -513,6 +516,12 @@ void QuicIntervalSet<T>::AddInter(const value_type& interval) {
 }
 
 template <typename T>
+void QuicIntervalSet<T>::AppendBack(const value_type& interval) {
+//  intervals_.append(interval);
+  intervals_.insert(intervals_.end(), interval);
+}
+
+template <typename T>
 void QuicIntervalSet<T>::Add(const value_type& interval) {
 
   QUICHE_DCHECK(!intervals_.empty() && !interval.Empty());
@@ -527,14 +536,14 @@ void QuicIntervalSet<T>::Add(const value_type& interval) {
   //add to last
   else if (lmax < interval.min()) {
     intervals_.insert(intervals_.end(), interval);
+    //intervals_.append(interval);
     return;
   }
 
   //update first empty interval
-  else if (intervals_.begin()->min() == interval.min()) {
-    if (intervals_.begin()->Empty())
+  if (intervals_.begin()->Empty() && interval.min() == intervals_.begin()->max())
     PopFront();
-  }
+
 #endif
 
   AddInter(interval);
