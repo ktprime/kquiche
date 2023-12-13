@@ -1061,7 +1061,7 @@ void QuicStream::AddBytesConsumed(QuicByteCount bytes) {
   }
 #endif
   // Only adjust stream level flow controller if still reading.
-  if (!read_side_closed_) {
+  if (true || !read_side_closed_) {
     flow_controller_->AddBytesConsumed(bytes);
 
 
@@ -1284,7 +1284,7 @@ void QuicStream::WriteBufferedData(EncryptionLevel level) {
   QuicByteCount send_window = std::min(flow_controller_->SendWindowSize(),
                                        connection_flow_controller_->SendWindowSize());
 
-  if (write_length > send_window) {
+  if (false && write_length > send_window) {
     QUICHE_DCHECK(write_length < send_window);
     if (send_window == 0 && !fin_with_zero_data) {
       // Quick return if nothing can be sent.

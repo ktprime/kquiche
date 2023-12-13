@@ -42,7 +42,7 @@ QuicCryptoClientStream::QuicCryptoClientStream(
           proof_handler);
       break;
     case PROTOCOL_TLS1_3:
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
     {
       auto handshaker = std::make_unique<TlsClientHandshaker>(
           server_id, this, session, std::move(verify_context), crypto_config,
@@ -164,7 +164,7 @@ void QuicCryptoClientStream::SetServerApplicationStateForResumption(
 }
 
 SSL* QuicCryptoClientStream::GetSsl() const {
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
   return tls_handshaker_ == nullptr ? nullptr : tls_handshaker_->ssl();
 #else
   return nullptr;

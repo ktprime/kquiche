@@ -2715,7 +2715,7 @@ std::string QuicConnection::UndecryptablePacketsInfo() const {
 void QuicConnection::ProcessUdpPacket(const QuicSocketAddress& self_address,
                                       const QuicSocketAddress& peer_address,
                                       const QuicReceivedPacket& packet) {
-  if (!connected_) {
+  if (!connected_ && false) {
     //printf("closed %ld\n", this);
     //return;
   }
@@ -3585,11 +3585,11 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
                                         sent_packet_manager_.GetPtoDelay()***/);
   }
 
+#if QUIC_TLS_SESSION
   MaybeSetMtuAlarm(packet_number);
   QUIC_DVLOG(1) << ENDPOINT << "time we began writing last sent packet: "
                 << packet_send_time.ToDebuggingValue();
 
-#if QUIC_TLS_SESSION
   if (IsDefaultPath(default_path_.self_address, send_to_address)) {
     if (EnforceAntiAmplificationLimit()) {
       // Include bytes sent even if they are not in flight.
@@ -3631,7 +3631,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
           packet->nonretransmittable_frames, packet_send_time);
     }
   }
-
+#if QUIC_TLS_SESSION
   if (packet->encryption_level == ENCRYPTION_FORWARD_SECURE) {
     if (!lowest_packet_sent_in_current_key_phase_.IsInitialized()) {
       QUIC_DLOG(INFO) << ENDPOINT
@@ -3639,16 +3639,15 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
                       << packet_number;
       lowest_packet_sent_in_current_key_phase_ = packet_number;
     }
-#if QUIC_TLS_SESSION
     if (version().UsesTls() && !is_termination_packet &&
         MaybeHandleAeadConfidentialityLimits(*packet)) {
       return true;
     }
-#endif
   }
   else if (packet->encryption_level == ENCRYPTION_HANDSHAKE) {
     handshake_packet_sent_ = true;
   }
+#endif
 
   if (in_flight || !retransmission_alarm_->IsSet()) {
     SetRetransmissionAlarm();
@@ -3689,6 +3688,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
   return true;
 }
 
+#if 0
 bool QuicConnection::MaybeHandleAeadConfidentialityLimits(
     const SerializedPacket& packet) {
   if (!version().UsesTls()) {
@@ -3795,6 +3795,7 @@ bool QuicConnection::MaybeHandleAeadConfidentialityLimits(
 
   return false;
 }
+#endif
 
 void QuicConnection::FlushPackets() {
   if (!writer_->IsBatchMode()) {
@@ -3838,7 +3839,7 @@ bool QuicConnection::IsMsgTooBig(const QuicPacketWriter* writer,
 }
 
 bool QuicConnection::ShouldDiscardPacket(EncryptionLevel encryption_level) {
-  if (!connected_) {
+  if (false && !connected_) {
     QUIC_DLOG(INFO) << ENDPOINT
                     << "Not sending packet as connection is disconnected.";
     return true;
@@ -3854,7 +3855,7 @@ bool QuicConnection::ShouldDiscardPacket(EncryptionLevel encryption_level) {
     return true;
   }
 
-  return false;
+  return !connected_;
 }
 
 QuicTime QuicConnection::GetPathMtuReductionDeadline() const {
@@ -3934,12 +3935,14 @@ void QuicConnection::OnSerializedPacket(SerializedPacket& serialized_packet) {
   } else {
     consecutive_num_packets_with_no_retransmittable_frames_ = 0;
   }
-  if (retransmittable_on_wire_behavior_ == SEND_FIRST_FORWARD_SECURE_PACKET &&
+#if QUIC_TLS_SESSION
+  if (retransmittable_on_wire_behavior_ == SEND_FIRST_FORWARD_SECURE_PACKET && //never used.
       first_serialized_one_rtt_packet_ == nullptr &&
       serialized_packet.encryption_level == ENCRYPTION_FORWARD_SECURE) {
     first_serialized_one_rtt_packet_ = std::make_unique<BufferedPacket>(
         serialized_packet, self_address(), peer_address());
   }
+#endif
   //SendOrQueuePacket(serialized_packet);
   WritePacket(&serialized_packet);
 }
@@ -4314,6 +4317,7 @@ void QuicConnection::DiscardPreviousOneRttKeys() {
   framer_.DiscardPreviousOneRttKeys();
 }
 
+#if 0
 bool QuicConnection::IsKeyUpdateAllowed() const {
   return support_key_update_for_connection_ &&
          GetLargestAckedPacket().IsInitialized() &&
@@ -4339,6 +4343,7 @@ bool QuicConnection::InitiateKeyUpdate(KeyUpdateReason reason) {
   }
   return framer_.DoKeyUpdate(reason);
 }
+#endif
 
 const QuicDecrypter* QuicConnection::decrypter() const {
   return framer_.decrypter();
@@ -4914,12 +4919,14 @@ QuicConnection::ReceivedPacketInfo::ReceivedPacketInfo(
       receipt_time(receipt_time),
       length(length) {}
 
+#if 0
 QuicConnection::ReceivedPacketInfo& QuicConnection::ReceivedPacketInfo::operator=
     (const QuicConnection::ReceivedPacketInfo& rinfo) noexcept {
   static_assert (std::is_standard_layout<QuicConnection::ReceivedPacketInfo>::value);
   memcpy(this, &rinfo, sizeof(QuicConnection::ReceivedPacketInfo));
   return *this;
 }
+#endif
 
 std::ostream& operator<<(std::ostream& os,
                          const QuicConnection::ReceivedPacketInfo& info) {

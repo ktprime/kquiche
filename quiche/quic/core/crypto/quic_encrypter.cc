@@ -30,7 +30,7 @@ std::unique_ptr<QuicEncrypter> QuicEncrypter::Create(
         return std::make_unique<Aes128Gcm12Encrypter>();
       }
     case kCC20:
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
       if (version.UsesInitialObfuscators()) {
         return std::make_unique<ChaCha20Poly1305TlsEncrypter>();
       } else {
@@ -51,7 +51,7 @@ std::unique_ptr<QuicEncrypter> QuicEncrypter::CreateFromCipherSuite(
       return std::make_unique<Aes128GcmEncrypter>();
     case TLS1_CK_AES_256_GCM_SHA384:
       return std::make_unique<Aes256GcmEncrypter>();
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
     case TLS1_CK_CHACHA20_POLY1305_SHA256:
       return std::make_unique<ChaCha20Poly1305TlsEncrypter>();
 #endif

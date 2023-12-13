@@ -303,6 +303,7 @@ void QuicControlFrameManager::WriteBufferedFrames() {
     QuicFrame copy = CopyRetransmittableControlFrame(frame_to_send);
     if (!delegate_->WriteControlFrame(copy, NOT_RETRANSMISSION)) {
       // Connection is write blocked.
+      if (copy.type != WINDOW_UPDATE_FRAME)
       DeleteFrame(&copy);
       break;
     }
@@ -350,6 +351,7 @@ bool QuicControlFrameManager::OnControlFrameIdAcked(QuicControlFrameId id) {
   // Clean up control frames queue and increment least_unacked_.
   while (!control_frames_.empty() &&
          GetControlFrameId(control_frames_.front()) == kInvalidControlFrameId) {
+    if (WINDOW_UPDATE_FRAME != control_frames_.front().type)
     DeleteFrame(&control_frames_.front());
     control_frames_.erase(control_frames_.begin());
     ++least_unacked_;

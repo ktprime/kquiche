@@ -527,7 +527,7 @@ void QuicSession::OnWindowUpdateFrame(const QuicWindowUpdateFrame& frame) {
     flow_controller_.UpdateSendWindowOffset(frame.max_data);
     return;
   }
-
+#if QUIC_TLS_SESSION
   if (VersionHasIetfQuicFrames(transport_version()) &&
       QuicUtils::GetStreamType(stream_id, perspective(),
                                IsIncomingStream(stream_id),
@@ -538,6 +538,7 @@ void QuicSession::OnWindowUpdateFrame(const QuicWindowUpdateFrame& frame) {
         ConnectionCloseBehavior::SEND_CONNECTION_CLOSE_PACKET);
     return;
   }
+#endif
 
   if (ShouldProcessFrameByPendingStream(WINDOW_UPDATE_FRAME, stream_id)) {
     PendingStreamOnWindowUpdateFrame(frame);

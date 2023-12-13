@@ -66,7 +66,7 @@ QuicCryptoClientConfig::QuicCryptoClientConfig(
     std::unique_ptr<ProofVerifier> proof_verifier,
     std::unique_ptr<SessionCache> session_cache, bool tls_session)
     : proof_verifier_(std::move(proof_verifier))
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
       ,session_cache_(std::move(session_cache))
       ,ssl_ctx_(tls_session ? TlsClientConnection::CreateSslCtx(
           !GetQuicFlag(quic_disable_client_tls_zero_rtt)) : nullptr)
@@ -79,7 +79,7 @@ QuicCryptoClientConfig::QuicCryptoClientConfig(
 QuicCryptoClientConfig::QuicCryptoClientConfig(
     std::unique_ptr<ProofVerifier> proof_verifier, bool tsl_session)
     : proof_verifier_(std::move(proof_verifier))
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
     ,ssl_ctx_(tsl_session ? TlsClientConnection::CreateSslCtx(
         !GetQuicFlag(quic_disable_client_tls_zero_rtt)) : nullptr)
 #endif
@@ -825,7 +825,7 @@ ProofVerifier* QuicCryptoClientConfig::proof_verifier() const {
   return proof_verifier_.get();
 }
 
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
 SessionCache* QuicCryptoClientConfig::session_cache() const {
   return session_cache_.get();
 }
@@ -840,7 +840,7 @@ void QuicCryptoClientConfig::set_proof_source(
   proof_source_ = std::move(proof_source);
 }
 
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
 SSL_CTX* QuicCryptoClientConfig::ssl_ctx() const { return ssl_ctx_.get(); }
 #else
 SSL_CTX* QuicCryptoClientConfig::ssl_ctx() const { return nullptr; }

@@ -893,7 +893,7 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerConfig {
   // objects.
   std::unique_ptr<KeyExchangeSource> key_exchange_source_;
 
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
   // ssl_ctx_ contains the server configuration for doing TLS handshakes.
   bssl::UniquePtr<SSL_CTX> ssl_ctx_;
 #endif

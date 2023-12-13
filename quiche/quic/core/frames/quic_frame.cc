@@ -82,7 +82,7 @@ QuicFrame::QuicFrame(QuicAckFrequencyFrame* frame)
 
 void DeleteFrames(QuicFrames* frames) {
   for (QuicFrame& frame : *frames) {
-    if (frame.type != STREAM_FRAME)
+    if (frame.type != STREAM_FRAME && frame.type != WINDOW_UPDATE_FRAME)
     DeleteFrame(&frame);
   }
   frames->clear();

@@ -242,6 +242,16 @@ bool QuicUtils::IsAckable(SentPacketState state) {
 
 // static
 bool QuicUtils::IsRetransmittableFrame(QuicFrameType type) {
+#if 1
+  constexpr auto retransmittable_type =
+    (1 << ACK_FRAME) |
+    (1 << PADDING_FRAME) |
+    (1 << STOP_WAITING_FRAME) |
+    (1 << MTU_DISCOVERY_FRAME) |
+    (1 << PATH_CHALLENGE_FRAME) |
+    (1 << PATH_RESPONSE_FRAME);
+  return (1 << type) & (~retransmittable_type);
+#else
   switch (type) {
     case ACK_FRAME:
     case PADDING_FRAME:
@@ -253,6 +263,7 @@ bool QuicUtils::IsRetransmittableFrame(QuicFrameType type) {
     default:
       return true;
   }
+#endif
 }
 
 // static

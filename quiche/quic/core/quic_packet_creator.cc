@@ -636,10 +636,7 @@ void QuicPacketCreator::CreateAndSerializeStreamFrame(
   }
   bool omit_frame_length = !needs_padding;
   framer_->AppendTypeByte(QuicFrame(frame), omit_frame_length, &writer);
-  if (!framer_->AppendStreamFrame(frame, omit_frame_length, &writer)) {
-    QUIC_BUG(quic_bug_10752_11) << ENDPOINT << "AppendStreamFrame failed";
-    return;
-  }
+  framer_->AppendStreamFrame(frame, omit_frame_length, &writer);
   if (needs_padding && plaintext_bytes_written < min_plaintext_size &&
       !writer.WritePaddingBytes(min_plaintext_size - plaintext_bytes_written)) {
     QUIC_BUG(quic_bug_10752_12) << ENDPOINT << "Unable to add padding bytes";
@@ -801,8 +798,11 @@ bool QuicPacketCreator::SerializePacket(QuicOwnedPacketBuffer encrypted_buffer,
   FillPacketHeader(&header);
   if (true || delegate_ != nullptr) {
     packet_.fate = delegate_->GetSerializedPacketFate(
-        /*is_mtu_discovery=*/QuicUtils::ContainsFrameType(queued_frames_,
-                                                          MTU_DISCOVERY_FRAME),
+#if QUIC_TLS_SESSION
+    /*is_mtu_discovery=*/QuicUtils::ContainsFrameType(queued_frames_, MTU_DISCOVERY_FRAME),
+#else
+    false,
+#endif
         packet_.encryption_level);
     QUIC_DVLOG(1) << ENDPOINT << "fate of packet " << packet_.packet_number
                   << ": " << SerializedPacketFateToString(packet_.fate)
@@ -1576,7 +1576,7 @@ void QuicPacketCreator::Flush() {
   if (pending_padding_bytes() > 0)
   SendRemainingPendingPadding();
   flusher_attached_ = false;
-  if (GetQuicFlag(quic_export_write_path_stats_at_server)) {
+  if (false && GetQuicFlag(quic_export_write_path_stats_at_server)) {
     if (!write_start_packet_number_.IsInitialized()) {
       QUIC_BUG(quic_bug_10752_32)
           << ENDPOINT << "write_start_packet_number is not initialized";
@@ -1719,12 +1719,6 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
                                  TransmissionType transmission_type) {
   QUIC_DVLOG(1) << ENDPOINT << "Adding frame with transmission type "
                 << transmission_type << ": " << frame;
-  if (frame.type == STREAM_FRAME &&
-      !QuicUtils::IsCryptoStreamId(framer_->transport_version(),
-                                   frame.stream_frame.stream_id) &&
-      AttemptingToSendUnencryptedStreamData()) {
-    return false;
-  }
 
   // Sanity check to ensure we don't send frames at the wrong encryption level.
   QUICHE_DCHECK(
@@ -1743,11 +1737,12 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
       //<< packet_.encryption_level;
 
   if (frame.type == STREAM_FRAME) {
+    if (!QuicUtils::IsCryptoStreamId(framer_->transport_version(), frame.stream_frame.stream_id) &&
+      AttemptingToSendUnencryptedStreamData()) {
+      return false;
+    }
     if (MaybeCoalesceStreamFrame(frame.stream_frame)) {
-      LogCoalesceStreamFrameStatus(true);
       return true;
-    } else {
-      LogCoalesceStreamFrameStatus(false);
     }
   }
 
@@ -1759,16 +1754,17 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
       ;//<< ENDPOINT << "Invalid ACK frame: " << frame;
 
   size_t frame_len = GetSerializedFrameLength(frame);
-  if (frame_len == 0 && RemoveSoftMaxPacketLength()) {
-    // Remove soft max_packet_length and retry.
-    frame_len = GetSerializedFrameLength(frame);
-  }
   if (frame_len == 0) {
-    QUIC_DVLOG(1) << ENDPOINT
-                  << "Flushing because current open packet is full when adding "
-                  << frame;
-    FlushCurrentPacket();
-    return false;
+    // Remove soft max_packet_length and retry.
+    if (RemoveSoftMaxPacketLength())
+      frame_len = GetSerializedFrameLength(frame);
+    if (frame_len == 0) {
+      QUIC_DVLOG(1) << ENDPOINT
+        << "Flushing because current open packet is full when adding "
+        << frame;
+      FlushCurrentPacket();
+      return false;
+    }
   }
   if (queued_frames_.empty()) {
     packet_size_ = PacketHeaderSize();
@@ -1777,12 +1773,12 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
 
   packet_size_ += ExpansionOnNewFrame() + frame_len;
 
-  if (QuicUtils::IsRetransmittableFrame(frame.type)) {
+  if (frame.type == ACK_FRAME) {
+    packet_.nonretransmittable_frames.push_back(frame);
+  } else if (QuicUtils::IsRetransmittableFrame(frame.type)) {
     packet_.retransmittable_frames.push_back(frame);
-    queued_frames_.push_back(frame);
-    if (QuicUtils::IsHandshakeFrame(frame, framer_->transport_version())) {
-      packet_.has_crypto_handshake = IS_HANDSHAKE;
-    }
+    packet_.has_crypto_handshake =
+      QuicUtils::IsHandshakeFrame(frame, framer_->transport_version()) ? IS_HANDSHAKE : NOT_HANDSHAKE;
   } else {
     if (frame.type == PADDING_FRAME &&
         frame.padding_frame.num_padding_bytes == -1) {
@@ -1793,8 +1789,8 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
     } else {
       packet_.nonretransmittable_frames.push_back(frame);
     }
-    queued_frames_.push_back(frame);
   }
+  queued_frames_.push_back(frame);
 
   if (frame.type == ACK_FRAME) {
     packet_.has_ack = true;

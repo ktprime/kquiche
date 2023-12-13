@@ -36,7 +36,7 @@ std::unique_ptr<QuicCryptoServerStreamBase> CreateCryptoServerStream(
       return std::unique_ptr<QuicCryptoServerStream>(new QuicCryptoServerStream(
           crypto_config, compressed_certs_cache, session, helper));
     case PROTOCOL_TLS1_3:
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
       return std::unique_ptr<TlsServerHandshaker>(
           new TlsServerHandshaker(session, crypto_config));
 #endif

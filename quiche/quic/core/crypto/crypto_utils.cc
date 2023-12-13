@@ -744,7 +744,7 @@ const char* CryptoUtils::HandshakeFailureReasonToString(
 // static
 std::string CryptoUtils::EarlyDataReasonToString(
     ssl_early_data_reason_t reason) {
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
   const char* reason_string = SSL_early_data_reason_string(reason);
 #else
   const auto error_str = std::to_string((int)reason);
@@ -775,7 +775,7 @@ std::string CryptoUtils::HashHandshakeMessage(
 bool CryptoUtils::GetSSLCapabilities(const SSL* ssl,
                                      bssl::UniquePtr<uint8_t>* capabilities,
                                      size_t* capabilities_len) {
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
   uint8_t* buffer;
   bssl::ScopedCBB cbb;
 

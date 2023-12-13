@@ -264,12 +264,14 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
   }
   else if (offset > lmax) {
     // Optimization for the typical case, hole happend.
-    if (bytes_acked_.Size() >= kMaxPacketGap*5) {
+    if (bytes_acked_.Size() >= kMaxPacketGap) {
       // This frame is going to create more intervals than allowed. Stop processing.
       return QUIC_TOO_MANY_STREAM_DATA_INTERVALS;
     }
     bytes_acked_.AppendBack(off);
-    QUICHE_DCHECK(pending_retransmissions_.Empty() || !pending_retransmissions_.SpanningInterval().Intersects(off));
+    //QUICHE_DCHECK(pending_retransmissions_.Empty() || !pending_retransmissions_.SpanningInterval().Intersects(off));
+    if (!pending_retransmissions_.Empty())
+      pending_retransmissions_.Difference(off);
     *newly_acked_length = data_length;
     stream_bytes_outstanding_ -= data_length;
     return true;

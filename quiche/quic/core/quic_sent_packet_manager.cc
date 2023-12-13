@@ -154,19 +154,19 @@ void QuicSentPacketManager::SetFromConfig(const QuicConfig& config) {
     initial_congestion_window_ = 3;
     send_algorithm_->SetInitialCongestionWindowInPackets(3);
   }
-  if (config.HasClientRequestedIndependentOption(kIW10, perspective)) {
+  else if (config.HasClientRequestedIndependentOption(kIW10, perspective)) {
     initial_congestion_window_ = 10;
     send_algorithm_->SetInitialCongestionWindowInPackets(10);
   }
-  if (config.HasClientRequestedIndependentOption(kIW20, perspective)) {
+  else if (config.HasClientRequestedIndependentOption(kIW20, perspective)) {
     initial_congestion_window_ = 20;
     send_algorithm_->SetInitialCongestionWindowInPackets(20);
   }
-  if (config.HasClientRequestedIndependentOption(kIW50, perspective)) {
+  else if (config.HasClientRequestedIndependentOption(kIW50, perspective)) {
     initial_congestion_window_ = 50;
     send_algorithm_->SetInitialCongestionWindowInPackets(50);
   }
-  if (config.HasClientRequestedIndependentOption(kBWS5, perspective)) {
+  else if (config.HasClientRequestedIndependentOption(kBWS5, perspective)) {
     initial_congestion_window_ = 10;
     send_algorithm_->SetInitialCongestionWindowInPackets(10);
   }
@@ -181,19 +181,19 @@ void QuicSentPacketManager::SetFromConfig(const QuicConfig& config) {
     uber_loss_algorithm_.SetReorderingShift(kDefaultIetfLossDelayShift);
     uber_loss_algorithm_.DisableAdaptiveReorderingThreshold();
   }
-  if (config.HasClientRequestedIndependentOption(kILD1, perspective)) {
+  else if (config.HasClientRequestedIndependentOption(kILD1, perspective)) {
     uber_loss_algorithm_.SetReorderingShift(kDefaultLossDelayShift);
     uber_loss_algorithm_.DisableAdaptiveReorderingThreshold();
   }
-  if (config.HasClientRequestedIndependentOption(kILD2, perspective)) {
+  else if (config.HasClientRequestedIndependentOption(kILD2, perspective)) {
     uber_loss_algorithm_.EnableAdaptiveReorderingThreshold();
     uber_loss_algorithm_.SetReorderingShift(kDefaultIetfLossDelayShift);
   }
-  if (config.HasClientRequestedIndependentOption(kILD3, perspective)) {
+  else if (config.HasClientRequestedIndependentOption(kILD3, perspective)) {
     uber_loss_algorithm_.SetReorderingShift(kDefaultLossDelayShift);
     uber_loss_algorithm_.EnableAdaptiveReorderingThreshold();
   }
-  if (config.HasClientRequestedIndependentOption(kILD4, perspective)) {
+  else if (config.HasClientRequestedIndependentOption(kILD4, perspective)) {
     uber_loss_algorithm_.SetReorderingShift(kDefaultLossDelayShift);
     uber_loss_algorithm_.EnableAdaptiveReorderingThreshold();
     uber_loss_algorithm_.EnableAdaptiveTimeThreshold();

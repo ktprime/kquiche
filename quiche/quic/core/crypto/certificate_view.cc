@@ -525,7 +525,7 @@ bool CertificateView::VerifySignature(absl::string_view data,
     return false;
   }
 
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
   bssl::ScopedEVP_MD_CTX md_ctx;
   EVP_PKEY_CTX* pctx;
   if (!EVP_DigestVerifyInit(
@@ -622,7 +622,7 @@ std::string CertificatePrivateKey::Sign(absl::string_view input,
     return "";
   }
 
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
   bssl::ScopedEVP_MD_CTX md_ctx;
   EVP_PKEY_CTX* pctx;
   if (!EVP_DigestSignInit(

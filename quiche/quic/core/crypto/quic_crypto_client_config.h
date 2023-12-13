@@ -436,7 +436,7 @@ class QUIC_EXPORT_PRIVATE QuicCryptoClientConfig final : public QuicCryptoConfig
   std::unique_ptr<SessionCache> session_cache_;
   std::unique_ptr<ClientProofSource> proof_source_;
 
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
   bssl::UniquePtr<SSL_CTX> ssl_ctx_;
 #endif
 

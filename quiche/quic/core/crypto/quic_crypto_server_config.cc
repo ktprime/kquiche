@@ -282,7 +282,7 @@ QuicCryptoServerConfig::QuicCryptoServerConfig(
       next_config_promotion_time_(QuicWallTime::Zero()),
       proof_source_(std::move(proof_source)),
       key_exchange_source_(std::move(key_exchange_source)),
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
       ssl_ctx_(tls_session ? TlsServerConnection::CreateSslCtx(proof_source_.get()) : nullptr),
 #endif
       source_address_token_future_secs_(3600),
@@ -1557,7 +1557,7 @@ void QuicCryptoServerConfig::BuildRejection(
             context.signed_config()->chain->certs;
         std::string ca_subject;
         if (!certs.empty()) {
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
           std::unique_ptr<CertificateView> view =
               CertificateView::ParseSingleCertificate(certs[0]);
           if (view != nullptr) {
@@ -1794,7 +1794,7 @@ ProofSource* QuicCryptoServerConfig::proof_source() const {
   return proof_source_.get();
 }
 
-#ifdef QUIC_TLS_SESSION
+#if QUIC_TLS_SESSION
 SSL_CTX* QuicCryptoServerConfig::ssl_ctx() const { return ssl_ctx_.get(); }
 #else
 SSL_CTX* QuicCryptoServerConfig::ssl_ctx() const { return nullptr; }

@@ -133,7 +133,7 @@ bool ParsedQuicVersion::SupportsAntiAmplificationLimit() const {
 bool ParsedQuicVersion::CanSendCoalescedPackets() const {
 #if QUIC_TLS_SESSION
   QUICHE_DCHECK(IsKnown());
-  return /* HasLongHeaderLengths() &&***/ UsesTls();
+  return HasLongHeaderLengths() && UsesTls();
 #else
   return false;
 #endif

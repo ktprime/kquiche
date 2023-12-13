@@ -312,7 +312,7 @@ class QUIC_EXPORT_PRIVATE QuicCryptoClientStream final
   // Points to |handshaker_| if it uses TLS1.3. Otherwise, nullptr.
   // TODO(danzh) change the type of |handshaker_| to TlsClientHandshaker after
   // deprecating Google QUIC.
-#ifdef QUIC_TLS_SESSION //hybchanged
+#if QUIC_TLS_SESSION //hybchanged
   TlsClientHandshaker* tls_handshaker_{nullptr};
 #endif
 };
