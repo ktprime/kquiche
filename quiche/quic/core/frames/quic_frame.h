@@ -131,6 +131,7 @@ static_assert(offsetof(QuicStreamFrame, type) == offsetof(QuicFrame, type),
 // 1-stream-frame in QuicTransmissionInfo.retransmittable_frames.
 #if 1
 using QuicFrames = absl::InlinedVector<QuicFrame, 2>;
+//using QuicFrames = sfl::small_vector<QuicFrame, 2>;
 #else
 using QuicFrames = std::vector<QuicFrame>;
 #endif

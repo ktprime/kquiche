@@ -135,7 +135,7 @@ QUIC_EXPORT_PRIVATE extern const char* const kFinalOffsetHeaderKey;
 // Default maximum delayed ack time, in ms.
 // Uses a 25ms delayed ack timer. Helps with better signaling
 // in low-bandwidth (< ~384 kbps), where an ack is sent per packet.
-inline constexpr int64_t kDefaultDelayedAckTimeMs = 25;
+inline constexpr int64_t kDefaultDelayedAckTimeMs = 15;
 
 // Default minimum delayed ack time, in ms (used only for sender control of ack
 // frequency).

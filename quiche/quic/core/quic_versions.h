@@ -606,7 +606,11 @@ QUIC_EXPORT_PRIVATE constexpr bool QuicVersionHasLongHeaderLengths(
 // frames or not.
 QUIC_EXPORT_PRIVATE constexpr bool VersionHasIetfQuicFrames(
     QuicTransportVersion transport_version) {
+#if QUIC_TLS_SESSION
   return VersionUsesHttp3(transport_version);
+#else
+  return false;
+#endif
 }
 
 // Returns whether this version supports long header 8-bit encoded

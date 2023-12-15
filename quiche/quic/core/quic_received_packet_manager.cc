@@ -201,7 +201,10 @@ void QuicReceivedPacketManager::DontWaitForPacketsBefore(
 QuicTime::Delta QuicReceivedPacketManager::GetMaxAckDelay(
     QuicPacketNumber last_received_packet_number,
     const RttStats& rtt_stats) const {
-  if (AckFrequencyFrameReceived() ||
+  if (
+#if QUIC_TLS_SESSION //hybchanged only tls ack_frame can update
+    AckFrequencyFrameReceived() ||
+#endif
       last_received_packet_number < PeerFirstSendingPacketNumber() +
                                         min_received_before_ack_decimation_) {
     return local_max_ack_delay_;
@@ -216,11 +219,13 @@ QuicTime::Delta QuicReceivedPacketManager::GetMaxAckDelay(
 
 void QuicReceivedPacketManager::MaybeUpdateAckFrequency(
     QuicPacketNumber last_received_packet_number) {
+#if QUIC_TLS_SESSION
   if (AckFrequencyFrameReceived()) {
     // Skip Ack Decimation below after receiving an AckFrequencyFrame from the
     // other end point.
     return;
   }
+#endif
   if (last_received_packet_number <
       PeerFirstSendingPacketNumber() + min_received_before_ack_decimation_) {
     return;
@@ -272,9 +277,9 @@ void QuicReceivedPacketManager::MaybeUpdateAckTimeout(
   }
 
   QUICHE_DCHECK(last_packet_receipt_time <= now);
-  const QuicTime updated_ack_time = std::max(
-      now, last_packet_receipt_time +
-               GetMaxAckDelay(last_received_packet_number, *rtt_stats));
+  QuicTime updated_ack_time = //std::max(
+      last_packet_receipt_time +
+               GetMaxAckDelay(last_received_packet_number, *rtt_stats);
   if (!ack_timeout_.IsInitialized() || ack_timeout_ > updated_ack_time) {
     ack_timeout_ = updated_ack_time;
   }

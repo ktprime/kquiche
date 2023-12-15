@@ -150,25 +150,25 @@ void QuicSentPacketManager::SetFromConfig(const QuicConfig& config) {
   }
 
   // Initial window.
-  if (config.HasClientRequestedIndependentOption(kIW03, perspective)) {
+  if (config.HasClientRequestedIndependentOption(kIW50, perspective)) {
+    initial_congestion_window_ = 50;
+    send_algorithm_->SetInitialCongestionWindowInPackets(initial_congestion_window_);
+  }
+  else if (config.HasClientRequestedIndependentOption(kIW03, perspective)) {
     initial_congestion_window_ = 3;
-    send_algorithm_->SetInitialCongestionWindowInPackets(3);
+    send_algorithm_->SetInitialCongestionWindowInPackets(initial_congestion_window_);
   }
   else if (config.HasClientRequestedIndependentOption(kIW10, perspective)) {
     initial_congestion_window_ = 10;
-    send_algorithm_->SetInitialCongestionWindowInPackets(10);
+    send_algorithm_->SetInitialCongestionWindowInPackets(initial_congestion_window_);
   }
   else if (config.HasClientRequestedIndependentOption(kIW20, perspective)) {
     initial_congestion_window_ = 20;
-    send_algorithm_->SetInitialCongestionWindowInPackets(20);
-  }
-  else if (config.HasClientRequestedIndependentOption(kIW50, perspective)) {
-    initial_congestion_window_ = 50;
-    send_algorithm_->SetInitialCongestionWindowInPackets(50);
+    send_algorithm_->SetInitialCongestionWindowInPackets(initial_congestion_window_);
   }
   else if (config.HasClientRequestedIndependentOption(kBWS5, perspective)) {
     initial_congestion_window_ = 10;
-    send_algorithm_->SetInitialCongestionWindowInPackets(10);
+    send_algorithm_->SetInitialCongestionWindowInPackets(initial_congestion_window_);
   }
 
   if (config.HasClientRequestedIndependentOption(kIGNP, perspective)) {
@@ -598,7 +598,11 @@ void QuicSentPacketManager::MarkPacketHandled(QuicPacketNumber packet_number,
 }
 
 bool QuicSentPacketManager::CanSendAckFrequency() const {
+#if QUIC_TLS_SESSION //hybchanged
   return !peer_min_ack_delay_.IsInfinite() && handshake_finished_;
+#else
+  return false;
+#endif
 }
 
 QuicAckFrequencyFrame QuicSentPacketManager::GetUpdatedAckFrequencyFrame()

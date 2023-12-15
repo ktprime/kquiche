@@ -691,7 +691,7 @@ void QuicSession::OnCanWrite() {
                                    ConnectionCloseBehavior::SILENT_CLOSE);
       return;
     }
-    if (!CanWriteStreamData()) {
+    if (false && !CanWriteStreamData()) {
       return;
     }
     currently_writing_stream_id_ = write_blocked_streams_->PopFront();

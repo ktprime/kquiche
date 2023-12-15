@@ -201,9 +201,9 @@ class ScopedCoalescedPacketClearer {
 // Whether this incoming packet is allowed to replace our connection ID.
 bool PacketCanReplaceServerConnectionId(const QuicPacketHeader& header,
                                         Perspective perspective) {
-  return perspective == Perspective::IS_CLIENT &&
-         header.form == IETF_QUIC_LONG_HEADER_PACKET &&
-         header.version.IsKnown() &&
+  return header.form == IETF_QUIC_LONG_HEADER_PACKET &&
+         perspective == Perspective::IS_CLIENT &&
+         //header.version.IsKnown() &&
          header.version.AllowsVariableLengthConnectionIds() &&
          (header.long_packet_type == INITIAL ||
           header.long_packet_type == RETRY);
@@ -217,7 +217,7 @@ bool NewServerConnectionIdMightBeValid(const QuicPacketHeader& header,
                                        bool connection_id_already_replaced) {
   return perspective == Perspective::IS_CLIENT &&
          header.form == IETF_QUIC_LONG_HEADER_PACKET &&
-         header.version.IsKnown() &&
+         //header.version.IsKnown() &&
          header.version.AllowsVariableLengthConnectionIds() &&
          header.long_packet_type == HANDSHAKE &&
          !connection_id_already_replaced;
@@ -382,7 +382,7 @@ QuicConnection::QuicConnection(
       peer_max_packet_size_(kDefaultMaxPacketSizeTransportParam),
       largest_received_packet_size_(0),
       write_error_occurred_(false),
-      no_stop_waiting_frames_(version().HasIetfInvariantHeader()),
+      //no_stop_waiting_frames_(version().HasIetfInvariantHeader()),
       consecutive_num_packets_with_no_retransmittable_frames_(0),
       max_consecutive_num_packets_with_no_retransmittable_frames_(
           kMaxConsecutiveNonRetransmittablePackets),
@@ -684,7 +684,7 @@ void QuicConnection::SetFromConfig(const QuicConfig& config) {
     num_rtos_for_blackhole_detection_ = 5;
   }
   if (config.HasClientSentConnectionOption(kNSTP, perspective_)) {
-    no_stop_waiting_frames_ = true;
+    //no_stop_waiting_frames_ = true;
   }
   if (config.HasReceivedStatelessResetToken()) {
     default_path_.stateless_reset_token = config.ReceivedStatelessResetToken();
@@ -1226,10 +1226,10 @@ void QuicConnection::OnDecryptedPacket(size_t /*length*/,
                                        EncryptionLevel level) {
   last_received_packet_info_.decrypted_level = level;
   last_received_packet_info_.decrypted = true;
+#if QUIC_TLS_SESSION
   if (!have_decrypted_first_one_rtt_packet_ &&
       level == ENCRYPTION_FORWARD_SECURE) {
     have_decrypted_first_one_rtt_packet_ = true;
-#if QUIC_TLS_SESSION
     if (version().UsesTls() && perspective_ == Perspective::IS_SERVER) {
       // Servers MAY temporarily retain 0-RTT keys to allow decrypting reordered
       // packets without requiring their contents to be retransmitted with 1-RTT
@@ -1240,9 +1240,7 @@ void QuicConnection::OnDecryptedPacket(size_t /*length*/,
       discard_zero_rtt_decryption_keys_alarm_->Set(
           clock_->ApproximateNow() + sent_packet_manager_.GetPtoDelay() * 3);
     }
-#endif
   }
-#if QUIC_TLS_SESSION
   if (EnforceAntiAmplificationLimit() && !IsHandshakeConfirmed() &&
       (level == ENCRYPTION_HANDSHAKE || level == ENCRYPTION_FORWARD_SECURE)) {
     // Address is validated by successfully processing a HANDSHAKE or 1-RTT
@@ -2729,11 +2727,13 @@ void QuicConnection::ProcessUdpPacket(const QuicSocketAddress& self_address,
     debug_visitor_->OnPacketReceived(self_address, peer_address, packet);
   }
 
-#if 1
+#if 0
   last_received_packet_info_.destination_address = self_address;
   last_received_packet_info_.source_address = peer_address;
   last_received_packet_info_.receipt_time = packet.receipt_time();
   last_received_packet_info_.length = packet.length();
+  last_received_packet_info_.decrypted = false;
+  last_received_packet_info_.decrypted_level = ENCRYPTION_INITIAL;
 #else
   last_received_packet_info_ = ReceivedPacketInfo(
       self_address, peer_address, packet.receipt_time(), packet.length());
@@ -3200,7 +3200,7 @@ bool QuicConnection::ShouldGeneratePacket(
                        "generate packet.";
     return false;
   }
-  if (IsDefaultPath(default_path_.self_address,
+  if (true || IsDefaultPath(default_path_.self_address,
                     packet_creator_.peer_address())) {
     return CanWrite(retransmittable);
   }
@@ -3227,7 +3227,7 @@ const QuicFrames QuicConnection::MaybeBundleAckOpportunistically() {
       uber_received_packet_manager_
           .GetAckTimeout(QuicUtils::GetPacketNumberSpace(encryption_level_))
           .IsInitialized();
-  if (!has_pending_ack && stop_waiting_count_ <= 1) {
+  if (!has_pending_ack) {
     // No need to send an ACK.
     return frames;
   }
@@ -3241,6 +3241,7 @@ const QuicFrames QuicConnection::MaybeBundleAckOpportunistically() {
       << "has_pending_ack, stop_waiting_count_ " << stop_waiting_count_;
   frames.push_back(updated_ack_frame);
 
+  QUICHE_DCHECK(stop_waiting_count_ <= 1);
   if (!no_stop_waiting_frames_) {
     QuicStopWaitingFrame stop_waiting;
     PopulateStopWaitingFrame(&stop_waiting);
@@ -3265,7 +3266,6 @@ bool QuicConnection::CanWrite(HasRetransmittableData retransmittable) {
                   << "Suppress sending in the mid of packet processing";
     return false;
   }
-#endif
 
   if (fill_coalesced_packet_) {
     // Try to coalesce packet, only allow to write when creator is on soft max
@@ -3273,6 +3273,7 @@ bool QuicConnection::CanWrite(HasRetransmittableData retransmittable) {
     // coalesced packet, do not check amplification factor.
     return packet_creator_.HasSoftMaxPacketLength();
   }
+#endif
 
   if (sent_packet_manager_.pending_timer_transmission_count() > 0) {
     // Allow sending if there are pending tokens, which occurs when:

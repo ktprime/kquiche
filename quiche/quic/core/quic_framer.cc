@@ -901,7 +901,7 @@ size_t QuicFramer::BuildDataPacket(const QuicPacketHeader& header,
   QuicDataWriter writer(packet_length, buffer);
   size_t length_field_offset = 0;
   AppendPacketHeader(header, &writer, &length_field_offset);
-
+#if QUIC_TLS_SESSION
   if (VersionHasIetfQuicFrames(transport_version())) {
     if (AppendIetfFrames(frames, &writer) == 0) {
       return 0;
@@ -912,6 +912,7 @@ size_t QuicFramer::BuildDataPacket(const QuicPacketHeader& header,
     }
     return writer.length();
   }
+#endif
 
   size_t i = 0;
   for (const QuicFrame& frame : frames) {
@@ -5101,9 +5102,11 @@ size_t QuicFramer::GetAckFrameSize(
   QUICHE_DCHECK(!ack.packets.Empty());
   size_t ack_size = 0;
 
+#if QUIC_TLS_SESSION
   if (VersionHasIetfQuicFrames(version_.transport_version)) {
     return GetIetfAckFrameSize(ack);
   }
+#endif
   AckFrameInfo ack_info = GetAckFrameInfo(ack);
   QuicPacketNumberLength ack_block_length =
       GetMinPacketNumberLength(QuicPacketNumber(ack_info.max_block_length));
@@ -5175,9 +5178,11 @@ size_t QuicFramer::ComputeFrameLength(
 bool QuicFramer::AppendTypeByte(const QuicFrame& frame,
                                 bool last_frame_in_packet,
                                 QuicDataWriter* writer) {
+#if QUIC_TLS_SESSION 
   if (VersionHasIetfQuicFrames(version_.transport_version)) {
     return AppendIetfFrameType(frame, last_frame_in_packet, writer);
   }
+#endif
   uint8_t type_byte = 0;
   switch (frame.type) {
     case STREAM_FRAME:
@@ -5405,9 +5410,11 @@ bool QuicFramer::AppendAckBlock(uint8_t gap,
 bool QuicFramer::AppendStreamFrame(const QuicStreamFrame& frame,
                                    bool no_stream_frame_length,
                                    QuicDataWriter* writer) {
+#if QUIC_TLS_SESSION
   if (VersionHasIetfQuicFrames(version_.transport_version)) {
     return AppendIetfStreamFrame(frame, no_stream_frame_length, writer);
   }
+#endif
   //hybchanged. not happens if bugs
   AppendStreamId(GetStreamIdSize(frame.stream_id), frame.stream_id, writer);
   AppendStreamOffset(GetStreamOffsetSize(frame.offset), frame.offset, writer);
@@ -5475,23 +5482,14 @@ bool QuicFramer::ProcessNewTokenFrame(QuicDataReader* reader,
 bool QuicFramer::AppendIetfStreamFrame(const QuicStreamFrame& frame,
                                        bool last_frame_in_packet,
                                        QuicDataWriter* writer) {
-  if (!writer->WriteVarInt62(static_cast<uint64_t>(frame.stream_id))) {
-    set_detailed_error("Writing stream id failed.");
-    return false;
-  }
+  writer->WriteVarInt62(static_cast<uint64_t>(frame.stream_id));
 
   if (frame.offset != 0) {
-    if (!writer->WriteVarInt62(static_cast<uint64_t>(frame.offset))) {
-      set_detailed_error("Writing data offset failed.");
-      return false;
-    }
+    writer->WriteVarInt62(static_cast<uint64_t>(frame.offset));
   }
 
   if (!last_frame_in_packet) {
-    if (!writer->WriteVarInt62(frame.data_length)) {
-      set_detailed_error("Writing data length failed.");
-      return false;
-    }
+    writer->WriteVarInt62(frame.data_length);
   }
 
   if (frame.data_length == 0) {

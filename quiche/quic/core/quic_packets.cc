@@ -425,10 +425,9 @@ SerializedPacket::SerializedPacket(QuicPacketNumber packet_number,
       fate(SEND_TO_WRITER) {}
 
 SerializedPacket::SerializedPacket(SerializedPacket&& other)
-    : has_crypto_handshake(other.has_crypto_handshake),
+     : retransmittable_frames(std::move(other.retransmittable_frames)),
+      has_crypto_handshake(other.has_crypto_handshake),
       packet_number(other.packet_number),
-      retransmittable_frames(std::move(other.retransmittable_frames)),
-      nonretransmittable_frames(std::move(other.nonretransmittable_frames)),
       packet_number_length(other.packet_number_length),
       encryption_level(other.encryption_level),
       has_ack(other.has_ack),
@@ -442,6 +441,8 @@ SerializedPacket::SerializedPacket(SerializedPacket&& other)
       peer_address(other.peer_address),
       bytes_not_retransmitted(other.bytes_not_retransmitted) {
   if (this != &other) {
+    if (!other.nonretransmittable_frames.empty())
+      nonretransmittable_frames = std::move(other.nonretransmittable_frames);
     if (release_encrypted_buffer && encrypted_buffer != nullptr) {
       release_encrypted_buffer(encrypted_buffer);
     }

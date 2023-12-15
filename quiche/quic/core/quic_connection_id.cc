@@ -60,7 +60,7 @@ QuicConnectionId::QuicConnectionId() : length_(0) {
 QuicConnectionId::QuicConnectionId(const char* data, uint8_t length) {
   length_ = length;
   //QUICHE_DCHECK(length <= sizeof(data_short_));
-  if (length_ == sizeof(uint64_t)) {
+  if (length_ == kQuicDefaultConnectionIdLength) {
       data_short_ = *((uint64_t*)data);
   } else if (length_ > sizeof(data_short_)) {
       data_long_ = reinterpret_cast<char*>(malloc(length_));
@@ -87,7 +87,7 @@ QuicConnectionId::QuicConnectionId(const QuicConnectionId& other)
     : QuicConnectionId(other.data(), other.length()) {}
 
 QuicConnectionId& QuicConnectionId::operator=(const QuicConnectionId& other) {
-  if (other.length_ == sizeof(uint64_t)) {
+  if (other.length_ == kQuicDefaultConnectionIdLength) {
     data_short_ = other.data_short_; //x86
   } else if (other.length_ > 0) {
     set_length(other.length());

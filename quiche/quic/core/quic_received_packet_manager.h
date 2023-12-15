@@ -175,7 +175,7 @@ class QUIC_EXPORT_PRIVATE QuicReceivedPacketManager {
   bool save_timestamps_for_in_order_packets_;
 
   // Least packet number received from peer.
-  QuicPacketNumber least_received_packet_number_ = QuicPacketNumber(1<<30);
+  QuicPacketNumber least_received_packet_number_ = QuicPacketNumber(1<<10);
 
   QuicConnectionStats* stats_;
 

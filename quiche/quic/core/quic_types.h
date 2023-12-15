@@ -573,7 +573,7 @@ struct QUIC_EXPORT_PRIVATE AckedPacket {
 };
 
 // A vector of acked packets.
-using AckedPacketVector = absl::InlinedVector<AckedPacket, 2>;
+using AckedPacketVector = absl::InlinedVector<AckedPacket, 32>;
 
 // Information about a newly lost packet.
 struct QUIC_EXPORT_PRIVATE LostPacket {
@@ -589,7 +589,7 @@ struct QUIC_EXPORT_PRIVATE LostPacket {
 };
 
 // A vector of lost packets.
-using LostPacketVector = absl::InlinedVector<LostPacket, 2>;
+using LostPacketVector = absl::InlinedVector<LostPacket, 16>;
 
 // Please note, this value cannot used directly for packet serialization.
 enum QuicLongHeaderType : uint8_t {
@@ -783,7 +783,7 @@ struct QUIC_NO_EXPORT QuicOwnedPacketBuffer : public QuicPacketBuffer {
                         std::function<void(const char*)> release_buffer)
       : QuicPacketBuffer(buffer, std::move(release_buffer)) {}
 
-  QuicOwnedPacketBuffer(QuicOwnedPacketBuffer&& owned_buffer)
+  QuicOwnedPacketBuffer(QuicOwnedPacketBuffer&& owned_buffer) noexcept
       : QuicPacketBuffer(std::move(owned_buffer)) {
     // |owned_buffer| does not own a buffer any more.
     owned_buffer.buffer = nullptr;

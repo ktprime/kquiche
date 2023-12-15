@@ -2142,7 +2142,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   bool write_error_occurred_;
 
   // Indicates not to send or process stop waiting frames.
-  bool no_stop_waiting_frames_;
+  constexpr static bool no_stop_waiting_frames_ = true;
 
   // Consecutive number of sent packets which have no retransmittable frames.
   size_t consecutive_num_packets_with_no_retransmittable_frames_;
