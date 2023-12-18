@@ -35,10 +35,11 @@
 #include "quiche/quic/core/frames/quic_window_update_frame.h"
 #include "quiche/quic/core/quic_types.h"
 #include "quiche/quic/platform/api/quic_export.h"
+#include "quiche/common/small_vector.hpp"
 
 #ifndef QUIC_FRAME_DEBUG
 #if !defined(NDEBUG) || defined(ADDRESS_SANITIZER)
-#define QUIC_FRAME_DEBUG 1
+#define QUIC_FRAME_DEBUG 0
 #else  // !defined(NDEBUG) || defined(ADDRESS_SANITIZER)
 #define QUIC_FRAME_DEBUG 0
 #endif  // !defined(NDEBUG) || defined(ADDRESS_SANITIZER)
@@ -129,7 +130,7 @@ static_assert(offsetof(QuicStreamFrame, type) == offsetof(QuicFrame, type),
 
 // A inline size of 1 is chosen to optimize the typical use case of
 // 1-stream-frame in QuicTransmissionInfo.retransmittable_frames.
-#if 1
+#ifndef _DEBUG
 using QuicFrames = absl::InlinedVector<QuicFrame, 2>;
 //using QuicFrames = sfl::small_vector<QuicFrame, 2>;
 #else

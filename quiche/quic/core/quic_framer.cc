@@ -968,10 +968,8 @@ size_t QuicFramer::BuildDataPacket(const QuicPacketHeader& header,
         }
         break;
       case WINDOW_UPDATE_FRAME:
-        if (!AppendWindowUpdateFrame(frame.window_update_frame, &writer)) {
-          QUIC_BUG(quic_bug_10850_25) << "AppendWindowUpdateFrame failed";
-          return 0;
-        }
+        AppendWindowUpdateFrame(frame.window_update_frame, &writer);
+
         break;
       case BLOCKED_FRAME:
         if (!AppendBlockedFrame(frame.blocked_frame, &writer)) {
@@ -2212,9 +2210,8 @@ bool QuicFramer::AppendPacketHeader(const QuicPacketHeader& header,
   if (header.nonce != nullptr)
     writer->WriteBytes(header.nonce, kDiversificationNonceSize);
 
-  AppendPacketNumber(header.packet_number_length, header.packet_number,
+  return AppendPacketNumber(header.packet_number_length, header.packet_number,
                           writer);
-  return true;
 }
 
 bool QuicFramer::AppendIetfHeaderTypeByte(const QuicPacketHeader& header,
@@ -2444,8 +2441,8 @@ bool QuicFramer::ProcessPublicHeader(QuicDataReader* reader,
   // A nonce should only be present in packets from the server to the client,
   // which are neither version negotiation nor public reset packets.
   if (public_flags & PACKET_PUBLIC_FLAGS_NONCE &&
-      !(public_flags & (PACKET_PUBLIC_FLAGS_VERSION | PACKET_PUBLIC_FLAGS_RST)) &&
-//      !(public_flags & PACKET_PUBLIC_FLAGS_RST) &&
+      !(public_flags & PACKET_PUBLIC_FLAGS_VERSION) &&
+      !(public_flags & PACKET_PUBLIC_FLAGS_RST) &&
       // The nonce flag from a client is ignored and is assumed to be an older
       // client indicating an eight-byte connection ID.
       perspective_ == Perspective::IS_CLIENT) {
@@ -2891,8 +2888,8 @@ bool QuicFramer::ProcessFrameData(QuicDataReader* reader,
   }
   QUIC_DVLOG(2) << ENDPOINT << "Processing packet with header " << header;
   while (!reader->IsDoneReading()) {
-    uint8_t frame_type = NUM_FRAME_TYPES + 2;
-    if (!reader->ReadUInt8(&frame_type)) {
+    uint8_t frame_type;
+    if (!reader->ReadBytes(&frame_type, 1)) {
       set_detailed_error("Unable to read frame type.");
       return RaiseError(QUIC_INVALID_FRAME_DATA);
     }

@@ -127,20 +127,18 @@ void QuicSession::Initialize() {
   connection_->SetDataProducer(this);
   connection_->SetUnackedMapInitialCapacity();
   connection_->SetFromConfig(config_);
-  if (perspective_ == Perspective::IS_CLIENT) {
 #if QUIC_TLS_SESSION
+  if (perspective_ == Perspective::IS_CLIENT) {
     if (config_.HasClientRequestedIndependentOption(kAFFE, perspective_) &&
         version().HasIetfQuicFrames()) {
       connection_->set_can_receive_ack_frequency_frame();
       config_.SetMinAckDelayMs(kDefaultMinAckDelayTimeMs);
     }
-#endif
   }
-  else if (//perspective() == Perspective::IS_SERVER &&
+  else if (perspective() == Perspective::IS_SERVER &&
       connection_->version().handshake_protocol == PROTOCOL_TLS1_3) {
     config_.SetStatelessResetTokenToSend(GetStatelessResetToken());
   }
-#if QUIC_TLS_SESSION
   if (version().HasIetfQuicFrames())
     connection_->CreateConnectionIdManager();
 #endif
@@ -237,7 +235,7 @@ void QuicSession::PendingStreamOnStopSendingFrame(
 
 void QuicSession::OnStreamFrame(const QuicStreamFrame& frame) {
   QuicStreamId stream_id = frame.stream_id;
-  if (false && ShouldProcessFrameByPendingStream(STREAM_FRAME, stream_id)) {
+  if (false && ShouldProcessFrameByPendingStream(STREAM_FRAME, stream_id)) { //TODO hybchanged disable pendingstream
     PendingStream* pending = PendingStreamOnStreamFrame(frame);
     if (pending != nullptr && ShouldProcessPendingStreamImmediately()) {
       MaybeProcessPendingStream(pending);
@@ -396,10 +394,10 @@ void QuicSession::OnRstStream(const QuicRstStreamFrame& frame) {
   //TODO hybchanged no need add
   if (stream_map_.count(stream_id) == 0) {
     HandleRstOnValidNonexistentStream(frame);
-    return;  //TODO hybchanged no need create rst stream and then close it.
+    return;  //TODO2 hybchanged no need create rst stream and then close it.
   }
 
-  QuicStream* stream = GetOrCreateStream(stream_id);
+  QuicStream* stream = GetStream(stream_id);
 
   if (!stream) {
     HandleRstOnValidNonexistentStream(frame);
@@ -698,7 +696,7 @@ void QuicSession::OnCanWrite() {
     last_writing_stream_ids.push_back(currently_writing_stream_id_);
     QUIC_DVLOG(1) << ENDPOINT << "Removing stream "
                   << currently_writing_stream_id_ << " from write-blocked list";
-    QuicStream* stream = GetOrCreateStream(currently_writing_stream_id_);
+    QuicStream* stream = GetStream(currently_writing_stream_id_);
     if (stream != nullptr && !stream->IsFlowControlBlocked()) {
       // If the stream can't write all bytes it'll re-add itself to the blocked
       // list.
@@ -812,7 +810,7 @@ QuicConsumedData QuicSession::WritevData(QuicStreamId id, size_t write_length,
   QUIC_BUG_IF(session writevdata when disconnected, !connection()->connected())
       << ENDPOINT << "Try to write stream data when connection is closed: "
       << on_closed_frame_string();
-  if (false && !IsEncryptionEstablished() &&
+  if (!IsEncryptionEstablished() &&
       !QuicUtils::IsCryptoStreamId(transport_version(), id)) {
     // Do not let streams write without encryption. The calling stream will end
     // up write blocked until OnCanWrite is next called.
@@ -843,7 +841,7 @@ QuicConsumedData QuicSession::WritevData(QuicStreamId id, size_t write_length,
   }
 
   SetTransmissionType(type);
-  //QUICHE_CHECK(level == connection()->encryption_level());// TODO hybchanged removed it
+  //QUICHE_CHECK(level == connection()->encryption_level());// TODO2 hybchanged removed it
 #if DEBUG
   QuicConnection::ScopedEncryptionLevelContext context(connection(), level);
 #endif
@@ -2108,7 +2106,7 @@ size_t QuicSession::GetNumActiveStreams() const {
 }
 
 void QuicSession::MarkConnectionLevelWriteBlocked(QuicStreamId id) {
-  if (false && GetOrCreateStream(id) == nullptr) {
+  if (false && GetStream(id) == nullptr) {
     QUIC_BUG(quic_bug_10866_11)
         << "Marking unknown stream " << id << " blocked.";
     QUIC_LOG_FIRST_N(ERROR, 2) << "QuicStackTrace()";
@@ -2138,12 +2136,16 @@ void QuicSession::SendAckFrequency(const QuicAckFrequencyFrame& frame) {
 }
 
 void QuicSession::SendNewConnectionId(const QuicNewConnectionIdFrame& frame) {
+  // Count NEW_CONNECTION_ID frames sent to client.
+  QUIC_RELOADABLE_FLAG_COUNT_N(quic_connection_migration_use_new_cid_v2, 1, 6);
   control_frame_manager_.WriteOrBufferNewConnectionId(
       frame.connection_id, frame.sequence_number, frame.retire_prior_to,
       frame.stateless_reset_token);
 }
 
 void QuicSession::SendRetireConnectionId(uint64_t sequence_number) {
+  // Count RETIRE_CONNECTION_ID frames sent to client.
+  QUIC_RELOADABLE_FLAG_COUNT_N(quic_connection_migration_use_new_cid_v2, 2, 6);
   control_frame_manager_.WriteOrBufferRetireConnectionId(sequence_number);
 }
 

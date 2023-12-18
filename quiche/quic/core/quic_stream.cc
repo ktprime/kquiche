@@ -479,7 +479,7 @@ void QuicStream::OnStreamFrame(const QuicStreamFrame& frame) {
     QUIC_BUG_IF(quic_bug_12570_2, !flow_controller_.has_value())
         << ENDPOINT << "OnStreamFrame called on stream without flow control";
     if (////flow_controller_.has_value() &&
-         //flow_controller_->FlowControlViolation() ||
+         flow_controller_->FlowControlViolation() ||
         connection_flow_controller_->FlowControlViolation()) {
       OnUnrecoverableError(QUIC_FLOW_CONTROL_RECEIVED_TOO_MUCH_DATA,
                            "Flow control violation after increasing offset");
@@ -789,7 +789,6 @@ QuicConsumedData QuicStream::WriteMemSlice(std::string_view data, bool fin)
   return consumed_data;
 }
 
-#if 1
 QuicConsumedData QuicStream::WriteMemSlice(quiche::QuicheMemSlice span,
                                            bool fin) {
   return WriteMemSlices(absl::MakeSpan(&span, 1), fin);
@@ -852,7 +851,6 @@ QuicConsumedData QuicStream::WriteMemSlices(
 
   return consumed_data;
 }
-#endif
 
 bool QuicStream::HasPendingRetransmission() const {
   return send_buffer_.HasPendingRetransmission() || fin_lost_;
@@ -1293,7 +1291,9 @@ void QuicStream::WriteBufferedData(EncryptionLevel level) {
     }
 
     // Don't send the FIN unless all the data will be sent.
-    //fin = false; //TODO hybchanged removed
+#ifndef STREAM_NO_FIN
+    fin = false;
+#endif
 
     // Writing more data would be a violation of flow control.
     write_length = send_window;
@@ -1326,13 +1326,14 @@ void QuicStream::WriteBufferedData(EncryptionLevel level) {
   }
 
   if (consumed_data.bytes_consumed == write_length) {
-    if (true || !fin_with_zero_data) {
+    if (!fin_with_zero_data) {
       MaybeSendBlocked();
     }
-#if 0
     if (fin && consumed_data.fin_consumed) {
       QUICHE_DCHECK(!fin_sent_);
+#ifndef STREAM_NO_FIN
       fin_sent_ = true;
+#endif
       fin_outstanding_ = true;
       if (fin_received_) {
         QUICHE_DCHECK(!was_draining_);
@@ -1341,10 +1342,9 @@ void QuicStream::WriteBufferedData(EncryptionLevel level) {
         was_draining_ = true;
       }
       CloseWriteSide();
-    } else if (fin /*** && !consumed_data.fin_consumed && !write_side_closed_**/) {
+    } else if (fin && !consumed_data.fin_consumed && !write_side_closed_) {
       session_->MarkConnectionLevelWriteBlocked(id());
     }
-#endif
     busy_counter_ = 0;
   }
   else {
@@ -1491,7 +1491,6 @@ absl::optional<QuicByteCount> QuicStream::GetSendWindow() const {
 }
 
 absl::optional<QuicByteCount> QuicStream::GetReceiveWindow() const {
-  QUICHE_DCHECK(flow_controller_.has_value());
   return flow_controller_.has_value()
              ? absl::optional<QuicByteCount>(
                    flow_controller_->receive_window_size())

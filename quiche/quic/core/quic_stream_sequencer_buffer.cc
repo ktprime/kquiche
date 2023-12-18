@@ -135,7 +135,7 @@ QuicErrorCode QuicStreamSequencerBuffer::OnStreamData(
     QuicStreamOffset starting_offset, absl::string_view data,
     size_t* const bytes_buffered, std::string_view* error_details) {
   size_t size = data.size();
-  QUICHE_DCHECK(size && *bytes_buffered == 0);
+  //QUICHE_DCHECK(size && *bytes_buffered == 0);
   if (size == 0) {
     *error_details = "Received empty stream frame without FIN.";
     return QUIC_EMPTY_STREAM_FRAME_NO_FIN;

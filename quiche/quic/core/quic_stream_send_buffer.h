@@ -175,7 +175,6 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
   QuicStreamOffset stream_bytes_start_;
 
   absl::InlinedVector<BufferBlock*, kSmallBlocks> blocks_;
-  //std::vector<BufferBlock*> blocks_;
 
   // Bytes that have been consumed by the stream.
   uint64_t stream_bytes_written_;

@@ -316,7 +316,7 @@ class QUIC_EXPORT_PRIVATE QuicPacketCreator {
 
   bool has_ack() const { return packet_.has_ack; }
 
-  bool has_stop_waiting() const { return packet_.has_stop_waiting; }
+  //bool has_stop_waiting() const { return false; /* packet_.has_stop_waiting***/; }
 
   // Sets the encrypter to use for the encryption level and updates the max
   // plaintext size.

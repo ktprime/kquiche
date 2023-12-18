@@ -543,6 +543,7 @@ void QuicSentPacketManager::MarkPacketHandled(QuicPacketNumber packet_number,
                                               QuicTime ack_receive_time,
                                               QuicTime::Delta ack_delay_time,
                                               QuicTime receive_timestamp) {
+#if QUIC_TLS_SESSION
   if (info->has_ack_frequency) {
     for (const auto& frame : info->retransmittable_frames) {
       if (frame.type == ACK_FREQUENCY_FRAME) {
@@ -550,6 +551,7 @@ void QuicSentPacketManager::MarkPacketHandled(QuicPacketNumber packet_number,
       }
     }
   }
+#endif
   // Try to aggregate acked stream frames if acked packet is not a
   // retransmission.
   if (info->transmission_type == NOT_RETRANSMISSION) {
@@ -661,7 +663,7 @@ bool QuicSentPacketManager::OnPacketSent(
 
   // Deallocate message data in QuicMessageFrame immediately after packet
   // sent.
-  if (packet.has_message) {
+  if (packet.frame_types | (1 << MESSAGE_FRAME)) {
     for (const auto& frame : mutable_packet->retransmittable_frames) {
       if (frame.type == MESSAGE_FRAME) {
         frame.message_frame->message_data.clear();
@@ -669,14 +671,15 @@ bool QuicSentPacketManager::OnPacketSent(
       }
     }
   }
-
-  if (packet.has_ack_frequency) {
+#if QUIC_TLS_SESSION
+  if (packet.frame_types | (1 << ACK_FREQUENCY_FRAME)) {
     for (const auto& frame : packet.retransmittable_frames) {
       if (frame.type == ACK_FREQUENCY_FRAME) {
         OnAckFrequencyFrameSent(*frame.ack_frequency_frame);
       }
     }
   }
+#endif
   unacked_packets_.AddSentPacket(mutable_packet, transmission_type, sent_time,
                                  in_flight, measure_rtt);
   // Reset the retransmission timer anytime a pending packet is sent.

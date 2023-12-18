@@ -744,8 +744,6 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
  private:
   friend class test::QuicFramerPeer;
 
-  using NackRangeMap = std::map<QuicPacketNumber, uint8_t>;
-
   // AckTimestampRange is a data structure derived from a QuicAckFrame. It is
   // used to serialize timestamps in a IETF_ACK_RECEIVE_TIMESTAMPS frame.
   struct QUIC_EXPORT_PRIVATE AckTimestampRange {

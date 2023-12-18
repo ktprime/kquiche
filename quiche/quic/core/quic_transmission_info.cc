@@ -11,13 +11,12 @@ namespace quic {
 QuicTransmissionInfo::QuicTransmissionInfo()
     : sent_time(QuicTime::Zero()),
       bytes_sent(0),
-//      encryption_level(ENCRYPTION_INITIAL),
+      encryption_level(ENCRYPTION_INITIAL),
       transmission_type(NOT_RETRANSMISSION),
       in_flight(false),
-      state(NEVER_SENT)
-//      has_crypto_handshake(false),
-//      has_ack_frequency(false) 
-      {}
+      state(NEVER_SENT),
+      has_crypto_handshake(false),
+      has_ack_frequency(false) {}
 
 QuicTransmissionInfo::QuicTransmissionInfo(EncryptionLevel level,
                                            TransmissionType transmission_type,

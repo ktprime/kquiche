@@ -147,23 +147,18 @@ void QuicUnackedPacketMap::AddSentPacket(SerializedPacket* mutable_packet,
   QUICHE_DCHECK_GE(packet_number, least_unacked_ + unacked_packets_.size());
   while (least_unacked_ + unacked_packets_.size() < packet_number) {
     unacked_packets_.emplace_back(QuicTransmissionInfo());
-//    unacked_packets_.back().state = NEVER_SENT;
   }
 
   const bool has_crypto_handshake = packet.has_crypto_handshake == IS_HANDSHAKE;
-//  QuicTransmissionInfo info(packet.encryption_level, transmission_type,
-//                            sent_time, bytes_sent, has_crypto_handshake,
-//                            packet.has_ack_frequency, std::move(mutable_packet->retransmittable_frames));
   unacked_packets_.emplace_back(packet.encryption_level, transmission_type,
     sent_time, bytes_sent, has_crypto_handshake,
-    packet.has_ack_frequency, mutable_packet->retransmittable_frames);
+    packet.frame_types | (1 << ACK_FREQUENCY_FRAME), mutable_packet->retransmittable_frames);
 
   auto& info = unacked_packets_.back();
   info.largest_acked = packet.largest_acked;
 #if 0
   largest_sent_largest_acked_.UpdateMax(packet.largest_acked);
 #endif
-
   if (false && !measure_rtt) {
     QUIC_BUG_IF(quic_bug_12645_2, set_in_flight)
         << "Packet " << mutable_packet->packet_number << ", transmission type "
@@ -187,17 +182,11 @@ void QuicUnackedPacketMap::AddSentPacket(SerializedPacket* mutable_packet,
     last_inflight_packet_sent_time_ = sent_time;
     last_inflight_packets_sent_time_[packet_number_space] = sent_time;
   }
-
   // Swap the retransmittable frames to avoid allocations.
   // TODO(ianswett): Could use emplace_back when Chromium can.
   if (has_crypto_handshake) {
     last_crypto_packet_sent_time_ = sent_time;
   }
-
-//  unacked_packets_.back().retransmittable_frames = std::move(mutable_packet->retransmittable_frames);
-//  mutable_packet->retransmittable_frames.clear();
-//  mutable_packet->retransmittable_frames.swap(
-//      unacked_packets_.back().retransmittable_frames);
 }
 
 void QuicUnackedPacketMap::RemoveObsoletePackets() {

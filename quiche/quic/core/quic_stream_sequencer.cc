@@ -57,7 +57,7 @@ void QuicStreamSequencer::OnStreamFrame(const QuicStreamFrame& frame) {
     return;
   }
 #if QUIC_TLS_SESSION
-  if (data_len == 0 && stream_->version().HasIetfQuicFrames()) {
+  if (stream_->version().HasIetfQuicFrames() && data_len == 0) {
     QUICHE_DCHECK(!frame.fin);
     // Ignore empty frame with no fin.
     return;
@@ -95,15 +95,16 @@ void QuicStreamSequencer::OnFrameData(QuicStreamOffset byte_offset,
     return;
   }
 
-  else if (bytes_written == 0) {
+  if (bytes_written == 0) {
     ++num_duplicate_frames_received_;
-    stream_->OnDuplicate();
     // Silently ignore duplicates.
+    stream_->OnDuplicate();
     return;
   }
-  else if (buffered_frames_.ReadableBytes() == 0)
+  if (buffered_frames_.ReadableBytes() == 0) {
     return;
-  else if (false && blocked_) {
+  }
+  if (false && blocked_) {
     return;
   }
 
@@ -225,7 +226,7 @@ void QuicStreamSequencer::MarkConsumed(size_t num_bytes_consumed) {
   QUICHE_DCHECK(!blocked_);
   bool result = buffered_frames_.MarkConsumed(num_bytes_consumed);
   QUICHE_DCHECK(result);
-  if (false && !result) {
+  if (!result) {
     QUIC_BUG(quic_bug_10858_2)
         << "Invalid argument to MarkConsumed."
         << " expect to consume: " << num_bytes_consumed

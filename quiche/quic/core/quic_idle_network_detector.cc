@@ -105,15 +105,15 @@ void QuicIdleNetworkDetector::OnPacketSent(QuicTime now,
     MaybeSetAlarmOnSentPacket(pto_delay);
     return;
   }
-//  if (!alarm_->IsSet())
+//  if (!alarm_->IsSet()) //hybchanged
 //    SetAlarm();
 }
 
 void QuicIdleNetworkDetector::OnPacketReceived(QuicTime now) {
   QUICHE_DCHECK(time_of_last_received_packet_ <= now);
   time_of_last_received_packet_ = now;
-  MaybeSetAlarmOnSentPacket(kAlarmGranularity * 1000);
-  //SetAlarm(); //TODO hybchanged
+  //MaybeSetAlarmOnSentPacket(kAlarmGranularity * 1000);
+  SetAlarm(); //TODO hybchanged
 }
 
 void QuicIdleNetworkDetector::SetAlarm() {
@@ -147,19 +147,18 @@ void QuicIdleNetworkDetector::SetAlarm() {
 
 void QuicIdleNetworkDetector::MaybeSetAlarmOnSentPacket(
     QuicTime::Delta pto_delay) {
-  if (!handshake_timeout_.IsInfinite() /* || !alarm_->IsSet()***/) {
+  QUICHE_DCHECK(shorter_idle_timeout_on_sent_packet_);
+  if (!handshake_timeout_.IsInfinite() || !alarm_->IsSet()) {
     SetAlarm();
     return;
   }
-
   // Make sure connection will be alive for another PTO.
   const QuicTime deadline = alarm_->deadline();
   const QuicTime min_deadline = last_network_activity_time() + pto_delay;
   if (deadline > min_deadline) {
     return;
   }
-  SetAlarm();
-  //alarm_->Update(min_deadline, kAlarmGranularity);
+  alarm_->Update(min_deadline, kAlarmGranularity);
 }
 
 QuicTime QuicIdleNetworkDetector::GetIdleNetworkDeadline() const {

@@ -279,7 +279,7 @@ void QuicFlowController::EnsureWindowAtLeast(QuicByteCount window_size) {
   UpdateReceiveWindowOffsetAndSendWindowUpdate(available_window);
 }
 
-bool QuicFlowController::IsBlocked() const { return bytes_sent_ > send_window_offset_; }
+bool QuicFlowController::IsBlocked() const { return bytes_sent_ >= send_window_offset_; }
 
 uint64_t QuicFlowController::SendWindowSize() const {
   if (bytes_sent_ > send_window_offset_) {
