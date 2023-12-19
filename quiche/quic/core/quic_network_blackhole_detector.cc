@@ -59,7 +59,7 @@ void QuicNetworkBlackholeDetector::OnAlarm() {
   if (blackhole_deadline_ == next_deadline) {
     blackhole_deadline_ = QuicTime::Zero();
     delegate_->OnBlackholeDetected();
-  } else
+  }
 
   UpdateAlarm();
 }
@@ -82,23 +82,23 @@ void QuicNetworkBlackholeDetector::RestartDetection(
   blackhole_deadline_ = blackhole_deadline;
   path_mtu_reduction_deadline_ = path_mtu_reduction_deadline;
 
-//  QUIC_BUG_IF(quic_bug_12708_1, blackhole_deadline_.IsInitialized() &&
-//                                    blackhole_deadline_ != GetLastDeadline())
-//      << "Blackhole detection deadline should be the last deadline.";
+  QUIC_BUG_IF(quic_bug_12708_1, blackhole_deadline_.IsInitialized() &&
+                                    blackhole_deadline_ != GetLastDeadline())
+      << "Blackhole detection deadline should be the last deadline.";
 
   UpdateAlarm();
 }
 
 QuicTime QuicNetworkBlackholeDetector::GetEarliestDeadline() const {
   QuicTime result = std::min(path_degrading_deadline_, blackhole_deadline_);
-#if 0
-  if (!result.IsInitialized())
-    QUICHE_DCHECK(!std::max(path_degrading_deadline_, blackhole_deadline_).IsInitialized);
-  //result = std::max(path_degrading_deadline_, blackhole_deadline_);
-  if (QuicTime t = path_mtu_reduction_deadline_; !result.IsInitialized() || (t.IsInitialized() && t < result)) {
-      result = t;
+  if (!result.IsInitialized()) {
+    result = std::max(path_degrading_deadline_, blackhole_deadline_);
   }
-#endif
+  if (path_mtu_reduction_deadline_.IsInitialized()) {
+    if (QuicTime t = path_mtu_reduction_deadline_; !result.IsInitialized() || t < result) {
+      result = t;
+    }
+  }
 
   return result;
 }

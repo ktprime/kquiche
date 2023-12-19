@@ -438,8 +438,13 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   // Returns current PTO delay.
   QuicTime::Delta GetPtoDelay() const;
 
+#if QUIC_TLS_SESSION
   bool supports_multiple_packet_number_spaces() const {
     return unacked_packets_.supports_multiple_packet_number_spaces();
+#else
+  constexpr bool supports_multiple_packet_number_spaces() const {
+    return false;
+#endif
   }
 
   bool handshake_mode_disabled() const { return handshake_mode_disabled_; }

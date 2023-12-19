@@ -1769,7 +1769,7 @@ public:
         if (it == end())
         {
             //SFL_DTL::throw_out_of_range("sfl::small_unordered_flat_map::at");
-            assert(key != 0);
+            //assert(key != 0);
             return data_.first_[N].second;
         }
 

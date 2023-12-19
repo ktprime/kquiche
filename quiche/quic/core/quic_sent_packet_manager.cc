@@ -663,7 +663,7 @@ bool QuicSentPacketManager::OnPacketSent(
 
   // Deallocate message data in QuicMessageFrame immediately after packet
   // sent.
-  if (packet.frame_types | (1 << MESSAGE_FRAME)) {
+  if (packet.frame_types & (1 << MESSAGE_FRAME)) {
     for (const auto& frame : mutable_packet->retransmittable_frames) {
       if (frame.type == MESSAGE_FRAME) {
         frame.message_frame->message_data.clear();
@@ -672,7 +672,7 @@ bool QuicSentPacketManager::OnPacketSent(
     }
   }
 #if QUIC_TLS_SESSION
-  if (packet.frame_types | (1 << ACK_FREQUENCY_FRAME)) {
+  if (packet.frame_types & (1 << ACK_FREQUENCY_FRAME)) {
     for (const auto& frame : packet.retransmittable_frames) {
       if (frame.type == ACK_FREQUENCY_FRAME) {
         OnAckFrequencyFrameSent(*frame.ack_frequency_frame);

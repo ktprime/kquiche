@@ -28,7 +28,7 @@
 #include "quiche/common/small_unordered_flat_map.hpp"
 #include "quiche/common/platform/api/quiche_export.h"
 #include "quiche/common/platform/api/quiche_logging.h"
-#include "quiche/quic/core/bitmap_allocator.h"
+//#include "quiche/common/bitmap_allocator.h"
 
 namespace quiche {
 
@@ -46,7 +46,7 @@ template <class Key,                      // QUICHE_NO_EXPORT
           class Eq = std::equal_to<Key>>  // QUICHE_NO_EXPORT
 class QuicheLinkedHashMap {               // QUICHE_NO_EXPORT
  private:
-  typedef std::list<std::pair<Key, Value>, stm::allocator<std::pair<Key, Value>>> ListType;
+  typedef std::list<std::pair<Key, Value> /*, stm::allocator<std::pair<Key, Value>>*/> ListType;
 
 //  typedef absl::flat_hash_map<Key, typename ListType::iterator, Hash, Eq> MapType;
 //  using MapType = emhash5::HashMap<Key, typename ListType::iterator, Hash, Eq>;

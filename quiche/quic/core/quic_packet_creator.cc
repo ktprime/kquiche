@@ -1716,8 +1716,8 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
 
   // Sanity check to ensure we don't send frames at the wrong encryption level.
   QUICHE_DCHECK(
-      packet_.encryption_level == ENCRYPTION_ZERO_RTT ||
       packet_.encryption_level == ENCRYPTION_FORWARD_SECURE ||
+      packet_.encryption_level == ENCRYPTION_ZERO_RTT ||
       (frame.type != GOAWAY_FRAME && frame.type != WINDOW_UPDATE_FRAME &&
        frame.type != HANDSHAKE_DONE_FRAME &&
        frame.type != NEW_CONNECTION_ID_FRAME &&
@@ -1789,18 +1789,8 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
   if (frame.type == ACK_FRAME) {
     packet_.has_ack = true;
     packet_.largest_acked = LargestAcked(*frame.ack_frame);
-  } else if (frame.type == STREAM_FRAME || frame.type == WINDOW_UPDATE_FRAME) {
-#if QUIC_TLS_SESSION
-  } else if (frame.type == STOP_WAITING_FRAME) {
-//    packet_.has_stop_waiting = true;
-    packet_.frame_types |= (1 << frame.type);
-  } else if (frame.type == ACK_FREQUENCY_FRAME) {
-//    packet_.has_ack_frequency = true;
-    packet_.frame_types |= (1 << frame.type);
-#endif
-  } else if (frame.type == MESSAGE_FRAME) {
-    //packet_.has_message = true;
-    packet_.frame_types |= (1 << frame.type);
+  } else {
+    packet_.frame_types |= 1u << frame.type;
   }
   if (debug_delegate_ != nullptr) {
     debug_delegate_->OnFrameAddedToPacket(frame);

@@ -237,8 +237,13 @@ class QUIC_EXPORT_PRIVATE QuicUnackedPacketMap {
 
   Perspective perspective() const { return perspective_; }
 
+#if QUIC_TLS_SESSION
   bool supports_multiple_packet_number_spaces() const {
-    return supports_multiple_packet_number_spaces_;
+    return unacked_packets_.supports_multiple_packet_number_spaces();
+#else
+  constexpr bool supports_multiple_packet_number_spaces() const {
+    return false;
+#endif
   }
 
   void ReserveInitialCapacity(size_t initial_capacity) {

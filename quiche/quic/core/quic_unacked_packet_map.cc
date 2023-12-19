@@ -152,7 +152,7 @@ void QuicUnackedPacketMap::AddSentPacket(SerializedPacket* mutable_packet,
   const bool has_crypto_handshake = packet.has_crypto_handshake == IS_HANDSHAKE;
   unacked_packets_.emplace_back(packet.encryption_level, transmission_type,
     sent_time, bytes_sent, has_crypto_handshake,
-    packet.frame_types | (1 << ACK_FREQUENCY_FRAME), mutable_packet->retransmittable_frames);
+    packet.frame_types & (1 << ACK_FREQUENCY_FRAME), mutable_packet->retransmittable_frames);
 
   auto& info = unacked_packets_.back();
   info.largest_acked = packet.largest_acked;

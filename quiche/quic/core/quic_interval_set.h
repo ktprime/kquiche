@@ -61,7 +61,7 @@
 #include <vector>
 
 #include "quiche/quic/core/quic_interval.h"
-#include "quiche/quic/core/bitmap_allocator.h"
+//#include "quiche/common/bitmap_allocator.h"
 #include "quiche/quic/platform/api/quic_flags.h"
 #include "quiche/common/platform/api/quiche_containers.h"
 #include "quiche/common/platform/api/quiche_logging.h"
@@ -89,12 +89,9 @@ class QUIC_NO_EXPORT QuicIntervalSet {
     bool operator()(T&& point, const value_type& a) const;
   };
 
-#if 1
-//  using Set = absl::btree_set<value_type, IntervalLess, std::allocator<value_type>>;
+//  using Set = absl::btree_set<value_type, IntervalLess;
   using Set = sfl::small_flat_set<value_type, 32, IntervalLess>;
-#else
-  using Set = std::set<value_type, IntervalLess, stm::allocator<value_type>>;
-#endif
+//  using Set = std::set<value_type, IntervalLess, stm::allocator<value_type>>;
 
  public:
   using const_iterator = typename Set::const_iterator;

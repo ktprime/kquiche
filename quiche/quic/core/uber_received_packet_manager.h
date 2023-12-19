@@ -80,8 +80,13 @@ class QUIC_EXPORT_PRIVATE UberReceivedPacketManager {
 
   void set_ack_frequency(size_t new_value);
 
+#if QUIC_TLS_SESSION
   bool supports_multiple_packet_number_spaces() const {
-    return supports_multiple_packet_number_spaces_;
+    return unacked_packets_.supports_multiple_packet_number_spaces();
+#else
+  constexpr bool supports_multiple_packet_number_spaces() const {
+    return false;
+#endif
   }
 
   // For logging purposes.

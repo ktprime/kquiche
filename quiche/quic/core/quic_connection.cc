@@ -60,16 +60,18 @@ namespace {
 // Maximum number of consecutive sent nonretransmittable packets.
 const QuicPacketCount kMaxConsecutiveNonRetransmittablePackets = 19;
 
+// The minimum consecutive pto count of ptotimers fires.
+constexpr bool kConsecutivePtoCount = 7; //TODO2 hybchanged opt blackhole_detector_
 // The minimum release time into future in ms.
-const int kMinReleaseTimeIntoFutureMs = 1;
+constexpr int kMinReleaseTimeIntoFutureMs = 1;
 
 // The maximum number of recorded client addresses.
-const size_t kMaxReceivedClientAddressSize = 20;
+constexpr size_t kMaxReceivedClientAddressSize = 20;
 
 // An arbitrary limit on the number of PTOs before giving up on ECN, if no ECN-
 // marked packet is acked. Avoids abandoning ECN because of one burst loss,
 // but doesn't allow multiple RTTs of user delay in the hope of using ECN.
-const uint8_t kEcnPtoLimit = 2;
+constexpr uint8_t kEcnPtoLimit = 2;
 
 // Base class of all alarms owned by a QuicConnection.
 class QuicConnectionAlarmDelegate : public QuicAlarm::Delegate {
@@ -3231,6 +3233,7 @@ const QuicFrames QuicConnection::MaybeBundleAckOpportunistically() {
           .GetAckTimeout(QuicUtils::GetPacketNumberSpace(encryption_level_))
           .IsInitialized();
   if (!has_pending_ack) {
+    QUICHE_DCHECK(stop_waiting_count_ <= 1);
     // No need to send an ACK.
     return frames;
   }
@@ -3244,7 +3247,6 @@ const QuicFrames QuicConnection::MaybeBundleAckOpportunistically() {
       << "has_pending_ack, stop_waiting_count_ " << stop_waiting_count_;
   frames.push_back(updated_ack_frame);
 
-  QUICHE_DCHECK(stop_waiting_count_ <= 1);
   if (!no_stop_waiting_frames_) {
     QuicStopWaitingFrame stop_waiting;
     PopulateStopWaitingFrame(&stop_waiting);
@@ -3359,11 +3361,13 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
                     ConnectionCloseBehavior::SEND_CONNECTION_CLOSE_PACKET);
     return true;
   }
-  constexpr bool is_mtu_discovery = false;// TODO hybchanged QuicUtils::ContainsFrameType(packet->nonretransmittable_frames, MTU_DISCOVERY_FRAME);
+  constexpr bool is_mtu_discovery = false;
+  //packet->frame_types & (1 << MTU_DISCOVERY_FRAME); TODO hybchanged QuicUtils::ContainsFrameType(packet->nonretransmittable_frames, MTU_DISCOVERY_FRAME);
   const SerializedPacketFate fate = packet->fate;
   // Termination packets are encrypted and saved, so don't exit early.
   QuicErrorCode error_code = QUIC_NO_ERROR;
-  const bool is_termination_packet = IsTerminationPacket(*packet, &error_code);
+  const bool is_termination_packet = packet->frame_types & (1 << CONNECTION_CLOSE_FRAME);
+  //IsTerminationPacket(*packet, &error_code);
   QuicPacketNumber packet_number = packet->packet_number;
   QuicPacketLength encrypted_length = packet->encrypted_length;
   // Termination packets are eventually owned by TimeWaitListManager.
@@ -3497,6 +3501,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
       // be closed. By manually flush the writer here, the MTU probe is sent in
       // a normal(non-GSO) packet, so the kernel can return EMSGSIZE and we will
       // not close the connection.
+      packet_send_time = packet_send_time + result.send_time_offset;
       if (is_mtu_discovery && writer_->IsBatchMode()) {
         result = writer_->Flush();
       }
@@ -3565,12 +3570,6 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
     return false;
   }
 
-  if (result.status == WRITE_STATUS_OK) {
-    // packet_send_time is the ideal send time, if allow_burst is true, writer
-    // may have sent it earlier than that.
-    packet_send_time = packet_send_time + result.send_time_offset;
-  }
-
   auto has_retransmittable_data = HAS_RETRANSMITTABLE_DATA;
   if (packet->retransmittable_frames.empty())
     has_retransmittable_data = packet->transmission_type != NOT_RETRANSMISSION ?
@@ -3586,11 +3585,10 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
       // Try to start detections if no detection in progress. This could
       // because either both detections are inactive when sending last packet
       // or this connection just gets out of quiescence.
-#if 0
+      if (kConsecutivePtoCount == 0)
       blackhole_detector_.RestartDetection(GetPathDegradingDeadline(),
                                            GetNetworkBlackholeDeadline(),
                                            GetPathMtuReductionDeadline());
-#endif
     }
     idle_network_detector_.OnPacketSent(packet_send_time, QuicTime::Delta::FromMilliseconds(0) /*
                                         sent_packet_manager_.GetPtoDelay()***/);
@@ -4176,6 +4174,10 @@ void QuicConnection::OnRetransmissionTimeout() {
     blackhole_detector_.StopDetection(/*permanent=*/false);
   }
   WriteIfNotBlocked();
+
+  if constexpr (kConsecutivePtoCount)
+  if (sent_packet_manager_.GetConsecutivePtoCount() >= kConsecutivePtoCount)
+    OnBlackholeDetected();
 
   // A write failure can result in the connection being closed, don't attempt to
   // write further packets, or to set alarms.
@@ -4962,11 +4964,11 @@ HasRetransmittableData QuicConnection::IsRetransmittable(
     const SerializedPacket& packet) {
   // Retransmitted packets retransmittable frames are owned by the unacked
   // packet map, but are not present in the serialized packet.
-  if (!packet.retransmittable_frames.empty()) {
+  if (packet.transmission_type != NOT_RETRANSMISSION ||
+      !packet.retransmittable_frames.empty()) {
     return HAS_RETRANSMITTABLE_DATA;
   } else {
-    return packet.transmission_type != NOT_RETRANSMISSION ?
-      HAS_RETRANSMITTABLE_DATA : NO_RETRANSMITTABLE_DATA;
+    return NO_RETRANSMITTABLE_DATA;
   }
 }
 
@@ -5663,8 +5665,8 @@ void QuicConnection::PostProcessAfterAckFrame(bool send_stop_waiting,
   if (acked_new_packet) {
     OnForwardProgressMade();
   } else if (//default_enable_5rto_blackhole_detection_ &&
-             !sent_packet_manager_.HasInFlightPackets() //&&
-             /*blackhole_detector_.IsDetectionInProgress() **/) {
+             !sent_packet_manager_.HasInFlightPackets() /*** &&
+             blackhole_detector_.IsDetectionInProgress() **/) {
     // In case no new packets get acknowledged, it is possible packets are
     // detected lost because of time based loss detection. Cancel blackhole
     // detection if there is no packets in flight.
@@ -6052,10 +6054,11 @@ void QuicConnection::OnForwardProgressMade() {
   }
   if (sent_packet_manager_.HasInFlightPackets()) {
     // Restart detections if forward progress has been made.
+    if constexpr (kConsecutivePtoCount == 0)
     blackhole_detector_.RestartDetection(GetPathDegradingDeadline(),
                                          GetNetworkBlackholeDeadline(),
                                          GetPathMtuReductionDeadline());
-  } else {
+  } else if (blackhole_detector_.IsDetectionInProgress()) {
     // Stop detections in quiecense.
     blackhole_detector_.StopDetection(/*permanent=*/false);
   }
