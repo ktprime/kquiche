@@ -61,7 +61,7 @@ namespace {
 const QuicPacketCount kMaxConsecutiveNonRetransmittablePackets = 19;
 
 // The minimum consecutive pto count of ptotimers fires.
-constexpr bool kConsecutivePtoCount = 7; //TODO2 hybchanged opt blackhole_detector_
+constexpr int kConsecutivePtoCount = 7; //TODO2 hybchanged opt blackhole_detector_
 // The minimum release time into future in ms.
 constexpr int kMinReleaseTimeIntoFutureMs = 1;
 
@@ -3324,7 +3324,6 @@ bool QuicConnection::CanWrite(HasRetransmittableData retransmittable) {
     send_alarm_->Cancel();
     return false;
   }
-
 
 // Scheduler requires a delay.
   // Cannot send packet now because delay is too far in the future.

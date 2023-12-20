@@ -165,7 +165,7 @@ QuicErrorCode QuicStreamSequencerBuffer::OnStreamData(
   const auto& lmax = bytes_received_.rbegin()->max();
   if (starting_offset == lmax) {
     // Optimization for the normal case, when all data is newly received.
-    const_cast<size_t&>(lmax) = ending_offset; 
+    const_cast<size_t&>(lmax) = ending_offset;
     CopyStreamData(starting_offset, data, bytes_buffered, error_details);
     QUICHE_DCHECK(*bytes_buffered == size);
     num_bytes_buffered_ += size;

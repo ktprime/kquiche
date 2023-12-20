@@ -457,9 +457,9 @@ void QuicPacketCreator::FlushCurrentPacket() {
   }
 
   ABSL_CACHELINE_ALIGNED char stack_buffer[kMaxOutgoingPacketSize];
-  QuicOwnedPacketBuffer external_buffer(delegate_->GetPacketBuffer());
+  QuicOwnedPacketBuffer external_buffer(QuicPacketBuffer{ stack_buffer, nullptr });
 
-  if (external_buffer.buffer == nullptr) {
+  if (false && external_buffer.buffer == nullptr) {
     external_buffer.buffer = stack_buffer;
     external_buffer.release_buffer = nullptr;
   }
@@ -585,9 +585,9 @@ void QuicPacketCreator::CreateAndSerializeStreamFrame(
                 << EncryptionLevelToString(packet_.encryption_level);
 
   ABSL_CACHELINE_ALIGNED char stack_buffer[kMaxOutgoingPacketSize];
-  QuicOwnedPacketBuffer packet_buffer(delegate_->GetPacketBuffer());
+  QuicOwnedPacketBuffer packet_buffer(QuicPacketBuffer{ stack_buffer, nullptr }/*delegate_->GetPacketBuffer()**/);
 
-  if (packet_buffer.buffer == nullptr) {
+  if (false && packet_buffer.buffer == nullptr) {
     packet_buffer.buffer = stack_buffer;
     packet_buffer.release_buffer = nullptr;
   }
@@ -669,7 +669,7 @@ void QuicPacketCreator::CreateAndSerializeStreamFrame(
   packet_buffer.buffer = nullptr;
   packet_.release_encrypted_buffer = std::move(packet_buffer).release_buffer;
 
-  packet_.retransmittable_frames.push_back(QuicFrame(frame));
+  packet_.retransmittable_frames.emplace_back(frame);
   OnSerializedPacket();
 }
 

@@ -15,6 +15,27 @@
 
 namespace quic {
 
+constexpr int IETF_FRAME_TYPES =
+  (1 << NEW_CONNECTION_ID_FRAME) |
+  (1 << MAX_STREAMS_FRAME) |
+  (1 << STREAMS_BLOCKED_FRAME) |
+  (1 << PATH_RESPONSE_FRAME) |
+  (1 << PATH_CHALLENGE_FRAME) |
+  (1 << STOP_SENDING_FRAME) |
+  (1 << MESSAGE_FRAME) |
+  (1 << NEW_TOKEN_FRAME) |
+  (1 << RETIRE_CONNECTION_ID_FRAME) |
+  (1 << ACK_FREQUENCY_FRAME);
+
+constexpr int NO_FRAME_TYPES =
+  (1 << PADDING_FRAME) |       (1 << MTU_DISCOVERY_FRAME) |
+  (1 << PING_FRAME) |          (1 << MAX_STREAMS_FRAME) |
+  (1 << STOP_WAITING_FRAME) |  (1 << STREAMS_BLOCKED_FRAME) |
+  (1 << STREAM_FRAME) |        (1 << HANDSHAKE_DONE_FRAME) |
+  (1 << WINDOW_UPDATE_FRAME) | (1 << BLOCKED_FRAME) |
+  (1 << STOP_SENDING_FRAME)  | (1 << PATH_CHALLENGE_FRAME) |
+  (1 << PATH_RESPONSE_FRAME);
+
 QuicFrame::QuicFrame() {}
 
 QuicFrame::QuicFrame(QuicPaddingFrame padding_frame)
@@ -91,37 +112,16 @@ void DeleteFrames(QuicFrames* frames) {
 void DeleteFrame(QuicFrame* frame) {
 #if QUIC_FRAME_DEBUG == 1
   // If the frame is not inlined, check that it can be safely deleted.
-  if (frame->type != PADDING_FRAME && frame->type != MTU_DISCOVERY_FRAME &&
-      frame->type != PING_FRAME && frame->type != MAX_STREAMS_FRAME &&
-      frame->type != STOP_WAITING_FRAME &&
-      frame->type != STREAMS_BLOCKED_FRAME && frame->type != STREAM_FRAME &&
-      frame->type != HANDSHAKE_DONE_FRAME &&
-      frame->type != WINDOW_UPDATE_FRAME && frame->type != BLOCKED_FRAME &&
-      frame->type != STOP_SENDING_FRAME &&
-      frame->type != PATH_CHALLENGE_FRAME &&
-      frame->type != PATH_RESPONSE_FRAME) {
+  if (0 == (NO_FRAME_TYPES & (1 << frame->type))) {
     QUICHE_CHECK(!frame->delete_forbidden);// << *frame;
   } else
     return;
 #endif  // QUIC_FRAME_DEBUG
+
+  if (NO_FRAME_TYPES & (1 << frame->type))
+    return;
+
   switch (frame->type) {
-#if QUIC_FRAME_DEBUG == 0
-    // Frames smaller than a pointer are inlined, so don't need to be deleted.
-    case PADDING_FRAME:
-    case MTU_DISCOVERY_FRAME:
-    case PING_FRAME:
-    case MAX_STREAMS_FRAME:
-    case STOP_WAITING_FRAME:
-    case STREAMS_BLOCKED_FRAME:
-    case STREAM_FRAME:
-    case HANDSHAKE_DONE_FRAME:
-    case WINDOW_UPDATE_FRAME:
-    case BLOCKED_FRAME:
-    case STOP_SENDING_FRAME:
-    case PATH_CHALLENGE_FRAME:
-    case PATH_RESPONSE_FRAME:
-      break;
-#endif
     case ACK_FRAME:
       delete frame->ack_frame;
       break;
@@ -134,17 +134,18 @@ void DeleteFrame(QuicFrame* frame) {
     case GOAWAY_FRAME:
       delete frame->goaway_frame;
       break;
-    case NEW_CONNECTION_ID_FRAME:
-      delete frame->new_connection_id_frame;
-      break;
-    case RETIRE_CONNECTION_ID_FRAME:
-      delete frame->retire_connection_id_frame;
-      break;
     case MESSAGE_FRAME:
       delete frame->message_frame;
       break;
     case CRYPTO_FRAME:
       delete frame->crypto_frame;
+      break;
+#if QUIC_TLS_SESSION
+    case NEW_CONNECTION_ID_FRAME:
+      delete frame->new_connection_id_frame;
+      break;
+    case RETIRE_CONNECTION_ID_FRAME:
+      delete frame->retire_connection_id_frame;
       break;
     case NEW_TOKEN_FRAME:
       delete frame->new_token_frame;
@@ -152,6 +153,7 @@ void DeleteFrame(QuicFrame* frame) {
     case ACK_FREQUENCY_FRAME:
       delete frame->ack_frequency_frame;
       break;
+#endif
     case NUM_FRAME_TYPES:
       QUICHE_DCHECK(false);//<< "Cannot delete type: " << frame->type;
   }
@@ -174,15 +176,17 @@ bool IsControlFrame(QuicFrameType type) {
     case GOAWAY_FRAME:
     case WINDOW_UPDATE_FRAME:
     case BLOCKED_FRAME:
+    case PING_FRAME:
+    case HANDSHAKE_DONE_FRAME:
+#if QUIC_TLS_SESSION
     case STREAMS_BLOCKED_FRAME:
     case MAX_STREAMS_FRAME:
-    case PING_FRAME:
     case STOP_SENDING_FRAME:
     case NEW_CONNECTION_ID_FRAME:
     case RETIRE_CONNECTION_ID_FRAME:
-    case HANDSHAKE_DONE_FRAME:
     case ACK_FREQUENCY_FRAME:
     case NEW_TOKEN_FRAME:
+#endif
       return true;
     default:
       return false;
@@ -199,24 +203,26 @@ QuicControlFrameId GetControlFrameId(const QuicFrame& frame) {
       return frame.window_update_frame.control_frame_id;
     case BLOCKED_FRAME:
       return frame.blocked_frame.control_frame_id;
+    case PING_FRAME:
+      return frame.ping_frame.control_frame_id;
+    case HANDSHAKE_DONE_FRAME:
+      return frame.handshake_done_frame.control_frame_id;
+#if QUIC_TLS_SESSION
     case STREAMS_BLOCKED_FRAME:
       return frame.streams_blocked_frame.control_frame_id;
     case MAX_STREAMS_FRAME:
       return frame.max_streams_frame.control_frame_id;
-    case PING_FRAME:
-      return frame.ping_frame.control_frame_id;
     case STOP_SENDING_FRAME:
       return frame.stop_sending_frame.control_frame_id;
     case NEW_CONNECTION_ID_FRAME:
       return frame.new_connection_id_frame->control_frame_id;
     case RETIRE_CONNECTION_ID_FRAME:
       return frame.retire_connection_id_frame->control_frame_id;
-    case HANDSHAKE_DONE_FRAME:
-      return frame.handshake_done_frame.control_frame_id;
     case ACK_FREQUENCY_FRAME:
       return frame.ack_frequency_frame->control_frame_id;
     case NEW_TOKEN_FRAME:
       return frame.new_token_frame->control_frame_id;
+#endif
     default:
       return kInvalidControlFrameId;
   }
@@ -239,6 +245,10 @@ void SetControlFrameId(QuicControlFrameId control_frame_id, QuicFrame* frame) {
     case PING_FRAME:
       frame->ping_frame.control_frame_id = control_frame_id;
       return;
+    case HANDSHAKE_DONE_FRAME:
+      frame->handshake_done_frame.control_frame_id = control_frame_id;
+      return;
+#if QUIC_TLS_SESSION
     case STREAMS_BLOCKED_FRAME:
       frame->streams_blocked_frame.control_frame_id = control_frame_id;
       return;
@@ -254,15 +264,13 @@ void SetControlFrameId(QuicControlFrameId control_frame_id, QuicFrame* frame) {
     case RETIRE_CONNECTION_ID_FRAME:
       frame->retire_connection_id_frame->control_frame_id = control_frame_id;
       return;
-    case HANDSHAKE_DONE_FRAME:
-      frame->handshake_done_frame.control_frame_id = control_frame_id;
-      return;
     case ACK_FREQUENCY_FRAME:
       frame->ack_frequency_frame->control_frame_id = control_frame_id;
       return;
     case NEW_TOKEN_FRAME:
       frame->new_token_frame->control_frame_id = control_frame_id;
       return;
+#endif
     default:
       QUIC_BUG(quic_bug_12594_1)
           << "Try to set control frame id of a frame without control frame id";
@@ -287,6 +295,11 @@ QuicFrame CopyRetransmittableControlFrame(const QuicFrame& frame) {
     case PING_FRAME:
       copy = QuicFrame(QuicPingFrame(frame.ping_frame.control_frame_id));
       break;
+    case HANDSHAKE_DONE_FRAME:
+      copy = QuicFrame(
+        QuicHandshakeDoneFrame(frame.handshake_done_frame.control_frame_id));
+      break;
+#if QUIC_TLS_SESSION
     case STOP_SENDING_FRAME:
       copy = QuicFrame(QuicStopSendingFrame(frame.stop_sending_frame));
       break;
@@ -304,16 +317,13 @@ QuicFrame CopyRetransmittableControlFrame(const QuicFrame& frame) {
     case MAX_STREAMS_FRAME:
       copy = QuicFrame(QuicMaxStreamsFrame(frame.max_streams_frame));
       break;
-    case HANDSHAKE_DONE_FRAME:
-      copy = QuicFrame(
-          QuicHandshakeDoneFrame(frame.handshake_done_frame.control_frame_id));
-      break;
     case ACK_FREQUENCY_FRAME:
       copy = QuicFrame(new QuicAckFrequencyFrame(*frame.ack_frequency_frame));
       break;
     case NEW_TOKEN_FRAME:
       copy = QuicFrame(new QuicNewTokenFrame(*frame.new_token_frame));
       break;
+#endif
     default:
       QUIC_BUG(quic_bug_10533_1)
           << "Try to copy a non-retransmittable control frame: " << frame;
@@ -364,6 +374,22 @@ QuicFrame CopyQuicFrame(quiche::QuicheBufferAllocator* allocator,
     case MTU_DISCOVERY_FRAME:
       copy = QuicFrame(QuicMtuDiscoveryFrame(frame.mtu_discovery_frame));
       break;
+    case HANDSHAKE_DONE_FRAME:
+      copy = QuicFrame(
+        QuicHandshakeDoneFrame(frame.handshake_done_frame.control_frame_id));
+      break;
+    case MESSAGE_FRAME:
+      copy = QuicFrame(new QuicMessageFrame(frame.message_frame->message_id));
+      copy.message_frame->data = frame.message_frame->data;
+      copy.message_frame->message_length = frame.message_frame->message_length;
+      for (const auto& slice : frame.message_frame->message_data) {
+        quiche::QuicheBuffer buffer =
+          quiche::QuicheBuffer::Copy(allocator, slice.AsStringView());
+        copy.message_frame->message_data.push_back(
+          quiche::QuicheMemSlice(std::move(buffer)));
+      }
+      break;
+#if QUIC_TLS_SESSION
     case NEW_CONNECTION_ID_FRAME:
       copy = QuicFrame(
           new QuicNewConnectionIdFrame(*frame.new_connection_id_frame));
@@ -383,17 +409,6 @@ QuicFrame CopyQuicFrame(quiche::QuicheBufferAllocator* allocator,
     case STOP_SENDING_FRAME:
       copy = QuicFrame(QuicStopSendingFrame(frame.stop_sending_frame));
       break;
-    case MESSAGE_FRAME:
-      copy = QuicFrame(new QuicMessageFrame(frame.message_frame->message_id));
-      copy.message_frame->data = frame.message_frame->data;
-      copy.message_frame->message_length = frame.message_frame->message_length;
-      for (const auto& slice : frame.message_frame->message_data) {
-        quiche::QuicheBuffer buffer =
-            quiche::QuicheBuffer::Copy(allocator, slice.AsStringView());
-        copy.message_frame->message_data.push_back(
-            quiche::QuicheMemSlice(std::move(buffer)));
-      }
-      break;
     case NEW_TOKEN_FRAME:
       copy = QuicFrame(new QuicNewTokenFrame(*frame.new_token_frame));
       break;
@@ -401,13 +416,10 @@ QuicFrame CopyQuicFrame(quiche::QuicheBufferAllocator* allocator,
       copy = QuicFrame(
           new QuicRetireConnectionIdFrame(*frame.retire_connection_id_frame));
       break;
-    case HANDSHAKE_DONE_FRAME:
-      copy = QuicFrame(
-          QuicHandshakeDoneFrame(frame.handshake_done_frame.control_frame_id));
-      break;
     case ACK_FREQUENCY_FRAME:
       copy = QuicFrame(new QuicAckFrequencyFrame(*frame.ack_frequency_frame));
       break;
+#endif
     default:
       QUIC_BUG(quic_bug_10533_2) << "Cannot copy frame: " << frame;
       copy = QuicFrame(QuicPingFrame(kInvalidControlFrameId));
@@ -476,6 +488,7 @@ std::ostream& operator<<(std::ostream& os, const QuicFrame& frame) {
       os << "type { MTU_DISCOVERY_FRAME } ";
       break;
     }
+#if QUIC_TLS_SESSION
     case NEW_CONNECTION_ID_FRAME:
       os << "type { NEW_CONNECTION_ID } " << *(frame.new_connection_id_frame);
       break;
@@ -510,6 +523,7 @@ std::ostream& operator<<(std::ostream& os, const QuicFrame& frame) {
     case ACK_FREQUENCY_FRAME:
       os << "type { ACK_FREQUENCY_FRAME } " << *(frame.ack_frequency_frame);
       break;
+#endif
     default: {
       QUIC_LOG(ERROR) << "Unknown frame type: " << frame.type;
       break;

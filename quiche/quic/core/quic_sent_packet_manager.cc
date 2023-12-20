@@ -1423,8 +1423,8 @@ QuicSentPacketManager::GetNConsecutiveRetransmissionTimeoutDelay(
 }
 
 bool QuicSentPacketManager::PeerCompletedAddressValidation() const {
-  if (!handshake_mode_disabled_ ||
-      unacked_packets_.perspective() == Perspective::IS_SERVER) {
+  if (unacked_packets_.perspective() == Perspective::IS_SERVER ||
+    !handshake_mode_disabled_) {
     return true;
   }
 

@@ -235,7 +235,13 @@ class QUIC_EXPORT_PRIVATE QuicUnackedPacketMap {
   // unacked_packets_ is empty.
   int32_t GetLastPacketContent() const;
 
+#if QUIC_SERVER_SESSION == 1
   Perspective perspective() const { return perspective_; }
+#elif QUIC_SERVER_SESSION == 0
+  Perspective perspective() const { return Perspective::IS_CLIENT; }
+#else
+  Perspective perspective() const { return Perspective::IS_SERVER; }
+#endif
 
 #if QUIC_TLS_SESSION
   bool supports_multiple_packet_number_spaces() const {

@@ -24,7 +24,7 @@ QuicTransmissionInfo::QuicTransmissionInfo(EncryptionLevel level,
                                            QuicPacketLength bytes_sent,
                                            bool has_crypto_handshake,
                                            bool has_ack_frequency, QuicFrames& retransmittable_frames) noexcept
-    : retransmittable_frames(std::move(retransmittable_frames)), 
+    : retransmittable_frames(std::move(retransmittable_frames)),
       sent_time(sent_time),
       bytes_sent(bytes_sent),
       encryption_level(level),
