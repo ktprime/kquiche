@@ -245,7 +245,7 @@ class QUIC_EXPORT_PRIVATE QuicUnackedPacketMap {
 
 #if QUIC_TLS_SESSION
   bool supports_multiple_packet_number_spaces() const {
-    return unacked_packets_.supports_multiple_packet_number_spaces();
+    return supports_multiple_packet_number_spaces_;
 #else
   constexpr bool supports_multiple_packet_number_spaces() const {
     return false;

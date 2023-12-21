@@ -2545,8 +2545,8 @@ QuicConsumedData QuicConnection::SendStreamData(QuicStreamId id,
 
 bool QuicConnection::SendControlFrame(const QuicFrame& frame) {
   if (SupportsMultiplePacketNumberSpaces() &&
-      (encryption_level_ == ENCRYPTION_INITIAL ||
-       encryption_level_ == ENCRYPTION_HANDSHAKE) &&
+      (//encryption_level_ == ENCRYPTION_INITIAL ||
+       encryption_level_ <= ENCRYPTION_HANDSHAKE) &&
       frame.type != PING_FRAME) {
     // Allow PING frame to be sent without APPLICATION key. For example, when
     // anti-amplification limit is used, client needs to send something to avoid
@@ -3351,8 +3351,7 @@ QuicTime QuicConnection::CalculatePacketSentTime() {
 }
 
 bool QuicConnection::WritePacket(SerializedPacket* packet) {
-  if (sent_packet_manager_.GetLargestSentPacket().IsInitialized() &&
-      packet->packet_number < sent_packet_manager_.GetLargestSentPacket()) {
+  if (packet->packet_number < sent_packet_manager_.GetLargestSentPacket()) {
     QUIC_BUG(quic_bug_10511_23)
         << "Attempt to write packet:" << packet->packet_number
         << " after:" << sent_packet_manager_.GetLargestSentPacket();
@@ -3360,13 +3359,14 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
                     ConnectionCloseBehavior::SEND_CONNECTION_CLOSE_PACKET);
     return true;
   }
-  constexpr bool is_mtu_discovery = false;
-  //packet->frame_types & (1 << MTU_DISCOVERY_FRAME); TODO hybchanged QuicUtils::ContainsFrameType(packet->nonretransmittable_frames, MTU_DISCOVERY_FRAME);
+
+  constexpr bool is_mtu_discovery = false;//packet->frame_types & (1 << MTU_DISCOVERY_FRAME);
+   //TODO hybchanged QuicUtils::ContainsFrameType(packet->nonretransmittable_frames, MTU_DISCOVERY_FRAME);
   const SerializedPacketFate fate = packet->fate;
   // Termination packets are encrypted and saved, so don't exit early.
   QuicErrorCode error_code = QUIC_NO_ERROR;
   const bool is_termination_packet = packet->frame_types & (1 << CONNECTION_CLOSE_FRAME);
-  //IsTerminationPacket(*packet, &error_code);
+
   QuicPacketNumber packet_number = packet->packet_number;
   QuicPacketLength encrypted_length = packet->encrypted_length;
   // Termination packets are eventually owned by TimeWaitListManager.
@@ -3376,6 +3376,9 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
       termination_packets_.reset(
           new std::vector<std::unique_ptr<QuicEncryptedPacket>>);
     }
+    QuicErrorCode error_code = QUIC_NO_ERROR;
+    IsTerminationPacket(*packet, &error_code);
+
     // Copy the buffer so it's owned in the future.
     char* buffer_copy = CopyBuffer(*packet);
     termination_packets_->emplace_back(
@@ -3694,7 +3697,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
   return true;
 }
 
-#if 0
+#if QUIC_TLS_SESSION
 bool QuicConnection::MaybeHandleAeadConfidentialityLimits(
     const SerializedPacket& packet) {
   if (!version().UsesTls()) {
@@ -4327,7 +4330,7 @@ void QuicConnection::DiscardPreviousOneRttKeys() {
   framer_.DiscardPreviousOneRttKeys();
 }
 
-#if 0
+#if QUIC_TLS_SESSION
 bool QuicConnection::IsKeyUpdateAllowed() const {
   return support_key_update_for_connection_ &&
          GetLargestAckedPacket().IsInitialized() &&

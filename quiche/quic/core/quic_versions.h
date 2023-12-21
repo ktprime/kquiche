@@ -295,10 +295,6 @@ struct QUIC_EXPORT_PRIVATE ParsedQuicVersion {
   // ENCRYPTION_INITIAL keys (instead of NullEncrypter/NullDecrypter).
   bool UsesInitialObfuscators() const;
 
-  // Indicates that this QUIC version does not have an enforced minimum value
-  // for flow control values negotiated during the handshake.
-  bool AllowsLowFlowControlLimits() const;
-
   // Returns whether header protection is used in this version of QUIC.
   bool HasHeaderProtection() const;
 
@@ -321,14 +317,6 @@ struct QUIC_EXPORT_PRIVATE ParsedQuicVersion {
   // draft-ietf-quic-transport-22.
   bool HasLengthPrefixedConnectionIds() const;
 
-  // Returns whether this version supports IETF style anti-amplification limit,
-  // i.e., server will send no more than FLAGS_quic_anti_amplification_factor
-  // times received bytes until address can be validated.
-  bool SupportsAntiAmplificationLimit() const;
-
-  // Returns true if this version can send coalesced packets.
-  bool CanSendCoalescedPackets() const;
-
   // Returns true if this version supports the old Google-style Alt-Svc
   // advertisement format.
   bool SupportsGoogleAltSvcFormat() const;
@@ -339,17 +327,6 @@ struct QUIC_EXPORT_PRIVATE ParsedQuicVersion {
   // Returns true if |transport_version| supports MESSAGE frames.
   bool SupportsMessageFrames() const;
 
-  // If true, HTTP/3 instead of gQUIC will be used at the HTTP layer.
-  // Notable changes are:
-  // * Headers stream no longer exists.
-  // * PRIORITY, HEADERS are moved from headers stream to HTTP/3 control stream.
-  // * PUSH_PROMISE is moved to request stream.
-  // * Unidirectional streams will have their first byte as a stream type.
-  // * HEADERS frames are compressed using QPACK.
-  // * DATA frame has frame headers.
-  // * GOAWAY is moved to HTTP layer.
-  bool UsesHttp3() const;
-
   // Returns whether the transport_version supports the variable length integer
   // length field as defined by IETF QUIC draft-13 and later.
   bool HasLongHeaderLengths() const;
@@ -358,21 +335,48 @@ struct QUIC_EXPORT_PRIVATE ParsedQuicVersion {
   // instead of stream 1.
   bool UsesCryptoFrames() const;
 
+#if QUIC_TLS_SESSION
+  // Indicates that this QUIC version does not have an enforced minimum value
+// for flow control values negotiated during the handshake.
+  bool AllowsLowFlowControlLimits() const;
+  // Returns whether this version supports IETF style anti-amplification limit,
+// i.e., server will send no more than FLAGS_quic_anti_amplification_factor
+// times received bytes until address can be validated.
+  bool SupportsAntiAmplificationLimit() const;
+  // Returns true if this version can send coalesced packets.
+  bool CanSendCoalescedPackets() const;
+  // If true, HTTP/3 instead of gQUIC will be used at the HTTP layer.
+// Notable changes are:
+// * Headers stream no longer exists.
+// * PRIORITY, HEADERS are moved from headers stream to HTTP/3 control stream.
+// * PUSH_PROMISE is moved to request stream.
+// * Unidirectional streams will have their first byte as a stream type.
+// * HEADERS frames are compressed using QPACK.
+// * DATA frame has frame headers.
+// * GOAWAY is moved to HTTP layer.
+  bool UsesHttp3() const;
   // Returns whether |transport_version| makes use of IETF QUIC
-  // frames or not.
+// frames or not.
   bool HasIetfQuicFrames() const;
-
-  // Returns whether this version uses the legacy TLS extension codepoint.
-  bool UsesLegacyTlsExtension() const;
-
   // Returns whether this version uses PROTOCOL_TLS1_3.
   bool UsesTls() const;
-
-  // Returns whether this version uses PROTOCOL_QUIC_CRYPTO.
-  bool UsesQuicCrypto() const;
-
+  // Returns whether this version uses the legacy TLS extension codepoint.
+  bool UsesLegacyTlsExtension() const;
   // Returns whether this version uses the QUICv2 Long Header Packet Types.
   bool UsesV2PacketTypes() const;
+  // Returns whether this version uses PROTOCOL_QUIC_CRYPTO.
+  bool UsesQuicCrypto() const;
+#else
+  constexpr bool AllowsLowFlowControlLimits() const { return false; }
+  constexpr bool SupportsAntiAmplificationLimit() const { return false; }
+  constexpr bool CanSendCoalescedPackets() const { return false; }
+  constexpr bool UsesHttp3() const { return false; }
+  constexpr bool HasIetfQuicFrames() const { return false; }
+  constexpr bool UsesTls() const { return false; }
+  constexpr bool UsesLegacyTlsExtension() const { return false; }
+  constexpr bool UsesV2PacketTypes() const { return false; }
+  constexpr bool UsesQuicCrypto() const { return true; }
+#endif
 
   // Returns true if this shares ALPN codes with RFCv1, and endpoints should
   // choose RFCv1 when presented with a v1 ALPN. Note that this is false for
@@ -587,11 +591,7 @@ QUIC_EXPORT_PRIVATE constexpr bool VersionSupportsMessageFrames(
 // * GOAWAY is moved to HTTP layer.
 QUIC_EXPORT_PRIVATE constexpr bool VersionUsesHttp3(
     QuicTransportVersion transport_version) {
-#if QUIC_TLS_SESSION
-  return false && transport_version >= QUIC_VERSION_IETF_DRAFT_29; //TODO hybchanged
-#else
-  return false;
-#endif
+  return false;//&& transport_version >= QUIC_VERSION_IETF_DRAFT_29; //TODO hybchanged
 }
 
 // Returns whether the transport_version supports the variable length integer
@@ -606,11 +606,7 @@ QUIC_EXPORT_PRIVATE constexpr bool QuicVersionHasLongHeaderLengths(
 // frames or not.
 QUIC_EXPORT_PRIVATE constexpr bool VersionHasIetfQuicFrames(
     QuicTransportVersion transport_version) {
-#if QUIC_TLS_SESSION
-  return VersionUsesHttp3(transport_version);
-#else
-  return false;
-#endif
+  return false;// VersionUsesHttp3(transport_version);
 }
 
 // Returns whether this version supports long header 8-bit encoded

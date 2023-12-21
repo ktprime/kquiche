@@ -81,12 +81,6 @@ bool ParsedQuicVersion::UsesInitialObfuscators() const {
   return transport_version > QUIC_VERSION_46;
 }
 
-bool ParsedQuicVersion::AllowsLowFlowControlLimits() const {
-  QUICHE_DCHECK(IsKnown());
-  // Low flow-control limits are used for all IETF versions.
-  return UsesHttp3();
-}
-
 bool ParsedQuicVersion::HasHeaderProtection() const {
   QUICHE_DCHECK(IsKnown());
   // Header protection was added in version 50.
@@ -120,25 +114,6 @@ bool ParsedQuicVersion::HasLengthPrefixedConnectionIds() const {
   return VersionHasLengthPrefixedConnectionIds(transport_version);
 }
 
-bool ParsedQuicVersion::SupportsAntiAmplificationLimit() const {
-#if QUIC_TLS_SESSION
-  QUICHE_DCHECK(IsKnown());
-  // The anti-amplification limit is used for all IETF versions.
-  return UsesHttp3();
-#else
-  return false;
-#endif
-}
-
-bool ParsedQuicVersion::CanSendCoalescedPackets() const {
-#if QUIC_TLS_SESSION
-  QUICHE_DCHECK(IsKnown());
-  return HasLongHeaderLengths() && UsesTls();
-#else
-  return false;
-#endif
-}
-
 bool ParsedQuicVersion::SupportsGoogleAltSvcFormat() const {
   QUICHE_DCHECK(IsKnown());
   return VersionSupportsGoogleAltSvcFormat(transport_version);
@@ -154,11 +129,6 @@ bool ParsedQuicVersion::SupportsMessageFrames() const {
   return VersionSupportsMessageFrames(transport_version);
 }
 
-bool ParsedQuicVersion::UsesHttp3() const {
-  QUICHE_DCHECK(IsKnown());
-  return enable_tls && VersionUsesHttp3(transport_version);
-}
-
 bool ParsedQuicVersion::HasLongHeaderLengths() const {
   QUICHE_DCHECK(IsKnown());
   return QuicVersionHasLongHeaderLengths(transport_version);
@@ -167,6 +137,28 @@ bool ParsedQuicVersion::HasLongHeaderLengths() const {
 bool ParsedQuicVersion::UsesCryptoFrames() const {
   QUICHE_DCHECK(IsKnown());
   return QuicVersionUsesCryptoFrames(transport_version);
+}
+
+#if QUIC_TLS_SESSION
+bool ParsedQuicVersion::AllowsLowFlowControlLimits() const {
+  QUICHE_DCHECK(IsKnown());
+  // Low flow-control limits are used for all IETF versions.
+  return UsesHttp3();
+}
+
+bool ParsedQuicVersion::SupportsAntiAmplificationLimit() const {
+  QUICHE_DCHECK(IsKnown());
+  // The anti-amplification limit is used for all IETF versions.
+  return UsesHttp3();
+}
+
+bool ParsedQuicVersion::CanSendCoalescedPackets() const {
+  return HasLongHeaderLengths() && UsesTls();
+}
+
+bool ParsedQuicVersion::UsesHttp3() const {
+  QUICHE_DCHECK(IsKnown());
+  return enable_tls && VersionUsesHttp3(transport_version);
 }
 
 bool ParsedQuicVersion::HasIetfQuicFrames() const {
@@ -184,15 +176,16 @@ bool ParsedQuicVersion::UsesTls() const {
   return enable_tls && handshake_protocol == PROTOCOL_TLS1_3;
 }
 
-bool ParsedQuicVersion::UsesQuicCrypto() const {
-  QUICHE_DCHECK(IsKnown());
-  return !enable_tls || handshake_protocol == PROTOCOL_QUIC_CRYPTO;
-}
-
 bool ParsedQuicVersion::UsesV2PacketTypes() const {
   QUICHE_DCHECK(IsKnown());
   return enable_tls && transport_version == QUIC_VERSION_IETF_2_DRAFT_08;
 }
+
+bool ParsedQuicVersion::UsesQuicCrypto() const {
+  QUICHE_DCHECK(IsKnown());
+  return !enable_tls || handshake_protocol == PROTOCOL_QUIC_CRYPTO;
+}
+#endif
 
 bool ParsedQuicVersion::AlpnDeferToRFCv1() const {
   QUICHE_DCHECK(IsKnown());
