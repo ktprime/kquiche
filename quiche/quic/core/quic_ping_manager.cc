@@ -35,7 +35,10 @@ QuicPingManager::QuicPingManager(Perspective perspective, Delegate* delegate,
                                  QuicConnectionArena* arena,
                                  QuicAlarmFactory* alarm_factory,
                                  QuicConnectionContext* context)
-    : perspective_(perspective),
+    : 
+#if QUIC_SERVER_SESSION == 1
+      perspective_(perspective),
+#endif
       delegate_(delegate),
       alarm_(alarm_factory->CreateAlarm(
           arena->New<AlarmDelegate>(this, context), arena)) {}

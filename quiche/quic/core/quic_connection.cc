@@ -2274,10 +2274,6 @@ void QuicConnection::OnPacketComplete() {
     return;
   }
 
-  if (IsCurrentPacketConnectivityProbing()) {
-    QUICHE_DCHECK(!version().HasIetfQuicFrames());
-    ++stats_.num_connectivity_probing_received;
-  }
 
   QUIC_DVLOG(1) << ENDPOINT << "Got"
                 << (SupportsMultiplePacketNumberSpaces()
@@ -2806,8 +2802,9 @@ void QuicConnection::ProcessUdpPacket(const QuicSocketAddress& self_address,
                   << last_received_packet_info_.header.packet_number;
     current_packet_data_ = nullptr;
     is_current_packet_connectivity_probing_ = false;
-
+#if QUIC_TLS_SESSION
     MaybeProcessCoalescedPackets();
+#endif
     return;
   }
 
@@ -2829,8 +2826,10 @@ void QuicConnection::ProcessUdpPacket(const QuicSocketAddress& self_address,
     }
   }
 
+#if QUIC_TLS_SESSION
   if (!received_coalesced_packets_.empty())
     MaybeProcessCoalescedPackets();
+#endif
   if (!undecryptable_packets_.empty())
     MaybeProcessUndecryptablePackets();
 
@@ -5592,6 +5591,11 @@ bool QuicConnection::UpdatePacketContent(QuicFrameType type) {
           << ", last_packet_destination_address:"
           << last_received_packet_info_.destination_address
           << ", default path self_address :" << default_path_.self_address;
+    }
+
+    if (IsCurrentPacketConnectivityProbing()) {
+      QUICHE_DCHECK(!version().HasIetfQuicFrames());
+      ++stats_.num_connectivity_probing_received;
     }
     return connected_;
   }

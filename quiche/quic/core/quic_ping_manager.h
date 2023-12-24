@@ -78,7 +78,13 @@ class QUIC_EXPORT_PRIVATE QuicPingManager {
   // |keep_alive_deadline_|. Returns 0 if both deadlines are not initialized.
   QuicTime GetEarliestDeadline() const;
 
+#if QUIC_SERVER_SESSION == 0
+  constexpr static Perspective perspective_ = Perspective::IS_CLIENT;
+#elif QUIC_SERVER_SESSION == 2
+  constexpr static Perspective perspective_ = Perspective::IS_SERVER;
+#else
   const Perspective perspective_;
+#endif
 
   Delegate* delegate_;  // Not owned.
 

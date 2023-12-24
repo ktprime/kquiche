@@ -82,7 +82,6 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
 
   // Save |data| to send buffer.
   void SaveStreamData(absl::string_view data);
-  void SaveStreamDatav(std::string_view data);
 
   // Save |slice| to send buffer.
   void SaveMemSlice(quiche::QuicheMemSlice slice);
@@ -96,8 +95,6 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
   // Write |data_length| of data starts at |offset|.
   bool WriteStreamData(QuicStreamOffset offset, QuicByteCount data_length,
                        QuicDataWriter* writer);
-  bool WriteStreamDatav(QuicStreamOffset offset, QuicByteCount data_length,
-                        QuicDataWriter* writer);
 
   // Called when data [offset, offset + data_length) is acked or removed as
   // stream is canceled. Removes fully acked data slice from send buffer. Set
@@ -158,7 +155,6 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
   // acked buffered slices if any. Returns false if the corresponding data does
   // not exist or has been acked.
   bool FreeMemSlices(QuicStreamOffset start, QuicStreamOffset end);
-  bool FreeMemSlicesv(QuicStreamOffset start, QuicStreamOffset end);
 
   // Cleanup empty slices in order from buffered_slices_.
   void CleanUpBufferedSlices();
@@ -166,10 +162,6 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
   // |current_end_offset_| stores the end offset of the current slice to ensure
   // data isn't being written out of order when using the |interval_deque_|.
   QuicStreamOffset current_end_offset_;
-#if OPT_WBUFF
-  QuicIntervalDeque<BufferedSlice> interval_deque_;
-  quiche::QuicheBufferAllocator* allocator_;
-#endif
   // Offset of next inserted byte.
   QuicStreamOffset stream_offset_;
   QuicStreamOffset stream_bytes_start_;

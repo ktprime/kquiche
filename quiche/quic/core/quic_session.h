@@ -664,7 +664,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   using PendingStreamMap =
     std::map<QuicStreamId, std::unique_ptr<PendingStream>>;
 
-  using ClosedStreams = absl::InlinedVector<QuicStream*, 1>;
+  using ClosedStreams = std::vector<QuicStream*>;
 
   //using ZombieStreamMap =
   //  std::map<QuicStreamId, std::unique_ptr<QuicStream>>;

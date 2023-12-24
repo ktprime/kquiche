@@ -1258,7 +1258,7 @@ bool QuicStream::WriteStreamData(QuicStreamOffset offset,
   QUICHE_DCHECK_LT(0u, data_length);
   QUIC_DVLOG(2) << ENDPOINT << "Write stream " << id_ << " data from offset "
                 << offset << " length " << data_length;
-  return send_buffer_.WriteStreamDatav(offset, data_length, writer);
+  return send_buffer_.WriteStreamData(offset, data_length, writer);
 }
 
 void QuicStream::WriteBufferedData(EncryptionLevel level) {

@@ -203,7 +203,7 @@ enum HasRetransmittableData : uint8_t {
 
 enum IsHandshake : uint8_t { NOT_HANDSHAKE, IS_HANDSHAKE };
 
-enum class Perspective : uint8_t { IS_SERVER, IS_CLIENT };
+enum Perspective : int8_t { IS_SERVER = 2, IS_CLIENT = 0 };
 
 QUIC_EXPORT_PRIVATE std::string PerspectiveToString(Perspective perspective);
 QUIC_EXPORT_PRIVATE std::ostream& operator<<(std::ostream& os,

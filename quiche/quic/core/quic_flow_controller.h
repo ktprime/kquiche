@@ -145,7 +145,7 @@ class QUIC_EXPORT_PRIVATE QuicFlowController
   bool is_connection_flow_controller_;
 
   // Tracks if this is owned by a server or a client.
-  Perspective perspective_;
+  const Perspective perspective_;
 
   // Tracks number of bytes sent to the peer.
   QuicByteCount bytes_sent_;

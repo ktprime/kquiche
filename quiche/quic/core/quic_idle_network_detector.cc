@@ -105,7 +105,7 @@ void QuicIdleNetworkDetector::OnPacketSent(QuicTime now,
     MaybeSetAlarmOnSentPacket(pto_delay);
     return;
   }
-//  if (!alarm_->IsSet()) //hybchanged
+//  if (!alarm_->IsSet()) //TODO2 hybchanged
 //    SetAlarm();
 }
 
@@ -113,7 +113,7 @@ void QuicIdleNetworkDetector::OnPacketReceived(QuicTime now) {
   QUICHE_DCHECK(time_of_last_received_packet_ <= now);
   time_of_last_received_packet_ = now;
   //MaybeSetAlarmOnSentPacket(kAlarmGranularity * 1000);
-  SetAlarm(); //TODO hybchanged
+  SetAlarm(); //TODO2 hybchanged
 }
 
 void QuicIdleNetworkDetector::SetAlarm() {

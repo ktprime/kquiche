@@ -243,15 +243,16 @@ void QuicSession::OnStreamFrame(const QuicStreamFrame& frame) {
     return;
   }
 
-  QuicStream* stream = GetOrCreateStream(stream_id);
-
+  QuicStream* stream = stream_map_.at(stream_id);//TODO2 hybchanged.
   if (!stream) {
     if (stream_id == QuicUtils::GetInvalidStreamId(transport_version())) {
-        connection_->CloseConnection(
-            QUIC_INVALID_STREAM_ID, "Received data for an invalid stream",
-            ConnectionCloseBehavior::SEND_CONNECTION_CLOSE_PACKET);
-        return;
+      connection_->CloseConnection(
+        QUIC_INVALID_STREAM_ID, "Received data for an invalid stream",
+        ConnectionCloseBehavior::SEND_CONNECTION_CLOSE_PACKET);
+      return;
     }
+
+    stream = GetOrCreateStream(stream_id);
 
     // The stream no longer exists, but we may still be interested in the
     // final stream byte offset sent by the peer. A frame with a FIN can give
@@ -260,7 +261,8 @@ void QuicSession::OnStreamFrame(const QuicStreamFrame& frame) {
       QuicStreamOffset final_byte_offset = frame.offset + frame.data_length;
       OnFinalByteOffsetReceived(stream_id, final_byte_offset);
     }
-    return;
+    if (!stream)
+      return;
   }
   stream->OnStreamFrame(frame);
 }

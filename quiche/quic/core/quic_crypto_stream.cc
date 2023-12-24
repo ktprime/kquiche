@@ -173,7 +173,7 @@ void QuicCryptoStream::WriteCryptoData(EncryptionLevel level,
   }
 
   // Append |data| to the send buffer for this encryption level.
-  send_buffer->SaveStreamDatav(data);
+  send_buffer->SaveStreamData(data);
   if (kMaxStreamLength - offset < data.length()) {
     QUIC_BUG(quic_bug_10322_2) << "Writing too much crypto handshake data";
     OnUnrecoverableError(QUIC_INTERNAL_ERROR,

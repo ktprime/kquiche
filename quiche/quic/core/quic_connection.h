@@ -2274,7 +2274,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   bool should_proactively_validate_peer_address_on_path_challenge_ = false;
 
   // Enable this via reloadable flag once this feature is complete.
-#if !QUIC_TLS_SESSION
+#if QUIC_TLS_SESSION == 0
   constexpr static
 #endif
   bool connection_migration_use_new_cid_ = false;
