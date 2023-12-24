@@ -690,6 +690,7 @@ public:
         )
     {
         initialize_move(other);
+        other.clear();
     }
 
     small_flat_set(small_flat_set&& other, const Allocator& alloc)
@@ -700,6 +701,7 @@ public:
         )
     {
         initialize_move(other);
+        other.clear();
     }
 
     ~small_flat_set()
@@ -735,6 +737,7 @@ public:
     small_flat_set& operator=(small_flat_set&& other)
     {
         assign_move(other);
+        other.clear();
         return *this;
     }
 

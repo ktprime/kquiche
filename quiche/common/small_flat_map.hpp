@@ -734,6 +734,7 @@ public:
         )
     {
         initialize_move(other);
+        other.clear();
     }
 
     small_flat_map(small_flat_map&& other, const Allocator& alloc)
@@ -744,6 +745,7 @@ public:
         )
     {
         initialize_move(other);
+        other.clear();
     }
 
     ~small_flat_map()
@@ -779,6 +781,7 @@ public:
     small_flat_map& operator=(small_flat_map&& other)
     {
         assign_move(other);
+        other.clear();
         return *this;
     }
 

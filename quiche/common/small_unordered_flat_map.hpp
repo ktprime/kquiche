@@ -365,7 +365,7 @@ SFL_DTL_END ///////////////////////////////////////////////////////////////////
 
 template < typename Key,
            typename T,
-           std::size_t N,
+           std::size_t N = 4,
            typename KeyEqual = std::equal_to<Key>,
            typename Allocator = std::allocator<std::pair<Key, T>> >
 class small_unordered_flat_map
@@ -468,6 +468,7 @@ private:
         pointer first_;
         pointer last_;
         pointer end_;
+        pointer zero_;
 
         data_base() noexcept
             : first_
@@ -479,8 +480,9 @@ private:
             )
             , last_(first_)
             , end_(first_ + N)
+            , zero_(first_ + N)
         {
-            memset((char*)&first_[N], 0, sizeof(value_type));
+            memset((char*)zero_, 0, sizeof(value_type));
         }
 
         pointer internal_storage() noexcept
@@ -740,6 +742,7 @@ public:
         )
     {
         initialize_move(other);
+        other.clear();
     }
 
     small_unordered_flat_map(small_unordered_flat_map&& other,
@@ -751,6 +754,7 @@ public:
         )
     {
         initialize_move(other);
+        other.clear();
     }
 
     ~small_unordered_flat_map()
@@ -786,6 +790,7 @@ public:
     small_unordered_flat_map& operator=(small_unordered_flat_map&& other)
     {
         assign_move(other);
+        other.clear();
         return *this;
     }
 
@@ -1770,7 +1775,7 @@ public:
         {
             //SFL_DTL::throw_out_of_range("sfl::small_unordered_flat_map::at");
             //assert(key != 0);
-            return data_.first_[N].second;
+            return data_.zero_->second;
         }
 
         return it->second;
@@ -1785,7 +1790,7 @@ public:
         {
             //SFL_DTL::throw_out_of_range("sfl::small_unordered_flat_map::at");
             assert(key != 0);
-            return data_.first_[N].second;
+            return data_.zero_->second;
         }
 
         return it->second;
