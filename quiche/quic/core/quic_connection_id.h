@@ -40,11 +40,10 @@ const uint8_t kQuicMinimumInitialConnectionIdLength = 8;
 class QUIC_EXPORT_PRIVATE QuicConnectionId {
  public:
   // Creates a connection ID of length zero.
-  QuicConnectionId();
+  QuicConnectionId() = default;
 
   // Creates a connection ID from network order bytes.
   QuicConnectionId(const char* data, uint8_t length);
-  QuicConnectionId(const absl::Span<const uint8_t> data);
 
   // Creates a connection ID from another connection ID.
   QuicConnectionId(const QuicConnectionId& other);
@@ -52,7 +51,7 @@ class QUIC_EXPORT_PRIVATE QuicConnectionId {
   // Assignment operator.
   QuicConnectionId& operator=(const QuicConnectionId& other);
 
-  ~QuicConnectionId();
+  ~QuicConnectionId() = default;
 
   // Returns the length of the connection ID, in bytes.
   uint8_t length() const;
@@ -96,7 +95,6 @@ class QUIC_EXPORT_PRIVATE QuicConnectionId {
 
  private:
   // The connection ID is represented in network byte order.
-  union {
     // If the connection ID fits in |data_short_|, it is stored in the
     // first |length_| bytes of |data_short_|.
     // Otherwise it is stored in |data_long_| which is guaranteed to have a size
@@ -104,15 +102,10 @@ class QUIC_EXPORT_PRIVATE QuicConnectionId {
     // A value of 11 was chosen because our commonly used connection ID length
     // is 8 and with the length, the class is padded to at least 12 bytes
     // anyway.
-    struct {
-      uint8_t padding_;  // Match length_ field of the other union member.
-      int64_t data_short_;
-    };
-    struct {
-      uint8_t length_;  // length of the connection ID, in bytes.
-      char* data_long_;
-    };
-  };
+
+    int64_t data_short_ = 0;
+    uint8_t length_ = 0;  // length of the connection ID, in bytes.
+
 };
 
 // Creates a connection ID of length zero, unless the restart flag

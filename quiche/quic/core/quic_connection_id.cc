@@ -50,95 +50,37 @@ class QuicConnectionIdHasher {
 
 }  // namespace
 
-QuicConnectionId::QuicConnectionId() : length_(0) {
-  static_assert(offsetof(QuicConnectionId, padding_) ==
-                    offsetof(QuicConnectionId, length_),
-                "bad offset");
-  static_assert(sizeof(QuicConnectionId) <= 16, "bad size");
-}
+static_assert(sizeof(QuicConnectionId) <= 16, "bad size");
 
 QuicConnectionId::QuicConnectionId(const char* data, uint8_t length) {
   length_ = length;
-  //QUICHE_DCHECK(length <= sizeof(data_short_));
+  QUICHE_DCHECK(length <= sizeof(data_short_));
   if (length_ == kQuicDefaultConnectionIdLength) {
-      data_short_ = *((uint64_t*)data);
-  } else if (length_ > sizeof(data_short_)) {
-      data_long_ = reinterpret_cast<char*>(malloc(length_));
-      QUICHE_CHECK_NE(nullptr, data_long_);
-      memcpy(data_long_, data, length_);
+    data_short_ = *((uint64_t*)data);
+  } else if (length > 0) {
+    memcpy((void*)data_short_, data, std::min(length, (uint8_t)sizeof(data_short_)));
   }
 }
-
-QuicConnectionId::QuicConnectionId(const absl::Span<const uint8_t> data)
-    : QuicConnectionId(reinterpret_cast<const char*>(data.data()),
-                       data.length()) {}
-
-QuicConnectionId::~QuicConnectionId() {
-  QUICHE_CHECK(length_ <= sizeof(data_short_));
-#if 0
-  if (length_ > sizeof(data_short_)) {
-    free(data_long_);
-    data_long_ = nullptr;
-  }
-#endif
-}
-
 QuicConnectionId::QuicConnectionId(const QuicConnectionId& other)
     : QuicConnectionId(other.data(), other.length()) {}
 
 QuicConnectionId& QuicConnectionId::operator=(const QuicConnectionId& other) {
-  if (other.length_ == kQuicDefaultConnectionIdLength) {
-    data_short_ = other.data_short_; //x86
-  } else if (other.length_ > 0) {
-    set_length(other.length());
-    memcpy(mutable_data(), other.data(), length_);
-  }
+  data_short_ = other.data_short_; //x86
   length_ = other.length_;
   return *this;
 }
 
 const char* QuicConnectionId::data() const {
-  if (length_ <= sizeof(data_short_)) {
-    return (char*) &data_short_;
-  }
-  return data_long_;
+  return (char*)&data_short_;
 }
 
 char* QuicConnectionId::mutable_data() {
-  if (length_ <= sizeof(data_short_)) {
-    return (char*) &data_short_;
-  }
-  return data_long_;
+  return (char*)&data_short_;
 }
 
 uint8_t QuicConnectionId::length() const { return length_; }
 
 void QuicConnectionId::set_length(uint8_t length) {
-  //QUICHE_DCHECK(length <= sizeof(data_short_));
-#if 0
-  char temporary_data[sizeof(data_short_)];
-  else if (length > sizeof(data_short_)) {
-    if (length_ <= sizeof(data_short_)) {
-      // Copy data from data_short_ to data_long_.
-      memcpy(temporary_data, &data_short_, length_);
-      data_long_ = reinterpret_cast<char*>(malloc(length));
-      QUICHE_CHECK_NE(nullptr, data_long_);
-      memcpy(data_long_, temporary_data, length_);
-    } else {
-      // Resize data_long_.
-      char* realloc_result =
-          reinterpret_cast<char*>(realloc(data_long_, length));
-      QUICHE_CHECK_NE(nullptr, realloc_result);
-      data_long_ = realloc_result;
-    }
-  } else if (length_ > sizeof(data_short_)) {
-    // Copy data from data_long_ to data_short_.
-    memcpy(temporary_data, data_long_, length);
-    free(data_long_);
-    data_long_ = nullptr;
-    memcpy(&data_short_, temporary_data, length);
-  }
-#endif
   length_ = length;
 }
 
@@ -162,7 +104,7 @@ std::ostream& operator<<(std::ostream& os, const QuicConnectionId& v) {
 }
 
 bool QuicConnectionId::operator==(const QuicConnectionId& v) const {
-  return length_ == v.length_ && memcmp(data(), v.data(), length_) == 0;
+  return data_short_ == v.data_short_ && length_ == v.length_;
 }
 
 bool QuicConnectionId::operator!=(const QuicConnectionId& v) const {

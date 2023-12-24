@@ -1247,8 +1247,7 @@ AckResult QuicSentPacketManager::OnAckFrameEnd(
   for (AckedPacket& acked_packet : packets_acked_) {
     QuicTransmissionInfo* info =
         unacked_packets_.GetMutableTransmissionInfo(acked_packet.packet_number);
-    QUICHE_DCHECK(QuicUtils::IsAckable(info->state));
-    if (false && !QuicUtils::IsAckable(info->state)) {
+    if (!QuicUtils::IsAckable(info->state)) {
       if (info->state == ACKED) {
         QUIC_BUG(quic_bug_10750_5)
             << "Trying to ack an already acked packet: "

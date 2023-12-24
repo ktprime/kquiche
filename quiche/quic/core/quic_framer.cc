@@ -5492,7 +5492,7 @@ bool QuicFramer::AppendCryptoFrame(const QuicCryptoFrame& frame,
                                    QuicDataWriter* writer) {
   writer->WriteVarInt62(static_cast<uint64_t>(frame.offset));
   writer->WriteVarInt62(static_cast<uint64_t>(frame.data_length));
-  
+
   if (false && data_producer_ == nullptr) {
     if (frame.data_buffer == nullptr ||
         !writer->WriteBytes(frame.data_buffer, frame.data_length)) {

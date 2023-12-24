@@ -704,7 +704,7 @@ void QuicStream::WriteOrBufferDataAtLevel(
           absl::StrCat("Write too many data via stream ", id_));
       return;
     }
-    send_buffer_.SaveStreamDatav(data);
+    send_buffer_.SaveStreamData(data);
 #if QUIC_SPDY_SESSION
     OnDataBuffered(offset, data.length(), ack_listener);
 #endif
@@ -777,7 +777,7 @@ QuicConsumedData QuicStream::WriteMemSlice(std::string_view data, bool fin)
   bool had_buffered_data = HasBufferedData();
   consumed_data.fin_consumed = fin;
   if (CanWriteNewData()) {
-    send_buffer_.SaveStreamDatav(data);
+    send_buffer_.SaveStreamData(data);
     consumed_data.bytes_consumed = data.length();
   }
 #ifndef STREAM_NO_FIN
