@@ -232,7 +232,6 @@ class QUIC_EXPORT_PRIVATE QuicStreamSequencerBuffer {
   // An ordered, variable-length list of blocks, with the length limited
   // such that the number of blocks never exceeds max_blocks_count_.
   // Each list entry can hold up to kBlockSizeBytes bytes.
-  //std::unique_ptr<BufferBlock*[]> blocks_;
   absl::InlinedVector<BufferBlock*, kSmallBlocks> blocks_;
 
   // Number of bytes in buffer.

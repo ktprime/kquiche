@@ -123,7 +123,7 @@ void QuicNetworkBlackholeDetector::UpdateAlarm() const {
                 << path_mtu_reduction_deadline_
                 << ", blackhole_deadline_:" << blackhole_deadline_;
 
-  alarm_->Update(next_deadline, kAlarmGranularity * 100);
+  alarm_->Update(next_deadline, kAlarmGranularity * 10);
 }
 
 bool QuicNetworkBlackholeDetector::IsDetectionInProgress() const {

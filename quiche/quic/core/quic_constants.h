@@ -193,7 +193,7 @@ inline constexpr int kMaxPromisedStreamsMultiplier =
 
 // The 1st PTO is armed with max of earliest in flight sent time + PTO
 // delay and kFirstPtoSrttMultiplier * srtt from last in flight packet.
-inline constexpr float kFirstPtoSrttMultiplier = 1.5;
+inline constexpr int kFirstPtoSrttMultiplier = 3;
 
 // The multiplier of RTT variation when calculating PTO timeout.
 inline constexpr int kPtoRttvarMultiplier = 2;

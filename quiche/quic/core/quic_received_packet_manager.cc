@@ -45,7 +45,7 @@ QuicReceivedPacketManager::QuicReceivedPacketManager(QuicConnectionStats* stats)
       num_retransmittable_packets_received_since_last_ack_sent_(0),
       min_received_before_ack_decimation_(kMinReceivedBeforeAckDecimation),
       ack_frequency_(kDefaultRetransmittablePacketsBeforeAck),
-      ack_decimation_delay_(kAckDecimationDelay),
+      ack_decimation_delay_(1 / kAckDecimationDelay),
       unlimited_ack_decimation_(false),
       one_immediate_ack_(false),
       ignore_order_(false),
@@ -61,7 +61,7 @@ QuicReceivedPacketManager::~QuicReceivedPacketManager() {}
 void QuicReceivedPacketManager::SetFromConfig(const QuicConfig& config,
                                               Perspective perspective) {
   if (config.HasClientSentConnectionOption(kAKD3, perspective)) {
-    ack_decimation_delay_ = kShortAckDecimationDelay;
+    ack_decimation_delay_ = 1 / kShortAckDecimationDelay;
   }
   if (config.HasClientSentConnectionOption(kAKDU, perspective)) {
     unlimited_ack_decimation_ = true;
@@ -116,8 +116,7 @@ void QuicReceivedPacketManager::RecordPacketReceived(
           << ack_frame_.received_packet_times.back().second.ToDebuggingValue()
           << " to " << receipt_time.ToDebuggingValue();
     } else {
-      ack_frame_.received_packet_times.push_back(
-          std::make_pair(packet_number, receipt_time));
+      ack_frame_.received_packet_times.emplace_back(packet_number, receipt_time);
     }
   }
 
@@ -142,16 +141,17 @@ bool QuicReceivedPacketManager::IsAwaitingPacket(
 
 const QuicFrame QuicReceivedPacketManager::GetUpdatedAckFrame(
     QuicTime approximate_now) {
-  if (true || approximate_now >= time_largest_observed_) {
+  if (time_largest_observed_ == QuicTime::Zero()) {
+    // We have received no packets.
+    ack_frame_.ack_delay_time = QuicTime::Delta::Infinite();
+  } else {
     // Ensure the delta is zero if approximate now is "in the past".
     ack_frame_.ack_delay_time = approximate_now - time_largest_observed_;
-  } else
-    ack_frame_.ack_delay_time = QuicTime::Delta::Zero();
+  }
   QUICHE_DCHECK(time_largest_observed_.IsInitialized());
   QUICHE_DCHECK(approximate_now >= time_largest_observed_);
 
-  while (//max_ack_ranges_ > 0 &&
-         ack_frame_.packets.NumIntervals() > max_ack_ranges_) {
+  if (ack_frame_.packets.NumIntervals() > max_ack_ranges_) {
     ack_frame_.packets.RemoveSmallestInterval();
   }
   // Clear all packet times if any are too far from largest observed.
@@ -213,8 +213,8 @@ QuicTime::Delta QuicReceivedPacketManager::GetMaxAckDelay(
   // Wait for the minimum of the ack decimation delay or the delayed ack time
   // before sending an ack.
   QuicTime::Delta ack_delay = std::min(
-      local_max_ack_delay_, kAlarmGranularity + rtt_stats.min_rtt() * ack_decimation_delay_);
-  return ack_delay;// std::max(ack_delay, kAlarmGranularity);
+      local_max_ack_delay_, rtt_stats.min_rtt() / ack_decimation_delay_);
+  return ack_delay + kAlarmGranularity;// std::max(ack_delay, kAlarmGranularity);
 }
 
 void QuicReceivedPacketManager::MaybeUpdateAckFrequency(
@@ -226,13 +226,13 @@ void QuicReceivedPacketManager::MaybeUpdateAckFrequency(
     return;
   }
 #endif
-  if (last_received_packet_number <
-      PeerFirstSendingPacketNumber() + min_received_before_ack_decimation_) {
-    return;
+
+  const auto max_decimation_packet_number = PeerFirstSendingPacketNumber() + min_received_before_ack_decimation_;
+  if (last_received_packet_number <=  max_decimation_packet_number + 5) {
+    if (last_received_packet_number >= max_decimation_packet_number)
+    ack_frequency_ = unlimited_ack_decimation_ ?
+      std::numeric_limits<size_t>::max(): kMaxRetransmittablePacketsBeforeAck;
   }
-  ack_frequency_ = unlimited_ack_decimation_
-                       ? std::numeric_limits<size_t>::max()
-                       : kMaxRetransmittablePacketsBeforeAck;
 }
 
 void QuicReceivedPacketManager::MaybeUpdateAckTimeout(
@@ -277,9 +277,8 @@ void QuicReceivedPacketManager::MaybeUpdateAckTimeout(
   }
 
   QUICHE_DCHECK(last_packet_receipt_time <= now);
-  QuicTime updated_ack_time = //std::max(
-      last_packet_receipt_time +
-               GetMaxAckDelay(last_received_packet_number, *rtt_stats);
+  QuicTime updated_ack_time =
+      last_packet_receipt_time + GetMaxAckDelay(last_received_packet_number, *rtt_stats);
   if (!ack_timeout_.IsInitialized() || ack_timeout_ > updated_ack_time) {
     ack_timeout_ = updated_ack_time;
   }

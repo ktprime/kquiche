@@ -77,7 +77,7 @@ QuicSession::QuicSession(
     perspective_(connection->perspective()),
 #endif
       //visitor_(owner),
-      write_blocked_streams_(std::make_unique<QuicWriteBlockedList>()),
+      //write_blocked_streams_{},
       config_(config),
       stream_id_manager_(perspective(), connection->transport_version(),
                          kDefaultMaxStreamsPerConnection,
@@ -593,7 +593,7 @@ bool QuicSession::CheckStreamNotBusyLooping(QuicStream* stream,
 bool QuicSession::CheckStreamWriteBlocked(QuicStream* stream) const {
   if (stream->HasBufferedData() && !stream->write_side_closed() &&
       !stream->IsFlowControlBlocked() &&
-      !write_blocked_streams_->IsStreamBlocked(stream->id())) {
+      !write_blocked_streams_.IsStreamBlocked(stream->id())) {
     QUIC_DLOG(ERROR) << ENDPOINT << "stream " << stream->id()
                      << " has buffered " << stream->BufferedDataBytes()
                      << " bytes, and is not flow control blocked, "
@@ -628,8 +628,8 @@ void QuicSession::OnCanWrite() {
   // crypto and headers streams to try writing as all other streams will be
   // blocked.
   size_t num_writes = flow_controller_.IsBlocked()
-                          ? write_blocked_streams_->NumBlockedSpecialStreams()
-                          : write_blocked_streams_->NumBlockedStreams();
+                          ? write_blocked_streams_.NumBlockedSpecialStreams()
+                          : write_blocked_streams_.NumBlockedStreams();
   if (num_writes == 0 && !control_frame_manager_.WillingToWrite() &&
       datagram_queue_.empty() &&
       (!QuicVersionUsesCryptoFrames(transport_version()) ||
@@ -674,8 +674,8 @@ void QuicSession::OnCanWrite() {
   }
   absl::InlinedVector<QuicStreamId, 4> last_writing_stream_ids;
   for (size_t i = 0; i < num_writes; ++i) {
-    if (!(write_blocked_streams_->HasWriteBlockedSpecialStream() ||
-          write_blocked_streams_->HasWriteBlockedDataStreams())) {
+    if (!(write_blocked_streams_.HasWriteBlockedSpecialStream() ||
+          write_blocked_streams_.HasWriteBlockedDataStreams())) {
       // Writing one stream removed another!? Something's broken.
       QUIC_BUG(quic_bug_10866_1)
           << "WriteBlockedStream is missing, num_writes: " << num_writes
@@ -694,7 +694,7 @@ void QuicSession::OnCanWrite() {
     if (false && !CanWriteStreamData()) {
       return;
     }
-    currently_writing_stream_id_ = write_blocked_streams_->PopFront();
+    currently_writing_stream_id_ = write_blocked_streams_.PopFront();
     last_writing_stream_ids.push_back(currently_writing_stream_id_);
     QUIC_DVLOG(1) << ENDPOINT << "Removing stream "
                   << currently_writing_stream_id_ << " from write-blocked list";
@@ -741,10 +741,10 @@ bool QuicSession::WillingAndAbleToWrite() const {
     }
     // Crypto and headers streams are not blocked by connection level flow
     // control.
-    return write_blocked_streams_->HasWriteBlockedSpecialStream();
+    return write_blocked_streams_.HasWriteBlockedSpecialStream();
   }
-  return write_blocked_streams_->HasWriteBlockedSpecialStream() ||
-         write_blocked_streams_->HasWriteBlockedDataStreams();
+  return write_blocked_streams_.HasWriteBlockedSpecialStream() ||
+         write_blocked_streams_.HasWriteBlockedDataStreams();
 }
 
 std::string QuicSession::GetStreamsInfoForLogging() const {
@@ -783,7 +783,7 @@ bool QuicSession::HasPendingHandshake() const {
 
   const auto cid = QuicUtils::GetCryptoStreamId(transport_version());
   return streams_with_pending_retransmission_.contains(cid) ||
-         write_blocked_streams_->IsStreamBlocked(cid);
+         write_blocked_streams_.IsStreamBlocked(cid);
 }
 
 void QuicSession::ProcessUdpPacket(const QuicSocketAddress& self_address,
@@ -844,14 +844,14 @@ QuicConsumedData QuicSession::WritevData(QuicStreamId id, size_t write_length,
 
   SetTransmissionType(type);
   //QUICHE_CHECK(level == connection_->encryption_level());// TODO2 hybchanged removed it
-#if DEBUG
+#if DEBUG || QUIC_TLS_SESSION
   QuicConnection::ScopedEncryptionLevelContext context(connection_, level);
 #endif
   QuicConsumedData data =
       connection_->SendStreamData(id, write_length, offset, state);
   if (type == NOT_RETRANSMISSION) {
     // This is new stream data.
-    write_blocked_streams_->UpdateBytesForStream(id, data.bytes_consumed);
+    write_blocked_streams_.UpdateBytesForStream(id, data.bytes_consumed);
   }
 
   return data;
@@ -1819,16 +1819,16 @@ void QuicSession::OnCryptoHandshakeMessageReceived(
 
 void QuicSession::RegisterStreamPriority(QuicStreamId id, bool is_static,
                                          const QuicStreamPriority& priority) {
-  write_blocked_streams()->RegisterStream(id, is_static, priority);
+  write_blocked_streams_.RegisterStream(id, is_static, priority);
 }
 
 void QuicSession::UnregisterStreamPriority(QuicStreamId id) {
-  write_blocked_streams()->UnregisterStream(id);
+  write_blocked_streams_.UnregisterStream(id);
 }
 
 void QuicSession::UpdateStreamPriority(QuicStreamId id,
                                        const QuicStreamPriority& new_priority) {
-  write_blocked_streams()->UpdateStreamPriority(id, new_priority);
+  write_blocked_streams_.UpdateStreamPriority(id, new_priority);
 }
 
 void QuicSession::ActivateStream(QuicStream* stream) {
@@ -2011,7 +2011,7 @@ bool QuicSession::ShouldYield(QuicStreamId stream_id) {
   if (stream_id == currently_writing_stream_id_) {
     return false;
   }
-  return write_blocked_streams()->ShouldYield(stream_id);
+  return write_blocked_streams_.ShouldYield(stream_id);
 }
 
 PendingStream* QuicSession::GetOrCreatePendingStream(QuicStreamId stream_id) {
@@ -2117,12 +2117,12 @@ void QuicSession::MarkConnectionLevelWriteBlocked(QuicStreamId id) {
   QUIC_DVLOG(1) << ENDPOINT << "Adding stream " << id
                 << " to write-blocked list";
 
-  write_blocked_streams_->AddStream(id);
+  write_blocked_streams_.AddStream(id);
 }
 #if 0
 bool QuicSession::HasDataToWrite() const {
-  return write_blocked_streams_->HasWriteBlockedSpecialStream() ||
-         write_blocked_streams_->HasWriteBlockedDataStreams() ||
+  return write_blocked_streams_.HasWriteBlockedSpecialStream() ||
+         write_blocked_streams_.HasWriteBlockedDataStreams() ||
          connection_->HasQueuedData() ||
          !streams_with_pending_retransmission_.empty() ||
          control_frame_manager_.WillingToWrite();

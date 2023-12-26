@@ -60,22 +60,18 @@ void QuicAlarm::Update(QuicTime new_deadline, QuicTime::Delta granularity) {
   }
 #endif
   const auto delta = (new_deadline - deadline_).ToMicroseconds();
-  deadline_ = new_deadline;
+  //deadline_ = new_deadline;
   if (std::abs(delta) <= granularity.ToMicroseconds()) {
     return;
   }
   else if (!new_deadline.IsInitialized()) {
     CancelImpl();
-    //deadline_ = QuicTime::Zero();
-    return;
-  }
-  else if (false && delta > 0 && deadline_.IsInitialized()) {
-    deadline_ = new_deadline;
+    deadline_ = QuicTime::Zero();
     return;
   }
   //QUICHE_DCHECK (!IsPermanentlyCancelled());
 
-  //deadline_ = new_deadline;
+  deadline_ = new_deadline;
   SetImpl();
 }
 
@@ -90,7 +86,7 @@ void QuicAlarm::Fire() {
         delegate_->GetConnectionContext());
 #endif
   if (delegate_.get())
-    delegate_.get()->OnAlarm();
+    delegate_->OnAlarm();
 }
 
 void QuicAlarm::UpdateImpl() {

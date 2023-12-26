@@ -20,7 +20,7 @@ namespace quic {
 
 QuicConnectionId GetServerConnectionIdAsRecipient(
     const QuicPacketHeader& header, Perspective perspective) {
-  if (perspective == Perspective::IS_SERVER) {
+  if (QUIC_SERVER_SESSION == Perspective::IS_SERVER || perspective == Perspective::IS_SERVER) {
     return header.destination_connection_id;
   }
   return header.source_connection_id;
@@ -360,7 +360,7 @@ QuicReceivedPacket::QuicReceivedPacket(const char* buffer, size_t length,
       owns_header_buffer_(owns_header_buffer) {}
 
 QuicReceivedPacket::~QuicReceivedPacket() {
-  if (owns_header_buffer_) {
+  if (false && owns_header_buffer_) {
     delete[] static_cast<char*>(packet_headers_);
   }
 }

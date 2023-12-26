@@ -23,6 +23,7 @@
 #include "quiche/quic/core/quic_server_id.h"
 #include "quiche/quic/platform/api/quic_export.h"
 #include "quiche/common/platform/api/quiche_reference_counted.h"
+#include "quiche/common/small_unordered_flat_map.hpp"
 
 namespace quic {
 
@@ -420,7 +421,7 @@ class QUIC_EXPORT_PRIVATE QuicCryptoClientConfig final : public QuicCryptoConfig
 
   // cached_states_ maps from the server_id to the cached information about
   // that server.
-  std::map<QuicServerId, std::unique_ptr<CachedState>> cached_states_;
+  sfl::small_unordered_flat_map<QuicServerId, std::unique_ptr<CachedState>, 1> cached_states_;
 
   // Contains a map of servers which could share the same server config. Map
   // from a canonical host suffix/port/scheme to a representative server with

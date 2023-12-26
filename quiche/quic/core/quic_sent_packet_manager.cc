@@ -41,7 +41,7 @@ static const size_t kDefaultMaxTailLossProbes = 2;
 
 // The multiplier for calculating PTO timeout before any RTT sample is
 // available.
-static const float kPtoMultiplierWithoutRttSamples = 3;
+static const int kPtoMultiplierWithoutRttSamples = 3;
 
 // Returns true of retransmissions of the specified type should retransmit
 // the frames directly (as opposed to resulting in a loss notification).
@@ -352,6 +352,7 @@ void QuicSentPacketManager::PostProcessNewlyAckedPackets(
   // Remove packets below least unacked from all_packets_acked_ and
   // last_ack_frame_.
   last_ack_frame_.packets.RemoveUpTo(unacked_packets_.GetLeastUnacked());
+  if (!last_ack_frame_.received_packet_times.empty())
   last_ack_frame_.received_packet_times.clear();
 }
 
@@ -935,10 +936,10 @@ bool QuicSentPacketManager::MaybeUpdateRTT(QuicPacketNumber largest_acked,
         << "Acked packet has zero sent time, largest_acked:" << largest_acked;
     return false;
   }
-  else if (false && transmission_info.state == NOT_CONTRIBUTING_RTT) {
+  if (false && transmission_info.state == NOT_CONTRIBUTING_RTT) {
     return false;
   }
-  else if (false && transmission_info.sent_time > ack_receive_time) {
+  if (false && transmission_info.sent_time > ack_receive_time) {
     QUIC_CODE_COUNT(quic_receive_acked_before_sending);
   }
 

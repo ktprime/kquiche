@@ -115,10 +115,11 @@ class QUIC_EXPORT_PRIVATE QuicTimeDelta {
 class QUIC_EXPORT_PRIVATE QuicTime {
  public:
   using Delta = QuicTimeDelta;
+  static constexpr int64_t zero_time = 0;
 
   // Creates a new QuicTime with an internal value of 0.  IsInitialized()
   // will return false for these times.
-  static constexpr QuicTime Zero() { return QuicTime(0); }
+  static constexpr QuicTime Zero() { return QuicTime(zero_time); }
 
   // Creates a new QuicTime with an infinite time.
   static constexpr QuicTime Infinite() {
@@ -135,7 +136,7 @@ class QUIC_EXPORT_PRIVATE QuicTime {
   // be a CPU ticks based value.
   int64_t ToDebuggingValue() const { return time_; }
 
-  bool IsInitialized() const { return 0 != time_; }
+  bool IsInitialized() const { return zero_time != time_; }
   explicit constexpr QuicTime(int64_t time) : time_(time) {}
 
  private:

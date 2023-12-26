@@ -732,7 +732,6 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // QuicIdleNetworkDetector::Delegate
   void OnHandshakeTimeout() final;
   void OnIdleNetworkDetected() final;
-  void OnBandwidthUpdateTimeout() final;
 
   // QuicPingManager::Delegate
   void OnKeepAliveTimeout() final;
@@ -960,7 +959,9 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
     // retransmission alarm if there is one pending.
     bool flush_and_set_pending_retransmission_alarm_on_delete_;
     // Latched connection's handshake_packet_sent_ on creation of this flusher.
+#if QUIC_TLS_SESSION
     const bool handshake_packet_sent_;
+#endif
   };
 
   class QUIC_EXPORT_PRIVATE ScopedEncryptionLevelContext {
@@ -2299,7 +2300,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   RetransmittableOnWireBehavior retransmittable_on_wire_behavior_ = DEFAULT;
 
   // Server addresses that are known to the client.
-  absl::InlinedVector<QuicSocketAddress, 1> known_server_addresses_;
+  std::vector<QuicSocketAddress> known_server_addresses_;
 
   // Stores received server preferred address in transport param. Client side
   // only.

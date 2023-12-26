@@ -3363,7 +3363,6 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
    //TODO hybchanged QuicUtils::ContainsFrameType(packet->nonretransmittable_frames, MTU_DISCOVERY_FRAME);
   const SerializedPacketFate fate = packet->fate;
   // Termination packets are encrypted and saved, so don't exit early.
-  QuicErrorCode error_code = QUIC_NO_ERROR;
   const bool is_termination_packet = packet->frame_types & (1 << CONNECTION_CLOSE_FRAME);
 
   QuicPacketNumber packet_number = packet->packet_number;
@@ -4139,7 +4138,7 @@ bool QuicConnection::IsKnownServerAddress(
 
 void QuicConnection::OnRetransmissionTimeout() {
   ScopedRetransmissionTimeoutIndicator indicator(this);
-#ifndef NDEBUG
+#ifdef _DEBUG
   if (sent_packet_manager_.unacked_packets().empty()) {
     QUICHE_DCHECK(sent_packet_manager_.handshake_mode_disabled());
     QUICHE_DCHECK(!IsHandshakeComplete());
@@ -4690,7 +4689,7 @@ void QuicConnection::SetPingAlarm() {
   if (false && !connected_) {
     return;
   }
-  if (!retransmission_alarm_->IsSet()) //TODO hybchanged
+
   ping_manager_.SetAlarm(clock_->ApproximateNow(),
                          visitor_->ShouldKeepConnectionAlive(),
                          sent_packet_manager_.HasInFlightPackets());
@@ -4752,9 +4751,11 @@ void QuicConnection::MaybeSetMtuAlarm(QuicPacketNumber sent_packet_number) {
 QuicConnection::ScopedPacketFlusher::ScopedPacketFlusher(
     QuicConnection* connection)
     : connection_(connection),
-      flush_and_set_pending_retransmission_alarm_on_delete_(false),
-      handshake_packet_sent_(connection != nullptr &&
-                             connection->handshake_packet_sent_) {
+      flush_and_set_pending_retransmission_alarm_on_delete_(false)
+#if QUIC_TLS_SESSION
+      ,handshake_packet_sent_(connection != nullptr && connection->handshake_packet_sent_)
+#endif
+{
   QUICHE_DCHECK(connection_ != nullptr);
   if (false && connection_ == nullptr) {
     return;
@@ -4776,10 +4777,10 @@ QuicConnection::ScopedPacketFlusher::~ScopedPacketFlusher() {
 #if 1
     const QuicTime ack_timeout = connection_->uber_received_packet_manager_.GetEarliestAckTimeout();
     auto& ack_alarm = connection_->ack_alarm_;
-    if (ack_timeout.IsInitialized() && !ack_alarm->IsSet())
-      ack_alarm->Set(ack_timeout);
-    else if (ack_alarm->IsSet() && ack_alarm->deadline() <= connection_->clock_->ApproximateNow())
-      connection_->SendAck();
+    if (ack_timeout.IsInitialized()) {
+      if (ack_timeout < ack_alarm->deadline())
+        ack_alarm->Update(ack_timeout, kAlarmGranularity);
+    }
 #elif 0 //TODO2
     if (ack_timeout.IsInitialized()) {
       const auto now_time = connection_->clock_->ApproximateNow();
@@ -5716,7 +5717,9 @@ void QuicConnection::UpdateReleaseTimeIntoFuture() {
 }
 
 void QuicConnection::ResetAckStates() {
-  ack_alarm_->Cancel();
+  if (ack_alarm_->deadline().IsInitialized())
+    ack_alarm_->Update(ack_alarm_->deadline() + QuicTimeDelta::FromSeconds(120), QuicTime::Delta::FromSeconds(1));
+//  ack_alarm_->Cancel();
   stop_waiting_count_ = 0;
   uber_received_packet_manager_.ResetAckStates(encryption_level_);
 }
@@ -6275,10 +6278,6 @@ void QuicConnection::OnIdleNetworkDetected() {
   }
   CloseConnection(error_code, error_details,
                   idle_timeout_connection_close_behavior_);
-}
-
-void QuicConnection::OnBandwidthUpdateTimeout() {
-  visitor_->OnBandwidthUpdateTimeout();
 }
 
 void QuicConnection::OnKeepAliveTimeout() {

@@ -655,10 +655,8 @@ class QUIC_EXPORT_PRIVATE QuicSession
   QuicPriorityType priority_type() const { return QuicPriorityType::kHttp; }
 
  protected:
-//  using StreamMap =
-//    emhash5::HashMap<QuicStreamId, QuicStream*>;
-
   using StreamMap =
+//    emhash5::HashMap<QuicStreamId, QuicStream*>;
     sfl::small_unordered_flat_map<QuicStreamId, QuicStream*, 4>;
 
   using PendingStreamMap =
@@ -724,7 +722,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   _virtua constexpr bool ShouldProcessPendingStreamImmediately() const { return true; }
 
   spdy::SpdyPriority GetSpdyPriorityofStream(QuicStreamId stream_id) const {
-    return write_blocked_streams_->GetPriorityOfStream(stream_id)
+    return write_blocked_streams_.GetPriorityOfStream(stream_id)
         .http()
         .urgency;
   }
@@ -737,7 +735,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
       QuicStreamId largest_peer_created_stream_id);
 
   QuicWriteBlockedListInterface* write_blocked_streams() {
-    return write_blocked_streams_.get();
+    return &write_blocked_streams_;
   }
 
   // Returns true if the stream is still active.
@@ -938,7 +936,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   // A list of streams which need to write more data.  Stream register
   // themselves in their constructor, and unregisterm themselves in their
   // destructors, so the write blocked list must outlive all streams.
-  std::unique_ptr<QuicWriteBlockedList> write_blocked_streams_;
+  QuicWriteBlockedList write_blocked_streams_;
 
   ClosedStreams closed_streams_;
 

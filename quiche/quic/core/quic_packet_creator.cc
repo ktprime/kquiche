@@ -746,12 +746,11 @@ bool QuicPacketCreator::AddPaddedSavedFrame(
 absl::optional<size_t>
 QuicPacketCreator::MaybeBuildDataPacketWithChaosProtection(
     const QuicPacketHeader& header, char* buffer) {
-  if (queued_frames_[0].type != CRYPTO_FRAME ||
-      queued_frames_.size() != 2u ||
-      framer_->perspective() != Perspective::IS_CLIENT ||
-      queued_frames_[1].type != PADDING_FRAME ||
+  if (framer_->perspective() != Perspective::IS_CLIENT || queued_frames_.size() != 2u ||
       packet_.encryption_level != ENCRYPTION_INITIAL ||
       !framer_->version().UsesCryptoFrames() ||
+      queued_frames_[0].type != CRYPTO_FRAME ||
+      queued_frames_[1].type != PADDING_FRAME ||
       // Do not perform chaos protection if we do not have a known number of
       // padding bytes to work with.
       queued_frames_[1].padding_frame.num_padding_bytes <= 0 ||
@@ -1300,8 +1299,7 @@ QuicConsumedData QuicPacketCreator::ConsumeData(QuicStreamId id,
       << "Packet flusher is not attached when "
          "generator tries to write stream data.";
   bool has_handshake = QuicUtils::IsCryptoStreamId(transport_version(), id);
-  //if (write_length > kEthernetMTU)
-      MaybeBundleAckOpportunistically(); //TODO hybchanged!!!.
+  MaybeBundleAckOpportunistically(); //TODO2 hybchanged!!!.
   bool fin = state != NO_FIN;
   QUIC_BUG_IF(quic_bug_12398_17, has_handshake && fin)
       << ENDPOINT << "Handshake packets should never send a fin";
@@ -1330,7 +1328,7 @@ QuicConsumedData QuicPacketCreator::ConsumeData(QuicStreamId id,
       !has_handshake && state != FIN_AND_PADDING &&
       latched_hard_max_packet_length_ == 0;
 
-  if (true && !run_fast_path && !HasRoomForStreamFrame(id, offset, write_length)) {
+  if (!run_fast_path && !HasRoomForStreamFrame(id, offset, write_length)) {
     FlushCurrentPacket(); //TODO2 hybchanged
   }
 
@@ -2122,6 +2120,7 @@ void QuicPacketCreator::SetDefaultPeerAddress(const QuicSocketAddress& address) 
     return;
   }
   if (packet_.peer_address != address) {
+    if (HasPendingFrames())
     FlushCurrentPacket();
     packet_.peer_address = address;
   }

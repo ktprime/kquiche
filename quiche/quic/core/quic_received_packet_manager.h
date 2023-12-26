@@ -186,7 +186,7 @@ class QUIC_EXPORT_PRIVATE QuicReceivedPacketManager {
   // Ack every n-th packet.
   size_t ack_frequency_;
   // The max delay in fraction of min_rtt to use when sending decimated acks.
-  float ack_decimation_delay_;
+  uint8_t ack_decimation_delay_;
   // When true, removes ack decimation's max number of packets(10) before
   // sending an ack.
   bool unlimited_ack_decimation_;

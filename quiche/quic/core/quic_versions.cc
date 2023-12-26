@@ -176,14 +176,14 @@ bool ParsedQuicVersion::UsesTls() const {
   return enable_tls && handshake_protocol == PROTOCOL_TLS1_3;
 }
 
-bool ParsedQuicVersion::UsesV2PacketTypes() const {
-  QUICHE_DCHECK(IsKnown());
-  return enable_tls && transport_version == QUIC_VERSION_IETF_2_DRAFT_08;
-}
-
 bool ParsedQuicVersion::UsesQuicCrypto() const {
   QUICHE_DCHECK(IsKnown());
   return !enable_tls || handshake_protocol == PROTOCOL_QUIC_CRYPTO;
+}
+
+bool ParsedQuicVersion::UsesV2PacketTypes() const {
+  QUICHE_DCHECK(IsKnown());
+  return enable_tls && transport_version == QUIC_VERSION_IETF_2_DRAFT_08;
 }
 #endif
 

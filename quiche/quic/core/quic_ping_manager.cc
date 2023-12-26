@@ -49,12 +49,8 @@ void QuicPingManager::SetAlarm(QuicTime now, bool should_keep_alive,
   const QuicTime earliest_deadline = GetEarliestDeadline();
   if (earliest_deadline == keep_alive_deadline_) {
     // Use 1s granularity for keep-alive time.
-    alarm_->Update(earliest_deadline, QuicTime::Delta::FromSeconds(2));
+    alarm_->Update(earliest_deadline, QuicTime::Delta::FromSeconds(1));
     return;
-  }
-  if (false && !earliest_deadline.IsInitialized()) {
-      alarm_->Cancel();
-      return;
   }
   alarm_->Update(earliest_deadline, kAlarmGranularity);
 }

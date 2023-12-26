@@ -47,7 +47,7 @@ QuicStreamSequencer::~QuicStreamSequencer() {
 }
 
 void QuicStreamSequencer::OnStreamFrame(const QuicStreamFrame& frame) {
-  //QUICHE_DCHECK_LE(frame.offset + frame.data_length, close_offset_);
+  QUICHE_DCHECK_LE(frame.offset + frame.data_length, close_offset_);
   ++num_frames_received_;
   const QuicStreamOffset byte_offset = frame.offset;
   const size_t data_len = frame.data_length;
