@@ -40,9 +40,9 @@ class QUICHE_EXPORT QuicheEndian {
 #endif
 
   // Convert |x| from network order (big endian) to host order (little endian).
-//  static uint16_t NetToHost16(uint16_t x) { return HostToNet16(x); }
-//  static uint32_t NetToHost32(uint32_t x) { return HostToNet32(x); }
-//  static uint64_t NetToHost64(uint64_t x) { return HostToNet64(x); }
+  static uint16_t NetToHost16(uint16_t x) { return HostToNet16(x); }
+  static uint32_t NetToHost32(uint32_t x) { return HostToNet32(x); }
+  static uint64_t NetToHost64(uint64_t x) { return HostToNet64(x); }
 
   // Left public for tests.
   template <typename T>

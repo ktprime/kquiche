@@ -156,9 +156,6 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
   // not exist or has been acked.
   bool FreeMemSlices(QuicStreamOffset start, QuicStreamOffset end);
 
-  // Cleanup empty slices in order from buffered_slices_.
-  void CleanUpBufferedSlices();
-
   // |current_end_offset_| stores the end offset of the current slice to ensure
   // data isn't being written out of order when using the |interval_deque_|.
   QuicStreamOffset current_end_offset_;

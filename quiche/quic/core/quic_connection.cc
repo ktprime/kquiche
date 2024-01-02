@@ -1492,7 +1492,7 @@ bool QuicConnection::OnAckFrameStart(QuicPacketNumber largest_acked,
   }
 
   if (//!sent_packet_manager_.GetLargestSentPacket().IsInitialized() ||
-      largest_acked > sent_packet_manager_.GetLargestSentPacket()) {
+      sent_packet_manager_.GetLargestSentPacket() < largest_acked) {
     QUIC_DLOG(WARNING) << ENDPOINT
                        << "Peer's observed unsent packet:" << largest_acked
                        << " vs " << sent_packet_manager_.GetLargestSentPacket()
@@ -3662,8 +3662,10 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
     SetRetransmissionAlarm();
   } else
     SetPingAlarm();
+#if QUIC_TLS_SESSION
   if (connection_migration_use_new_cid_)
   RetirePeerIssuedConnectionIdsNoLongerOnPath();
+#endif
 
   // The packet number length must be updated after OnPacketSent, because it
   // may change the packet number length in packet.

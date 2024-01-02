@@ -92,7 +92,7 @@ void QuicIdleNetworkDetector::OnPacketSent(QuicTime now,
 }
 
 void QuicIdleNetworkDetector::OnPacketReceived(QuicTime now) {
-  QUICHE_DCHECK(time_of_last_received_packet_ <= now);
+  //QUICHE_DCHECK(time_of_last_received_packet_ <= now);
   time_of_last_received_packet_ = now;
   SetAlarm();
 }

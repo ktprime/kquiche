@@ -138,7 +138,7 @@ class QUIC_NO_EXPORT QuicIntervalSet {
   // Same semantics as Add(const value_type&), but optimized for the case where
   // rbegin()->min() <= |interval|.min() <= rbegin()->max().
   void AddOptimizedForAppend(const value_type& interval) {
-    if (Empty()) {// || !GetQuicFlag(quic_interval_set_enable_add_optimization)) {
+    if (intervals_.empty()) {// || !GetQuicFlag(quic_interval_set_enable_add_optimization)) {
       intervals_.append(interval);
       return;
     }

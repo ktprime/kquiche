@@ -27,21 +27,34 @@ QuicheDataReader::QuicheDataReader(const char* data, const size_t len,
     : data_(data), len_(len), pos_(0), endianness_(endianness) {}
 
 bool QuicheDataReader::ReadUInt8(uint8_t* result) {
-  //return ReadBytes(result, sizeof(*result));
+#if 0
+  return ReadBytes(result, sizeof(*result));
+#else
   auto res = CanRead(1);
   *result = data_[pos_++];
-  return res;
+  return true;
+#endif
 }
 
 bool QuicheDataReader::ReadUInt16(uint16_t* result) {
-  //ReadBytes(result, sizeof(*result));
-  memcpy(result, data_ + pos_, sizeof(*result));
-  pos_ += sizeof(*result);
-
+#if 0
+  if (!ReadBytes(result, sizeof(*result))) {
+    return false;
+  }
   if (endianness_ == quiche::NETWORK_BYTE_ORDER) {
     *result = quiche::QuicheEndian::HostToNet16(*result);
   }
   return true;
+#else
+  auto res = CanRead(sizeof(*result));
+  if (endianness_ == quiche::NETWORK_BYTE_ORDER) {
+    *result = (uint8_t)data_[pos_] * 256u + (uint8_t)data_[pos_ + 1];
+  } else {
+    *result = *(uint16_t*)(data_ + pos_);
+  }
+  pos_ += sizeof(*result);
+  return res;
+#endif
 }
 
 bool QuicheDataReader::ReadUInt24(uint32_t* result) {
@@ -69,7 +82,6 @@ bool QuicheDataReader::ReadUInt32(uint32_t* result) {
 }
 
 bool QuicheDataReader::ReadUInt64(uint64_t* result) {
-  QUICHE_CHECK(CanRead(sizeof(*result)));
   auto ret = ReadBytes(result, sizeof(*result));
 
   if (endianness_ == quiche::NETWORK_BYTE_ORDER) {
@@ -79,11 +91,22 @@ bool QuicheDataReader::ReadUInt64(uint64_t* result) {
 }
 
 bool QuicheDataReader::ReadBytesToUInt64(size_t num_bytes, uint64_t* result) {
-  *result = 0u;
-  if (num_bytes == 1)
-    return ReadUInt8((uint8_t*)result); //TODO here
+  QUICHE_DCHECK(endianness_ != quiche::HOST_BYTE_ORDER);
 
-  if (endianness_ == quiche::HOST_BYTE_ORDER) {
+  if (num_bytes == 1) {
+    auto res = CanRead(num_bytes);
+    *result = (uint8_t)data_[pos_++];
+    return res;
+  }
+  else if (num_bytes == 2) {
+    auto res = CanRead(num_bytes);
+    *result = (uint8_t)data_[pos_ + 0] * 256u + (uint8_t)data_[pos_ + 1];
+    pos_ += num_bytes;
+    return res;
+  }
+
+  *result = 0u;
+  if (DCHECK_FLAG && endianness_ == quiche::HOST_BYTE_ORDER) {
     return ReadBytes(result, num_bytes);
   }
 
@@ -294,7 +317,7 @@ bool QuicheDataReader::TruncateRemaining(size_t truncation_length) {
 }
 
 bool QuicheDataReader::CanRead(size_t bytes) const {
-  return bytes <= (len_ - pos_);
+  return bytes + pos_ <= len_;
 }
 
 void QuicheDataReader::OnFailure() {

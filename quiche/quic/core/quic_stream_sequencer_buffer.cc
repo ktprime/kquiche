@@ -45,7 +45,7 @@ QuicStreamSequencerBuffer::QuicStreamSequencerBuffer(size_t max_capacity_bytes)
       current_blocks_count_(0u),
       current_capacity_bytes_(0u),
       total_bytes_read_(0) {
-  auto max_blocks_count_(CalculateBlockCount(max_capacity_bytes));
+  const auto max_blocks_count_ = CalculateBlockCount(max_capacity_bytes);
   QUICHE_DCHECK_GE(max_blocks_count_, kInitialBlockCount);
   QUICHE_DCHECK((max_blocks_count_ & (max_blocks_count_ - 1)) == 0);
   QUICHE_DCHECK((max_capacity_bytes & (max_capacity_bytes - 1)) == 0);
@@ -59,16 +59,17 @@ QuicStreamSequencerBuffer::~QuicStreamSequencerBuffer() { Clear(); }
 void QuicStreamSequencerBuffer::Clear() {
   for (size_t i = 0; i < current_blocks_count_; ++i) {
     if (blocks_[i] != nullptr) {
-      free (blocks_[i]);
+      delete blocks_[i];
       blocks_[i] = nullptr;
     }
   }
   for (size_t i = 0; i < empty_blocks_count_; ++i) {
-    free (empty_blocks[i]);
+    delete empty_blocks[i];
   }
 
   empty_blocks_count_ = 0;
   num_bytes_buffered_ = 0;
+  current_capacity_bytes_ = 0;
   bytes_received_.Clear();
   bytes_received_.AddOptimizedForAppend(0, total_bytes_read_);
 }
@@ -100,7 +101,7 @@ bool QuicStreamSequencerBuffer::RetireBlock(size_t index) {
   }
   //cn3 += 1;
 
-  free (blocks_[index]);
+  delete (blocks_[index]);
   blocks_[index] = nullptr;
   return true;
 }
@@ -136,7 +137,7 @@ QuicErrorCode QuicStreamSequencerBuffer::OnStreamData(
     size_t* const bytes_buffered, std::string_view* error_details) {
   size_t size = data.size();
   //QUICHE_DCHECK(size && *bytes_buffered == 0);
-  if (size == 0) {
+  if (false && size == 0) {
     *error_details = "Received empty stream frame without FIN.";
     return QUIC_EMPTY_STREAM_FRAME_NO_FIN;
   }
@@ -155,7 +156,7 @@ QuicErrorCode QuicStreamSequencerBuffer::OnStreamData(
   else if (ending_offset <= bytes_received_.begin()->max())
     return QUIC_NO_ERROR;//dup
 
-  if (starting_offset > bytes_received_.rbegin()->max() + 1024 * 256) {
+  else if (starting_offset > bytes_received_.rbegin()->max() + 1024 * 256) {
     *error_details = "Received data with a large hot.";
     return QUIC_INTERNAL_ERROR;
   }
@@ -263,7 +264,7 @@ bool QuicStreamSequencerBuffer::CopyStreamData(QuicStreamOffset offset,
       if (empty_blocks_count_)
         blocks_[write_block_num] = empty_blocks[--empty_blocks_count_];
       else
-        blocks_[write_block_num] = (BufferBlock*)malloc(sizeof(BufferBlock));// new BufferBlock();
+        blocks_[write_block_num] = new BufferBlock();
     }
 
     const size_t bytes_to_copy =
@@ -348,8 +349,9 @@ QuicErrorCode QuicStreamSequencerBuffer::Readv(const iovec* dest_iov,
 
 int QuicStreamSequencerBuffer::GetReadableRegions(struct iovec* iov,
                                                   int iov_len) const {
-  QUICHE_DCHECK(iov != nullptr);
-  QUICHE_DCHECK_GT(iov_len, 0);
+  //QUICHE_DCHECK(iov != nullptr);
+  //QUICHE_DCHECK_GT(iov_len, 0);
+  QUICHE_DCHECK_GT(ReadableBytes(), 0);
 
   if (false && ReadableBytes() == 0) {
     iov[0].iov_base = nullptr;
@@ -363,18 +365,20 @@ int QuicStreamSequencerBuffer::GetReadableRegions(struct iovec* iov,
   QUICHE_DCHECK_LE(readable_offset_end - total_bytes_read_, current_capacity_bytes_);
   size_t end_block_offset = GetInBlockOffset(readable_offset_end);
   size_t end_block_idx = GetBlockIndex(readable_offset_end);
+  size_t read_offset = ReadOffset();
 
   // If readable region is within one block, deal with it seperately.
-  if (start_block_idx == end_block_idx && ReadOffset() <= end_block_offset) {
-    iov[0].iov_base = blocks_[start_block_idx]->buffer + ReadOffset();
+  if (start_block_idx == end_block_idx /* && ***/) {
+    QUICHE_DCHECK(read_offset <= end_block_offset);
+    iov[0].iov_base = blocks_[start_block_idx]->buffer + read_offset;
     iov[0].iov_len = ReadableBytes();
     QUIC_DVLOG(1) << "Got only a single block with index: " << start_block_idx;
     return 1;
   }
 
   // Get first block
-  iov[0].iov_base = blocks_[start_block_idx]->buffer + ReadOffset();
-  iov[0].iov_len = GetBlockCapacity(start_block_idx) - ReadOffset();
+  iov[0].iov_base = blocks_[start_block_idx]->buffer + read_offset;
+  iov[0].iov_len = GetBlockCapacity(start_block_idx) - read_offset;
   QUIC_DVLOG(1) << "Got first block " << start_block_idx << " with len "
                 << iov[0].iov_len;
   QUICHE_DCHECK_GT(readable_offset_end + 1, total_bytes_read_ + iov[0].iov_len)

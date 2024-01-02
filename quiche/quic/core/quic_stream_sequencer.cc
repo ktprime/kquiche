@@ -163,6 +163,7 @@ void QuicStreamSequencer::MaybeCloseStream() {
     // receipt of a FIN because the consumer won't.
     stream_->OnFinRead();
   } else {
+    if (buffered_frames_.ReadableBytes())
     stream_->OnDataAvailable();
   }
   buffered_frames_.Clear();

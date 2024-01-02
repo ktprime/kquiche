@@ -241,18 +241,16 @@ void QuicReceivedPacketManager::MaybeUpdateAckTimeout(
     QuicTime last_packet_receipt_time, QuicTime now,
     const RttStats* rtt_stats) {
 
-  QUICHE_DCHECK(ack_frame_updated_);
   if (false && !ack_frame_updated_) {
     // ACK frame has not been updated, nothing to do.
     return;
   }
 
-  if (//was_last_packet_missing_ && !ignore_order_ &&
+  if (was_last_packet_missing_ &&// !ignore_order_ &&
       //last_sent_largest_acked_.IsInitialized() &&
       last_received_packet_number < last_sent_largest_acked_) {
     // Only ack immediately if an ACK frame was sent with a larger largest acked
     // than the newly received packet number.
-    QUICHE_DCHECK(was_last_packet_missing_);
     //QUICHE_DCHECK(should_last_packet_instigate_acks);
     ack_timeout_ = now;
     return;

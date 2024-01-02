@@ -57,7 +57,7 @@ void QuicPingManager::SetAlarm(QuicTime now, bool should_keep_alive,
 
 void QuicPingManager::OnAlarm() {
   const QuicTime earliest_deadline = GetEarliestDeadline();
-  if (false && !earliest_deadline.IsInitialized()) {
+  if (!earliest_deadline.IsInitialized()) {
     QUIC_BUG(quic_ping_manager_alarm_fires_unexpectedly)
         << "QuicPingManager alarm fires unexpectedly.";
     return;

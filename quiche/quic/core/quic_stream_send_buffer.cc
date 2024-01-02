@@ -70,7 +70,6 @@ QuicStreamSendBuffer::~QuicStreamSendBuffer() {
   blocks_.clear();
 }
 
-
 void QuicStreamSendBuffer::SaveStreamData(std::string_view data) {
   QUICHE_DCHECK(!data.empty());
 
@@ -182,7 +181,6 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
     const_cast<size_t&>(lmax) = ending_offset;
     *newly_acked_length = data_length;
     stream_bytes_outstanding_ -= data_length;
-//    QUICHE_DCHECK(pending_retransmissions_.Empty() || !pending_retransmissions_.SpanningInterval().Intersects(off));
     if (!pending_retransmissions_.Empty())
       pending_retransmissions_.Difference(off);
     return FreeMemSlices(offset, ending_offset);
@@ -194,7 +192,6 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
       return QUIC_TOO_MANY_STREAM_DATA_INTERVALS;
     }
     bytes_acked_.AppendBack(off);
-    //QUICHE_DCHECK(pending_retransmissions_.Empty() || !pending_retransmissions_.SpanningInterval().Intersects(off));
     if (!pending_retransmissions_.Empty())
       pending_retransmissions_.Difference(off);
     *newly_acked_length = data_length;

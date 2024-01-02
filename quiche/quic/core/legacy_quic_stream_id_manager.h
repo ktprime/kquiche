@@ -8,6 +8,7 @@
 #include "quiche/quic/core/quic_stream_id_manager.h"
 #include "quiche/quic/core/quic_types.h"
 #include "quiche/quic/core/quic_versions.h"
+#include "quiche/common/small_flat_set.hpp"
 
 namespace quic {
 
@@ -112,7 +113,7 @@ class QUIC_EXPORT_PRIVATE LegacyQuicStreamIdManager {
 
   // Set of stream ids that are less than the largest stream id that has been
   // received, but are nonetheless available to be created.
-  absl::flat_hash_set<QuicStreamId> available_streams_;
+  sfl::small_flat_set<QuicStreamId, 3> available_streams_;
 
   QuicStreamId largest_peer_created_stream_id_;
 

@@ -21,9 +21,9 @@
 //#include "quiche_platform_impl/quiche_stack_trace_impl.h"
 
 #ifdef _DEBUG
-#define BENCH_MARK 1
+#define DCHECK_FLAG 1
 #else
-#define BENCH_MARK 1
+#define DCHECK_FLAG 0
 #endif // DEBUG
 
 namespace quiche {
@@ -60,7 +60,7 @@ class QUICHE_EXPORT NoopLogSink {
 // to compile due to the "failed to return value from non-void function" error.
 class QUICHE_EXPORT FatalLogSink : public NoopLogSink {
  public:
-#if BENCH_MARK == 0
+#if DCHECK_FLAG
   ABSL_ATTRIBUTE_NORETURN ~FatalLogSink() {
     std::cerr << str() << std::endl;
     abort();
@@ -70,7 +70,7 @@ class QUICHE_EXPORT FatalLogSink : public NoopLogSink {
 
 class QUICHE_EXPORT CheckLogSink : public NoopLogSink {
 public:
-#if BENCH_MARK == 0
+#if DCHECK_FLAG
   CheckLogSink(bool condition) : condition_(condition) {}
   ~CheckLogSink() {
     if (!condition_) {
@@ -90,7 +90,7 @@ private:
 
 // This is necessary because we sometimes call QUICHE_DCHECK inside constexpr
 // functions, and then write non-constexpr expressions into the resulting log.
-#if OPEN_CHROME_LOG || BENCH_MARK == 0
+#if DCHECK_FLAG
 #define QUICHE_CONDITIONAL_LOG_STREAM(stream, condition) \
   !(condition) ? (void)0 : ::quiche::LogStreamVoidHelper() & (stream)
 #else
@@ -122,7 +122,7 @@ private:
 #define QUICHE_LOG_IF_IMPL(severity, condition) \
   QUICHE_CONDITIONAL_LOG_STREAM(QUICHE_LOG_IMPL_##severity(), condition)
 
-#if NDEBUG || BENCH_MARK
+#if NDEBUG || DCHECK_FLAG == 0
 #define QUICHE_LOG_IMPL_DFATAL() ::quiche::NoopLogSink().stream()
 #define QUICHE_DLOG_IF_IMPL(severity, condition) \
   QUICHE_NOOP_STREAM_WITH_CONDITION(false)
@@ -139,7 +139,7 @@ private:
 #define QUICHE_LOG_WARNING_IS_ON_IMPL() false
 #define QUICHE_LOG_ERROR_IS_ON_IMPL() false
 
-#if NDEBUG || BENCH_MARK
+#if NDEBUG || DCHECK_FLAG == 0
 #define QUICHE_CHECK_IMPL(condition) \
 //  ::quiche::CheckLogSink(static_cast<bool>(false)).stream()
 #else
@@ -154,7 +154,7 @@ private:
 #define QUICHE_CHECK_GT_IMPL(val1, val2) QUICHE_CHECK_IMPL((val1) > (val2))
 #define QUICHE_CHECK_OK_IMPL(status)     QUICHE_CHECK_IMPL(absl::OkStatus() == (status))
 
-#if NDEBUG || BENCH_MARK
+#if NDEBUG || DCHECK_FLAG == 0
 #define QUICHE_DCHECK_IMPL(condition) \
 //  QUICHE_NOOP_STREAM_WITH_CONDITION((false))
 #else

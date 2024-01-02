@@ -52,14 +52,21 @@ bool QuicheDataWriter::WriteUInt64(uint64_t value) {
 }
 
 bool QuicheDataWriter::WriteBytesToUInt64(size_t num_bytes, uint64_t value) {
-  QUICHE_DCHECK(num_bytes <= sizeof(value));
-  if (false && num_bytes > sizeof(value)) {
+  QUICHE_DCHECK(num_bytes <= sizeof(value) && endianness_ == quiche::NETWORK_BYTE_ORDER);
+  if (DCHECK_FLAG && num_bytes > sizeof(value)) {
     return false;
   }
-  if (num_bytes == 1)
-    return WriteUInt8((uint8_t)value);
+  if (num_bytes == 1) {
+    *((uint8_t*)buffer_ + length_++) = (uint8_t)value;
+    return true;
+  }
+  else if (num_bytes == 2) {
+    *((uint8_t*)buffer_ + length_++) = (uint8_t)(value >> 8);
+    *((uint8_t*)buffer_ + length_++) = (uint8_t)value;
+    return true;
+  }
 
-  if (endianness_ == quiche::HOST_BYTE_ORDER) {
+  if (false && endianness_ == quiche::HOST_BYTE_ORDER) {
     return WriteBytes(&value, num_bytes);
   }
 
@@ -101,7 +108,7 @@ char* QuicheDataWriter::BeginWrite(size_t length) {
 
 bool QuicheDataWriter::WriteBytes(const void* data, size_t data_len) {
   char* dest = BeginWrite(data_len);
-  if (false && !dest) {
+  if (DCHECK_FLAG && !dest) {
     return false;
   }
 

@@ -406,14 +406,13 @@ void QuicStream::OnStreamFrame(const QuicStreamFrame& frame) {
   QUICHE_DCHECK_EQ(frame.stream_id, id_);
 
   QUICHE_DCHECK(!(read_side_closed_ && write_side_closed_));
-  QUICHE_DCHECK(!(frame.fin && is_static_));
-#if HYB_OPT
+
   if (frame.fin && is_static_) {
     OnUnrecoverableError(QUIC_INVALID_STREAM_ID,
                          "Attempt to close a static stream");
     return;
   }
-
+#if HYB_OPT
   if (type_ == WRITE_UNIDIRECTIONAL) {
     OnUnrecoverableError(QUIC_DATA_RECEIVED_ON_WRITE_UNIDIRECTIONAL_STREAM,
                          "Data received on write unidirectional stream");
@@ -436,7 +435,6 @@ void QuicStream::OnStreamFrame(const QuicStreamFrame& frame) {
                      frame.data_length, ". ", sequencer_.DebugString()));
     return;
   }
-#endif
 
   if (frame.offset + frame.data_length > sequencer_.close_offset()) {
     OnUnrecoverableError(
@@ -447,6 +445,7 @@ void QuicStream::OnStreamFrame(const QuicStreamFrame& frame) {
             ", which is beyond close offset: ", sequencer_.close_offset()));
     return;
   }
+#endif
 
   if (frame.fin && !fin_received_) {
     fin_received_ = true;
@@ -458,7 +457,7 @@ void QuicStream::OnStreamFrame(const QuicStreamFrame& frame) {
     }
   }
 
-  if (read_side_closed_) {
+  if (false && read_side_closed_) {
     QUIC_DLOG(INFO)
         << ENDPOINT << "Stream " << frame.stream_id
         << " is closed for reading. Ignoring newly received stream data.";

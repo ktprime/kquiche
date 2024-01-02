@@ -998,7 +998,7 @@ const QuicTime QuicSentPacketManager::GetRetransmissionTime() const {
               std::max(unacked_packets_.GetFirstInFlightTransmissionInfo()->sent_time +
                            GetProbeTimeoutDelay(NUM_PACKET_NUMBER_SPACES),
                        unacked_packets_.GetLastInFlightPacketSentTime() +
-                           kFirstPtoSrttMultiplier * rtt_stats_.SmoothedOrInitialRtt());
+                           rtt_stats_.smoothed_rtt() * kFirstPtoSrttMultiplier / 2);
         }
         // Ensure PTO never gets set to a time in the past.
         return //std::max(clock_->ApproximateNow(),
@@ -1024,13 +1024,10 @@ const QuicTime QuicSentPacketManager::GetRetransmissionTime() const {
           // Arm 1st PTO with earliest in flight sent time, and make sure at
           // least kFirstPtoSrttMultiplier * RTT has been passed since last
           // in flight packet. Only do this for application data.
-          return std::max(
-              clock_->ApproximateNow(),
+          return
               std::max(
-                  first_application_info->sent_time +
-                      GetProbeTimeoutDelay(packet_number_space),
-                  earliest_right_edge + kFirstPtoSrttMultiplier *
-                                            rtt_stats_.SmoothedOrInitialRtt()));
+                  first_application_info->sent_time + GetProbeTimeoutDelay(packet_number_space),
+                  earliest_right_edge + kFirstPtoSrttMultiplier * rtt_stats_.smoothed_rtt() / 2);
         }
       }
       return std::max(
@@ -1082,7 +1079,7 @@ const QuicTime::Delta QuicSentPacketManager::GetProbeTimeoutDelay(
   if (false && rtt_stats_.smoothed_rtt().IsZero()) {
     // Respect kMinHandshakeTimeoutMs to avoid a potential amplification attack.
     QUIC_BUG_IF(quic_bug_12552_6, rtt_stats_.initial_rtt().IsZero());
-    return std::max(kPtoMultiplierWithoutRttSamples * rtt_stats_.initial_rtt(),
+    return std::max(rtt_stats_.initial_rtt() * kPtoMultiplierWithoutRttSamples,
                     QuicTime::Delta::FromMilliseconds(kMinHandshakeTimeoutMs)) *
            (1 << consecutive_pto_count_);
   }
