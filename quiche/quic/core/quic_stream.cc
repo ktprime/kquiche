@@ -457,7 +457,7 @@ void QuicStream::OnStreamFrame(const QuicStreamFrame& frame) {
     }
   }
 
-  if (false && read_side_closed_) {
+  if (DCHECK_FLAG && read_side_closed_) {
     QUIC_DLOG(INFO)
         << ENDPOINT << "Stream " << frame.stream_id
         << " is closed for reading. Ignoring newly received stream data.";
@@ -735,7 +735,7 @@ void QuicStream::OnCanWrite() {
   if (HasBufferedData() || (fin_buffered_ && !fin_sent_)) {
     WriteBufferedData(session()->GetEncryptionLevelToSendApplicationData());
   }
-  if (/** !fin_buffered_ && !fin_sent_ && **/ CanWriteNewData()) {
+  if (!fin_buffered_ && !fin_sent_ && CanWriteNewData()) {
     // Notify upper layer to write new data when buffered data size is below
     // low water mark.
     OnCanWriteNewData();

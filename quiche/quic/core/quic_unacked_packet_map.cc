@@ -159,7 +159,7 @@ void QuicUnackedPacketMap::AddSentPacket(SerializedPacket* mutable_packet,
 #if 0
   largest_sent_largest_acked_.UpdateMax(packet.largest_acked);
 #endif
-  if (false && !measure_rtt) {
+  if (DCHECK_FLAG && !measure_rtt) {
     QUIC_BUG_IF(quic_bug_12645_2, set_in_flight)
         << "Packet " << mutable_packet->packet_number << ", transmission type "
         << TransmissionTypeToString(mutable_packet->transmission_type)

@@ -447,7 +447,7 @@ SerializedPacket::SerializedPacket(SerializedPacket&& other) noexcept
 }
 
 SerializedPacket::~SerializedPacket() {
-  if (release_encrypted_buffer && encrypted_buffer != nullptr) {
+  if (DCHECK_FLAG && release_encrypted_buffer && encrypted_buffer != nullptr) {
     release_encrypted_buffer(encrypted_buffer);
   }
 

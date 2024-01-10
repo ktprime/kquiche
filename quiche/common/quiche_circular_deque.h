@@ -37,7 +37,7 @@ namespace quiche {
 // inserted or erased in the middle.
 //
 // TODO(wub): Make memory grow/shrink strategies customizable.
-template <typename T, size_t MinCapacityIncrement = 6,
+template <typename T, size_t MinCapacityIncrement = 3,
           typename Allocator = std::allocator<T>>
 class QUICHE_NO_EXPORT QuicheCircularDeque {
   using AllocatorTraits = std::allocator_traits<Allocator>;

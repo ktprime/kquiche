@@ -156,7 +156,7 @@ void QuicControlFrameManager::WriteOrBufferNewToken(absl::string_view token) {
 
 void QuicControlFrameManager::OnControlFrameSent(const QuicFrame& frame) {
   QuicControlFrameId id = GetControlFrameId(frame);
-  if (id == kInvalidControlFrameId) {
+  if (DCHECK_FLAG && id == kInvalidControlFrameId) {
     QUIC_BUG(quic_bug_12727_1)
         << "Send or retransmit a control frame with invalid control frame id";
     return;
@@ -174,7 +174,7 @@ void QuicControlFrameManager::OnControlFrameSent(const QuicFrame& frame) {
     // This is retransmitted control frame.
     return;
   }
-  if (id > least_unsent_) {
+  if (DCHECK_FLAG && id > least_unsent_) {
     QUIC_BUG(quic_bug_10517_1)
         << "Try to send control frames out of order, id: " << id
         << " least_unsent: " << least_unsent_;
@@ -206,7 +206,7 @@ void QuicControlFrameManager::OnControlFrameLost(const QuicFrame& frame) {
     // Frame does not have a valid control frame ID, ignore it.
     return;
   }
-  if (id >= least_unsent_) {
+  if (DCHECK_FLAG && id >= least_unsent_) {
     QUIC_BUG(quic_bug_10517_2) << "Try to mark unsent control frame as lost";
     delegate_->OnControlFrameManagerError(
         QUIC_INTERNAL_ERROR, "Try to mark unsent control frame as lost");
@@ -274,7 +274,7 @@ bool QuicControlFrameManager::RetransmitControlFrame(const QuicFrame& frame,
     // to allow writing following frames.
     return true;
   }
-  if (id >= least_unsent_) {
+  if (DCHECK_FLAG && id >= least_unsent_) {
     QUIC_BUG(quic_bug_10517_3) << "Try to retransmit unsent control frame";
     delegate_->OnControlFrameManagerError(
         QUIC_INTERNAL_ERROR, "Try to retransmit unsent control frame");
@@ -329,7 +329,7 @@ bool QuicControlFrameManager::OnControlFrameIdAcked(QuicControlFrameId id) {
     // Frame does not have a valid control frame ID, ignore it.
     return false;
   }
-  if (id >= least_unsent_) {
+  if (DCHECK_FLAG && id >= least_unsent_) {
     QUIC_BUG(quic_bug_10517_4) << "Try to ack unsent control frame";
     delegate_->OnControlFrameManagerError(QUIC_INTERNAL_ERROR,
                                           "Try to ack unsent control frame");

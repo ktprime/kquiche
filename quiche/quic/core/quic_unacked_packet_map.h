@@ -104,7 +104,7 @@ class QUIC_EXPORT_PRIVATE QuicUnackedPacketMap {
 
   // Returns the sum of bytes from all packets in flight.
   QuicByteCount bytes_in_flight() const { return bytes_in_flight_; }
-  QuicPacketCount packets_in_flight() const { return packets_in_flight_; }
+  //QuicPacketCount packets_in_flight() const { return packets_in_flight_; }
 
   // Returns the smallest packet number of a serialized packet which has not
   // been acked by the peer.  If there are no unacked packets, returns 0.
@@ -210,8 +210,8 @@ class QUIC_EXPORT_PRIVATE QuicUnackedPacketMap {
       PacketNumberSpace packet_number_space) const;
 
   // Returns largest sent packet number of |encryption_level|.
-  QuicPacketNumber GetLargestSentPacketOfPacketNumberSpace(
-      EncryptionLevel encryption_level) const;
+//  QuicPacketNumber GetLargestSentPacketOfPacketNumberSpace(
+//      EncryptionLevel encryption_level) const;
 
   // Returns last in flight packet sent time of |packet_number_space|.
   QuicTime GetLastInFlightPacketSentTime(
@@ -342,7 +342,7 @@ class QUIC_EXPORT_PRIVATE QuicUnackedPacketMap {
 #endif
 
   // Latched value of the quic_simple_inflight_time flag.
-  bool simple_inflight_time_;
+  //bool simple_inflight_time_;
 };
 
 }  // namespace quic

@@ -1519,7 +1519,7 @@ bool QuicConnection::OnAckRange(QuicPacketNumber start, QuicPacketNumber end) {
       << last_received_packet_info_;
   QUIC_DVLOG(1) << ENDPOINT << "OnAckRange: [" << start << ", " << end << ")";
   QuicPacketNumber least_unacked = GetLeastUnacked();
-  if (false && end <= least_unacked) {//no need ack or dups
+  if (end <= least_unacked) {//no need ack or dups
     return true; //TODO hybchanged opt
   }
 
@@ -2970,7 +2970,7 @@ void QuicConnection::FindMatchingOrNewClientConnectionIdOrToken(
     *stateless_reset_token = alternative_path.stateless_reset_token;
     return;
   }
-  if (!connection_migration_use_new_cid_) {
+  if (DCHECK_FLAG && !connection_migration_use_new_cid_) {
     QUIC_BUG(quic_bug_46004) << "Cannot find matching connection ID.";
     return;
   }
@@ -3350,7 +3350,7 @@ QuicTime QuicConnection::CalculatePacketSentTime() {
 }
 
 bool QuicConnection::WritePacket(SerializedPacket* packet) {
-  if (packet->packet_number < sent_packet_manager_.GetLargestSentPacket()) {
+  if (DCHECK_FLAG && packet->packet_number < sent_packet_manager_.GetLargestSentPacket()) {
     QUIC_BUG(quic_bug_10511_23)
         << "Attempt to write packet:" << packet->packet_number
         << " after:" << sent_packet_manager_.GetLargestSentPacket();
@@ -3420,7 +3420,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
   QuicSocketAddress send_to_address = packet->peer_address;
   // Self address is always the default self address on this code path.
   const bool send_on_current_path = send_to_address == peer_address();
-  if (!send_on_current_path) {
+  if (DCHECK_FLAG && !send_on_current_path) {
     QUIC_BUG_IF(quic_send_non_probing_frames_on_alternative_path,
                 ContainsNonProbingFrame(*packet))
         << "Packet " << packet->packet_number
@@ -3660,8 +3660,8 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
 
   if (in_flight || !retransmission_alarm_->IsSet()) {
     SetRetransmissionAlarm();
-  } else
-    SetPingAlarm();
+  } else if (DCHECK_FLAG)
+    SetPingAlarm(); //TODO2
 #if QUIC_TLS_SESSION
   if (connection_migration_use_new_cid_)
   RetirePeerIssuedConnectionIdsNoLongerOnPath();
@@ -3679,7 +3679,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
   if (packet->transmission_type != NOT_RETRANSMISSION) {
     QuicByteCount bytes_not_retransmitted =
       packet->bytes_not_retransmitted.value_or(0);
-    if (false && static_cast<uint64_t>(encrypted_length) < bytes_not_retransmitted) {
+    if (DCHECK_FLAG && static_cast<uint64_t>(encrypted_length) < bytes_not_retransmitted) {
       QUIC_BUG(quic_packet_bytes_written_lt_bytes_not_retransmitted)
           << "Total bytes written to the packet should be larger than the "
              "bytes in not-retransmitted frames. Bytes written: "
@@ -4995,7 +4995,7 @@ void QuicConnection::SetMtuDiscoveryTarget(QuicByteCount target) {
 
 QuicByteCount QuicConnection::GetLimitedMaxPacketSize(
     QuicByteCount suggested_max_packet_size) {
-  if (false && !peer_address().IsInitialized()) {
+  if (DCHECK_FLAG && !peer_address().IsInitialized()) {
     QUIC_BUG(quic_bug_10511_30)
         << "Attempted to use a connection without a valid peer address";
     return suggested_max_packet_size;
@@ -5219,7 +5219,7 @@ void QuicConnection::StartEffectivePeerMigration(AddressChangeType type) {
     return;
   }
 
-  if (type == NO_CHANGE) {
+  if (DCHECK_FLAG && type == NO_CHANGE) {
     UpdatePeerAddress(last_received_packet_info_.source_address);
     QUIC_BUG(quic_bug_10511_36)
         << "EffectivePeerMigration started without address change.";
@@ -5729,7 +5729,7 @@ void QuicConnection::ResetAckStates() {
 MessageStatus QuicConnection::SendMessage(
     QuicMessageId message_id, absl::Span<quiche::QuicheMemSlice> message,
     bool flush) {
-  if (!VersionSupportsMessageFrames(transport_version())) {
+  if (DCHECK_FLAG && !VersionSupportsMessageFrames(transport_version())) {
     QUIC_BUG(quic_bug_10511_38)
         << "MESSAGE frame is not supported for version " << transport_version();
     return MESSAGE_STATUS_UNSUPPORTED;
@@ -5804,7 +5804,7 @@ void QuicConnection::MaybeBundleCryptoDataWithAcks() {
     return;
   }
 
-  if (!framer_.HasAnEncrypterForSpace(space)) {
+  if (DCHECK_FLAG && !framer_.HasAnEncrypterForSpace(space)) {
     QUIC_BUG(quic_bug_10511_39)
         << ENDPOINT
         << "Try to bundle crypto with ACK with missing key of space "
@@ -6213,7 +6213,7 @@ void QuicConnection::OnPathDegradingDetected() {
 }
 
 void QuicConnection::OnBlackholeDetected() {
-  if (default_enable_5rto_blackhole_detection_ &&
+  if (DCHECK_FLAG && default_enable_5rto_blackhole_detection_ &&
       !sent_packet_manager_.HasInFlightPackets()) {
     QUIC_BUG(quic_bug_10511_41)
         << ENDPOINT
@@ -7259,7 +7259,7 @@ void QuicConnection::RestoreToLastValidatedPath(
 std::unique_ptr<SendAlgorithmInterface>
 QuicConnection::OnPeerIpAddressChanged() {
   QUICHE_DCHECK(validate_client_addresses_);
-  std::unique_ptr<SendAlgorithmInterface> old_send_algorithm =
+  auto old_send_algorithm =
       sent_packet_manager_.OnConnectionMigration(
           /*reset_send_algorithm=*/true);
   // OnConnectionMigration() should have marked in-flight packets to be
@@ -7270,7 +7270,7 @@ QuicConnection::OnPeerIpAddressChanged() {
   SetRetransmissionAlarm();
   // Stop detections in quiecense.
   blackhole_detector_.StopDetection(/*permanent=*/false);
-  return old_send_algorithm;
+  return std::unique_ptr<SendAlgorithmInterface>(old_send_algorithm);
 }
 
 void QuicConnection::set_keep_alive_ping_timeout(

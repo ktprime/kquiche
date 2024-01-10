@@ -484,7 +484,7 @@ void QuicStreamSequencerBuffer::ReleaseWholeBuffer() {
 }
 
 size_t QuicStreamSequencerBuffer::ReadableBytes() const {
-  return FirstMissingByte() - total_bytes_read_;
+  return bytes_received_.begin()->max() - total_bytes_read_;
 }
 
 bool QuicStreamSequencerBuffer::HasBytesToRead() const {

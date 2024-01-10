@@ -201,7 +201,7 @@ void QuicFlowController::MaybeSendWindowUpdate() {
     return;
   }
 
-  if (!session_->connection()->connected()) {
+  if (false && !session_->connection()->connected()) {
     return;
   }
 

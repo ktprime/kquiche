@@ -237,7 +237,7 @@ void QuicPacketCreator::SetDiversificationNonce(
 void QuicPacketCreator::UpdatePacketNumberLength(
     QuicPacketNumber least_packet_awaited_by_peer,
     QuicPacketCount max_packets_in_flight) {
-  if (!queued_frames_.empty()) {
+  if (DCHECK_FLAG && !queued_frames_.empty()) {
     // Don't change creator state if there are frames queued.
     QUIC_BUG(quic_bug_10752_3)
         << ENDPOINT << "Called UpdatePacketNumberLength with "
@@ -271,7 +271,7 @@ void QuicPacketCreator::UpdatePacketNumberLength(
 void QuicPacketCreator::SkipNPacketNumbers(
     QuicPacketCount count, QuicPacketNumber least_packet_awaited_by_peer,
     QuicPacketCount max_packets_in_flight) {
-  if (!queued_frames_.empty()) {
+  if (DCHECK_FLAG && !queued_frames_.empty()) {
     // Don't change creator state if there are frames queued.
     QUIC_BUG(quic_bug_10752_4)
         << ENDPOINT << "Called SkipNPacketNumbers with "
@@ -775,7 +775,7 @@ bool QuicPacketCreator::SerializePacket(QuicOwnedPacketBuffer encrypted_buffer,
                                         size_t encrypted_buffer_len,
                                         bool allow_padding) {
   QUICHE_DCHECK(packet_.encrypted_buffer == nullptr);
-  if (false && packet_.encrypted_buffer != nullptr) {
+  if (DCHECK_FLAG && packet_.encrypted_buffer != nullptr) {
     const std::string error_details =
         "Packet's encrypted buffer is not empty before serialization";
     QUIC_BUG(quic_bug_10752_14) << ENDPOINT << error_details;
@@ -1316,7 +1316,7 @@ QuicConsumedData QuicPacketCreator::ConsumeData(QuicStreamId id,
     FlushCurrentPacket(); //TODO2 hybchanged
   }
 
-  if (false && (write_length == 0) && !fin) {
+  if (DCHECK_FLAG && (write_length == 0) && !fin) {
     QUIC_BUG(quic_bug_10752_22)
         << ENDPOINT << "Attempt to consume empty data without FIN.";
     return QuicConsumedData(0, false);
@@ -1393,7 +1393,7 @@ QuicConsumedData QuicPacketCreator::ConsumeDataFastPath(
     size_t total_bytes_consumed) {
   QUICHE_DCHECK(!QuicUtils::IsCryptoStreamId(transport_version(), id))
       ;//<< ENDPOINT;
-  if (false && AttemptingToSendUnencryptedStreamData()) {
+  if (DCHECK_FLAG && AttemptingToSendUnencryptedStreamData()) {
     return QuicConsumedData(total_bytes_consumed,
                             fin && (total_bytes_consumed == write_length));
   }
@@ -1407,7 +1407,7 @@ QuicConsumedData QuicPacketCreator::ConsumeDataFastPath(
                                   offset + total_bytes_consumed, fin,
                                   next_transmission_type_, &bytes_consumed);
     QUICHE_DCHECK(bytes_consumed != 0);
-    if (false && bytes_consumed == 0) {
+    if (DCHECK_FLAG && bytes_consumed == 0) {
       const std::string error_details =
           "Failed in CreateAndSerializeStreamFrame.";
       QUIC_BUG(quic_bug_10752_24) << ENDPOINT << error_details;
@@ -2184,7 +2184,7 @@ QuicPacketCreator::ScopedSerializationFailureHandler::
   // Always clear queued_frames_.
   creator_->queued_frames_.clear();
 
-  if (creator_->packet_.encrypted_buffer == nullptr) {
+  if (DCHECK_FLAG && creator_->packet_.encrypted_buffer == nullptr) {
     const std::string error_details = "Failed to SerializePacket.";
     QUIC_BUG(quic_bug_10752_38) << ENDPOINT2 << error_details;
     creator_->delegate_->OnUnrecoverableError(QUIC_FAILED_TO_SERIALIZE_PACKET,

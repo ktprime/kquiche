@@ -227,7 +227,7 @@ void QuicStreamSequencer::MarkConsumed(size_t num_bytes_consumed) {
   QUICHE_DCHECK(!blocked_);
   bool result = buffered_frames_.MarkConsumed(num_bytes_consumed);
   QUICHE_DCHECK(result);
-  if (!result) {
+  if (DCHECK_FLAG && !result) {
     QUIC_BUG(quic_bug_10858_2)
         << "Invalid argument to MarkConsumed."
         << " expect to consume: " << num_bytes_consumed

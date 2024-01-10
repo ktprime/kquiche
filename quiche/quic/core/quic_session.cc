@@ -1014,7 +1014,7 @@ void QuicSession::InsertLocallyClosedStreamsHighestOffset(
 void QuicSession::OnStreamClosed(QuicStreamId stream_id) {
   QUIC_DVLOG(1) << ENDPOINT << "Closing stream: " << stream_id;
   StreamMap::iterator it = stream_map_.find(stream_id);
-  if (it == stream_map_.end()) {
+  if (DCHECK_FLAG && it == stream_map_.end()) {
     QUIC_BUG(quic_bug_10866_6)
         << ENDPOINT << "Stream is already closed: " << stream_id;
     return;
@@ -2108,7 +2108,7 @@ size_t QuicSession::GetNumActiveStreams() const {
 }
 
 void QuicSession::MarkConnectionLevelWriteBlocked(QuicStreamId id) {
-  if (false && GetStream(id) == nullptr) {
+  if (DCHECK_FLAG && GetStream(id) == nullptr) {
     QUIC_BUG(quic_bug_10866_11)
         << "Marking unknown stream " << id << " blocked.";
     QUIC_LOG_FIRST_N(ERROR, 2) << "QuicStackTrace()";
@@ -2277,7 +2277,7 @@ bool QuicSession::OnFrameAcked(const QuicFrame& frame,
 void QuicSession::OnStreamFrameRetransmitted(const QuicStreamFrame& frame) {
   QuicStream* stream = GetStream(frame.stream_id);
   QUICHE_DCHECK(stream);
-  if (false && stream == nullptr) {
+  if (DCHECK_FLAG && stream == nullptr) {
     QUIC_BUG(quic_bug_10866_12)
         << "Stream: " << frame.stream_id << " is closed when " << frame
         << " is retransmitted.";

@@ -96,7 +96,9 @@ QuicSentPacketManager::QuicSentPacketManager(
   SetSendAlgorithm(congestion_control_type);
 }
 
-QuicSentPacketManager::~QuicSentPacketManager() {}
+QuicSentPacketManager::~QuicSentPacketManager() {
+  delete send_algorithm_;
+}
 
 void QuicSentPacketManager::SetFromConfig(const QuicConfig& config) {
   const Perspective perspective = unacked_packets_.perspective();
@@ -562,7 +564,8 @@ void QuicSentPacketManager::MarkPacketHandled(QuicPacketNumber packet_number,
     unacked_packets_.NotifyAggregatedStreamFrameAcked(ack_delay_time);
     const bool new_data_acked = unacked_packets_.NotifyFramesAcked(
         *info, ack_delay_time, receive_timestamp);
-    if (!new_data_acked && info->transmission_type != NOT_RETRANSMISSION) {
+    if (!new_data_acked) {
+      QUICHE_DCHECK(info->transmission_type != NOT_RETRANSMISSION);
       // Record as a spurious retransmission if this packet is a
       // retransmission and no new data gets acked.
       QUIC_DVLOG(1) << "Detect spurious retransmitted packet " << packet_number
@@ -598,14 +601,6 @@ void QuicSentPacketManager::MarkPacketHandled(QuicPacketNumber packet_number,
   unacked_packets_.RemoveFromInFlight(info);
   unacked_packets_.RemoveRetransmittability(info);
   info->state = ACKED;
-}
-
-bool QuicSentPacketManager::CanSendAckFrequency() const {
-#if QUIC_TLS_SESSION //hybchanged
-  return !peer_min_ack_delay_.IsInfinite() && handshake_finished_;
-#else
-  return false;
-#endif
 }
 
 QuicAckFrequencyFrame QuicSentPacketManager::GetUpdatedAckFrequencyFrame()
@@ -646,7 +641,7 @@ bool QuicSentPacketManager::OnPacketSent(
   }
 
   bool in_flight = has_retransmittable_data == HAS_RETRANSMITTABLE_DATA;
-  if (ignore_pings_ && mutable_packet->retransmittable_frames.size() == 1 &&
+  if (false && ignore_pings_ && mutable_packet->retransmittable_frames.size() == 1 &&
       mutable_packet->retransmittable_frames[0].type == PING_FRAME) {
     // Dot not use PING only packet for RTT measure or congestion control.
     in_flight = false;
@@ -731,7 +726,7 @@ void QuicSentPacketManager::RetransmitCryptoPackets() {
   ++consecutive_crypto_retransmission_count_;
   bool packet_retransmitted = false;
   //std::vector<QuicPacketNumber> crypto_retransmissions;
-  absl::InlinedVector<QuicPacketNumber, 1> crypto_retransmissions;
+  absl::InlinedVector<QuicPacketNumber, 2> crypto_retransmissions;
   if (!unacked_packets_.empty()) {
     QuicPacketNumber packet_number = unacked_packets_.GetLeastUnacked();
     QuicPacketNumber largest_sent_packet =
@@ -931,12 +926,12 @@ bool QuicSentPacketManager::MaybeUpdateRTT(QuicPacketNumber largest_acked,
   const QuicTransmissionInfo& transmission_info =
       unacked_packets_.GetTransmissionInfo(largest_acked);
   // Ensure the packet has a valid sent time.
-  if (false && transmission_info.sent_time == QuicTime::Zero()) {
+  if (DCHECK_FLAG && transmission_info.sent_time == QuicTime::Zero()) {
     QUIC_BUG(quic_bug_10750_4)
         << "Acked packet has zero sent time, largest_acked:" << largest_acked;
     return false;
   }
-  if (false && transmission_info.state == NOT_CONTRIBUTING_RTT) {
+  if (DCHECK_FLAG && transmission_info.state == NOT_CONTRIBUTING_RTT) {
     return false;
   }
   if (false && transmission_info.sent_time > ack_receive_time) {
@@ -998,7 +993,7 @@ const QuicTime QuicSentPacketManager::GetRetransmissionTime() const {
               std::max(unacked_packets_.GetFirstInFlightTransmissionInfo()->sent_time +
                            GetProbeTimeoutDelay(NUM_PACKET_NUMBER_SPACES),
                        unacked_packets_.GetLastInFlightPacketSentTime() +
-                           rtt_stats_.smoothed_rtt() * kFirstPtoSrttMultiplier / 2);
+                           rtt_stats_.smoothed_rtt() * kFirstPtoSrttMultiplier);
         }
         // Ensure PTO never gets set to a time in the past.
         return //std::max(clock_->ApproximateNow(),
@@ -1027,7 +1022,7 @@ const QuicTime QuicSentPacketManager::GetRetransmissionTime() const {
           return
               std::max(
                   first_application_info->sent_time + GetProbeTimeoutDelay(packet_number_space),
-                  earliest_right_edge + kFirstPtoSrttMultiplier * rtt_stats_.smoothed_rtt() / 2);
+                  earliest_right_edge + kFirstPtoSrttMultiplier * rtt_stats_.smoothed_rtt());
         }
       }
       return std::max(
@@ -1076,7 +1071,7 @@ const QuicTime::Delta QuicSentPacketManager::GetCryptoRetransmissionDelay()
 
 const QuicTime::Delta QuicSentPacketManager::GetProbeTimeoutDelay(
     PacketNumberSpace space) const {
-  if (false && rtt_stats_.smoothed_rtt().IsZero()) {
+  if (DCHECK_FLAG && rtt_stats_.smoothed_rtt().IsZero()) {
     // Respect kMinHandshakeTimeoutMs to avoid a potential amplification attack.
     QUIC_BUG_IF(quic_bug_12552_6, rtt_stats_.initial_rtt().IsZero());
     return std::max(rtt_stats_.initial_rtt() * kPtoMultiplierWithoutRttSamples,
@@ -1121,16 +1116,17 @@ void QuicSentPacketManager::SetSendAlgorithm(
 
   SetSendAlgorithm(SendAlgorithmInterface::Create(
       clock_, &rtt_stats_, &unacked_packets_, congestion_control_type, random_,
-      stats_, initial_congestion_window_, send_algorithm_.get()));
+      stats_, initial_congestion_window_, send_algorithm_));
 }
 
 void QuicSentPacketManager::SetSendAlgorithm(
     SendAlgorithmInterface* send_algorithm) {
-  send_algorithm_.reset(send_algorithm);
+  delete send_algorithm_;
+  send_algorithm_ = send_algorithm;
   pacing_sender_.set_sender(send_algorithm);
 }
 
-std::unique_ptr<SendAlgorithmInterface>
+SendAlgorithmInterface*
 QuicSentPacketManager::OnConnectionMigration(bool reset_send_algorithm) {
   consecutive_pto_count_ = 0;
   rtt_stats_.OnConnectionMigration();
@@ -1139,8 +1135,7 @@ QuicSentPacketManager::OnConnectionMigration(bool reset_send_algorithm) {
     return nullptr;
   }
 
-  std::unique_ptr<SendAlgorithmInterface> old_send_algorithm =
-      std::move(send_algorithm_);
+  auto old_send_algorithm = send_algorithm_;
   SetSendAlgorithm(old_send_algorithm->GetCongestionControlType());
   // Treat all in flight packets sent to the old peer address as lost and
   // retransmit them.
@@ -1197,7 +1192,6 @@ void QuicSentPacketManager::OnAckRange(QuicPacketNumber start,
   else if (/*least_unacked.IsInitialized() &&**/ end <= least_unacked) {
     return;
   }
-  //QUICHE_DCHECK(end > least_unacked);
 
   start = std::max(start, least_unacked);
   do {

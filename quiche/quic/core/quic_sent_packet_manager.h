@@ -204,7 +204,13 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
                     HasRetransmittableData has_retransmittable_data,
                     bool measure_rtt);
 
-  bool CanSendAckFrequency() const;
+  bool CanSendAckFrequency() const {
+#if QUIC_TLS_SESSION //hybchanged
+    return !peer_min_ack_delay_.IsInfinite() && handshake_finished_;
+#else
+    return false;
+#endif
+  }
 
   QuicAckFrequencyFrame GetUpdatedAckFrequencyFrame() const;
 
@@ -310,7 +316,7 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   // not NAT rebinding. If reset_send_algorithm is true, switch to a new send
   // algorithm object and retransmit all the in-flight packets. Return the send
   // algorithm object used on the previous path.
-  std::unique_ptr<SendAlgorithmInterface> OnConnectionMigration(
+  SendAlgorithmInterface* OnConnectionMigration(
       bool reset_send_algorithm);
 
   // Called when an ack frame is initially parsed.
@@ -372,7 +378,7 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   void OnApplicationLimited();
 
   const SendAlgorithmInterface* GetSendAlgorithm() const {
-    return send_algorithm_.get();
+    return send_algorithm_;
   }
 
   void SetSessionNotifier(SessionNotifierInterface* session_notifier) {
@@ -578,7 +584,7 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   NetworkChangeVisitor* network_change_visitor_;
   QuicPacketCount initial_congestion_window_;
   RttStats rtt_stats_;
-  std::unique_ptr<SendAlgorithmInterface> send_algorithm_;
+  SendAlgorithmInterface* send_algorithm_ = nullptr;
   // Not owned. Always points to |uber_loss_algorithm_| outside of tests.
   LossDetectionInterface* loss_algorithm_;
   UberLossAlgorithm uber_loss_algorithm_;

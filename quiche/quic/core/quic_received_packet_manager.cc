@@ -104,7 +104,7 @@ void QuicReceivedPacketManager::RecordPacketReceived(
   }
   ack_frame_.packets.Add(packet_number);
 
-  if (save_timestamps_) {
+  if (DCHECK_FLAG && save_timestamps_) {
     // The timestamp format only handles packets in time order.
     if (save_timestamps_for_in_order_packets_ && packet_reordered) {
       QUIC_DLOG(WARNING) << "Not saving receive timestamp for packet "
@@ -141,7 +141,7 @@ bool QuicReceivedPacketManager::IsAwaitingPacket(
 
 const QuicFrame QuicReceivedPacketManager::GetUpdatedAckFrame(
     QuicTime approximate_now) {
-  if (time_largest_observed_ == QuicTime::Zero()) {
+  if (DCHECK_FLAG && time_largest_observed_ == QuicTime::Zero()) {
     // We have received no packets.
     ack_frame_.ack_delay_time = QuicTime::Delta::Infinite();
   } else {

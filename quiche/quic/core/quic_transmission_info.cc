@@ -15,8 +15,8 @@ QuicTransmissionInfo::QuicTransmissionInfo()
       transmission_type(NOT_RETRANSMISSION),
       in_flight(false),
       state(NEVER_SENT),
-      has_crypto_handshake(false),
-      has_ack_frequency(false) {}
+      has_crypto_handshake(false)
+     {}
 
 QuicTransmissionInfo::QuicTransmissionInfo(EncryptionLevel level,
                                            TransmissionType transmission_type,
@@ -31,8 +31,9 @@ QuicTransmissionInfo::QuicTransmissionInfo(EncryptionLevel level,
       transmission_type(transmission_type),
       in_flight(false),
       state(OUTSTANDING),
-      has_crypto_handshake(has_crypto_handshake),
-      has_ack_frequency(has_ack_frequency) {}
+      has_crypto_handshake(has_crypto_handshake)
+//      ,has_ack_frequency(has_ack_frequency) 
+{}
 
 QuicTransmissionInfo::~QuicTransmissionInfo() = default;
 
@@ -44,7 +45,7 @@ std::string QuicTransmissionInfo::DebugString() const {
       ", transmission_type: ", TransmissionTypeToString(transmission_type),
       ", in_flight: ", in_flight, ", state: ", state,
       ", has_crypto_handshake: ", has_crypto_handshake,
-      ", has_ack_frequency: ", has_ack_frequency,
+      //", has_ack_frequency: ", has_ack_frequency,
       ", first_sent_after_loss: ", first_sent_after_loss.ToString(),
       ", largest_acked: ", largest_acked.ToString(),
       ", retransmittable_frames: ", QuicFramesToString(retransmittable_frames),
