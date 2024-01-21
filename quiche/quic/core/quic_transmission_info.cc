@@ -32,7 +32,7 @@ QuicTransmissionInfo::QuicTransmissionInfo(EncryptionLevel level,
       in_flight(false),
       state(OUTSTANDING),
       has_crypto_handshake(has_crypto_handshake)
-//      ,has_ack_frequency(has_ack_frequency) 
+//      ,has_ack_frequency(has_ack_frequency)
 {}
 
 QuicTransmissionInfo::~QuicTransmissionInfo() = default;

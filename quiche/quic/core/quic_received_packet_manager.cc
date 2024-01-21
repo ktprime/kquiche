@@ -213,7 +213,7 @@ QuicTime::Delta QuicReceivedPacketManager::GetMaxAckDelay(
   // Wait for the minimum of the ack decimation delay or the delayed ack time
   // before sending an ack.
   QuicTime::Delta ack_delay = std::min(
-      local_max_ack_delay_, rtt_stats.min_rtt() / ack_decimation_delay_);
+      local_max_ack_delay_, rtt_stats.smoothed_rtt() / ack_decimation_delay_);
   return ack_delay + kAlarmGranularity;// std::max(ack_delay, kAlarmGranularity);
 }
 
@@ -228,7 +228,7 @@ void QuicReceivedPacketManager::MaybeUpdateAckFrequency(
 #endif
 
   const auto max_decimation_packet_number = PeerFirstSendingPacketNumber() + min_received_before_ack_decimation_;
-  if (last_received_packet_number <=  max_decimation_packet_number + 5) {
+  if (last_received_packet_number <= max_decimation_packet_number + 5) {
     if (last_received_packet_number >= max_decimation_packet_number)
     ack_frequency_ = unlimited_ack_decimation_ ?
       std::numeric_limits<size_t>::max(): kMaxRetransmittablePacketsBeforeAck;

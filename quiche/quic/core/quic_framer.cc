@@ -294,6 +294,7 @@ EncryptionLevel GetEncryptionLevel(const QuicPacketHeader& header) {
               << QuicUtils::QuicLongHeaderTypetoString(header.long_packet_type);
       }
     case GOOGLE_QUIC_PACKET:
+    default:
         QUIC_BUG(quic_bug_10850_7)
             << "Cannot determine EncryptionLevel from Google QUIC header";
         break;
@@ -1898,7 +1899,7 @@ bool QuicFramer::ProcessIetfDataPacket(QuicDataReader* encrypted_reader,
     return true;
   }
 
-  if (packet.length() > kMaxIncomingPacketSize) {
+  if (DCHECK_FLAG && packet.length() > kMaxIncomingPacketSize) {
     set_detailed_error("Packet too large.");
     return RaiseError(QUIC_PACKET_TOO_LARGE);
   }
@@ -2099,7 +2100,7 @@ bool QuicFramer::HasAnEncrypterForSpace(PacketNumberSpace space) const {
 }
 
 EncryptionLevel QuicFramer::GetEncryptionLevelToSendApplicationData() const {
-  if (false && !HasAnEncrypterForSpace(APPLICATION_DATA)) {
+  if (DCHECK_FLAG && !HasAnEncrypterForSpace(APPLICATION_DATA)) {
     QUIC_BUG(quic_bug_12975_4)
         << "Tried to get encryption level to send application data with no "
            "encrypter available.";
@@ -4713,7 +4714,7 @@ size_t QuicFramer::EncryptPayload(EncryptionLevel level,
                                   const QuicPacket& packet, char* buffer,
                                   size_t buffer_len) {
   QUICHE_DCHECK(packet_number.IsInitialized());
-  if (encrypter_[level] == nullptr) {
+  if (DCHECK_FLAG && encrypter_[level] == nullptr) {
     QUIC_BUG(quic_bug_10850_63)
         << ENDPOINT << "Attempted to encrypt without encrypter at level "
         << level;
@@ -4798,7 +4799,7 @@ bool QuicFramer::DecryptPayload(size_t udp_packet_length,
                                 char* decrypted_buffer, size_t buffer_length,
                                 size_t* decrypted_length,
                                 EncryptionLevel* decrypted_level) {
-  if (false && !EncryptionLevelIsValid(decrypter_level_)) {
+  if (DCHECK_FLAG && !EncryptionLevelIsValid(decrypter_level_)) {
     QUIC_BUG(quic_bug_10850_67)
         << "Attempted to decrypt with bad decrypter_level_";
     return false;
@@ -4810,7 +4811,7 @@ bool QuicFramer::DecryptPayload(size_t udp_packet_length,
   bool key_phase;
   bool attempt_key_update = false;
   if (version().KnowsWhichDecrypterToUse()) {
-    if (false && header.form == GOOGLE_QUIC_PACKET) {
+    if (DCHECK_FLAG && header.form == GOOGLE_QUIC_PACKET) {
       QUIC_BUG(quic_bug_10850_68)
           << "Attempted to decrypt GOOGLE_QUIC_PACKET with a version that "
              "knows which decrypter to use";
@@ -4819,7 +4820,7 @@ bool QuicFramer::DecryptPayload(size_t udp_packet_length,
 
     level = GetEncryptionLevel(header);
     QUICHE_DCHECK_IMPL(header.form != GOOGLE_QUIC_PACKET && EncryptionLevelIsValid(level));
-    if (false && !EncryptionLevelIsValid(level)) {
+    if (DCHECK_FLAG && !EncryptionLevelIsValid(level)) {
       QUIC_BUG(quic_bug_10850_69) << "Attempted to decrypt with bad level";
       return false;
     }

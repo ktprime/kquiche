@@ -98,6 +98,7 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   size_t pto_count = 0;
 
   int64_t min_rtt_us = 0;                 // Minimum RTT in microseconds.
+  int64_t mean_deviation = 0;             // Minimum RTT in microseconds.
   int64_t srtt_us = 0;                    // Smoothed RTT in microseconds.
   int64_t cwnd_bootstrapping_rtt_us = 0;  // RTT used in cwnd_bootstrapping.
   // The connection's |long_term_mtu_| used for sending packets, populated by
@@ -227,9 +228,11 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   // is performed by TlsServerHandshaker. If an operation is done within
   // BoringSSL, e.g. ticket decrypted without using
   // TlsServerHandshaker::SessionTicketOpen, it will not be recorded here.
+#if QUIC_TLS_SESSION
   absl::optional<TlsServerOperationStats> tls_server_select_cert_stats;
   absl::optional<TlsServerOperationStats> tls_server_compute_signature_stats;
   absl::optional<TlsServerOperationStats> tls_server_decrypt_ticket_stats;
+#endif
 };
 
 }  // namespace quic

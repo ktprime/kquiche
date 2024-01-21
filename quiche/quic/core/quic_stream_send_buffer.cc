@@ -51,11 +51,9 @@ QuicStreamSendBuffer::QuicStreamSendBuffer(
     quiche::QuicheBufferAllocator* allocator)
     : current_end_offset_(0),
       stream_offset_(0),
-      //allocator_(allocator),
       stream_bytes_start_(0),
       stream_bytes_written_(0),
       stream_bytes_outstanding_(0)
-      //write_index_(-1)
 {
       bytes_acked_.AddEmpty(0);
 }
@@ -189,7 +187,7 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
     // Optimization for the typical case, hole happend.
     if (bytes_acked_.Size() >= kMaxPacketGap) {
       // This frame is going to create more intervals than allowed. Stop processing.
-      return QUIC_TOO_MANY_STREAM_DATA_INTERVALS;
+      return false;
     }
     bytes_acked_.AppendBack(off);
     if (!pending_retransmissions_.Empty())

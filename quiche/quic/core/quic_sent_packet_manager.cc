@@ -152,25 +152,25 @@ void QuicSentPacketManager::SetFromConfig(const QuicConfig& config) {
   }
 
   // Initial window.
+  if (config.HasClientRequestedIndependentOption(kIW03, perspective)) {
+    initial_congestion_window_ = 3;
+    send_algorithm_->SetInitialCongestionWindowInPackets(3);
+  }
+  if (config.HasClientRequestedIndependentOption(kIW10, perspective)) {
+    initial_congestion_window_ = 10;
+    send_algorithm_->SetInitialCongestionWindowInPackets(10);
+  }
+  if (config.HasClientRequestedIndependentOption(kIW20, perspective)) {
+    initial_congestion_window_ = 20;
+    send_algorithm_->SetInitialCongestionWindowInPackets(20);
+  }
   if (config.HasClientRequestedIndependentOption(kIW50, perspective)) {
     initial_congestion_window_ = 50;
-    send_algorithm_->SetInitialCongestionWindowInPackets(initial_congestion_window_);
+    send_algorithm_->SetInitialCongestionWindowInPackets(50);
   }
-  else if (config.HasClientRequestedIndependentOption(kIW03, perspective)) {
-    initial_congestion_window_ = 3;
-    send_algorithm_->SetInitialCongestionWindowInPackets(initial_congestion_window_);
-  }
-  else if (config.HasClientRequestedIndependentOption(kIW10, perspective)) {
+  if (config.HasClientRequestedIndependentOption(kBWS5, perspective)) {
     initial_congestion_window_ = 10;
-    send_algorithm_->SetInitialCongestionWindowInPackets(initial_congestion_window_);
-  }
-  else if (config.HasClientRequestedIndependentOption(kIW20, perspective)) {
-    initial_congestion_window_ = 20;
-    send_algorithm_->SetInitialCongestionWindowInPackets(initial_congestion_window_);
-  }
-  else if (config.HasClientRequestedIndependentOption(kBWS5, perspective)) {
-    initial_congestion_window_ = 10;
-    send_algorithm_->SetInitialCongestionWindowInPackets(initial_congestion_window_);
+    send_algorithm_->SetInitialCongestionWindowInPackets(10);
   }
 
   if (config.HasClientRequestedIndependentOption(kIGNP, perspective)) {
@@ -183,19 +183,19 @@ void QuicSentPacketManager::SetFromConfig(const QuicConfig& config) {
     uber_loss_algorithm_.SetReorderingShift(kDefaultIetfLossDelayShift);
     uber_loss_algorithm_.DisableAdaptiveReorderingThreshold();
   }
-  else if (config.HasClientRequestedIndependentOption(kILD1, perspective)) {
+  if (config.HasClientRequestedIndependentOption(kILD1, perspective)) {
     uber_loss_algorithm_.SetReorderingShift(kDefaultLossDelayShift);
     uber_loss_algorithm_.DisableAdaptiveReorderingThreshold();
   }
-  else if (config.HasClientRequestedIndependentOption(kILD2, perspective)) {
+  if (config.HasClientRequestedIndependentOption(kILD2, perspective)) {
     uber_loss_algorithm_.EnableAdaptiveReorderingThreshold();
     uber_loss_algorithm_.SetReorderingShift(kDefaultIetfLossDelayShift);
   }
-  else if (config.HasClientRequestedIndependentOption(kILD3, perspective)) {
+  if (config.HasClientRequestedIndependentOption(kILD3, perspective)) {
     uber_loss_algorithm_.SetReorderingShift(kDefaultLossDelayShift);
     uber_loss_algorithm_.EnableAdaptiveReorderingThreshold();
   }
-  else if (config.HasClientRequestedIndependentOption(kILD4, perspective)) {
+  if (config.HasClientRequestedIndependentOption(kILD4, perspective)) {
     uber_loss_algorithm_.SetReorderingShift(kDefaultLossDelayShift);
     uber_loss_algorithm_.EnableAdaptiveReorderingThreshold();
     uber_loss_algorithm_.EnableAdaptiveTimeThreshold();
@@ -547,13 +547,11 @@ void QuicSentPacketManager::MarkPacketHandled(QuicPacketNumber packet_number,
                                               QuicTime::Delta ack_delay_time,
                                               QuicTime receive_timestamp) {
 #if QUIC_TLS_SESSION
-  if (info->has_ack_frequency) {
     for (const auto& frame : info->retransmittable_frames) {
       if (frame.type == ACK_FREQUENCY_FRAME) {
         OnAckFrequencyFrameAcked(*frame.ack_frequency_frame);
       }
     }
-  }
 #endif
   // Try to aggregate acked stream frames if acked packet is not a
   // retransmission.
@@ -952,9 +950,7 @@ bool QuicSentPacketManager::MaybeUpdateRTT(QuicPacketNumber largest_acked,
 QuicTime::Delta QuicSentPacketManager::TimeUntilSend(QuicTime now) const {
   // The TLP logic is entirely contained within QuicSentPacketManager, so the
   // send algorithm does not need to be consulted.
-  if (pending_timer_transmission_count_ > 0) {
-    return QuicTime::Delta::Zero();
-  }
+  QUICHE_DCHECK(pending_timer_transmission_count_ == 0);
 
   if (using_pacing_) {
     return pacing_sender_.TimeUntilSend(now,
@@ -971,7 +967,8 @@ const QuicTime QuicSentPacketManager::GetRetransmissionTime() const {
       PeerCompletedAddressValidation()) {
     return QuicTime::Zero();
   }
-  if (pending_timer_transmission_count_ > 0) {
+  QUICHE_DCHECK(pending_timer_transmission_count_ == 0);
+  if (false && pending_timer_transmission_count_ > 0) {
     // Do not set the timer if there is any credit left.
     return QuicTime::Zero();
   }
@@ -1080,8 +1077,8 @@ const QuicTime::Delta QuicSentPacketManager::GetProbeTimeoutDelay(
   }
   QuicTime::Delta pto_delay =
       rtt_stats_.smoothed_rtt() +
-      std::max(kPtoRttvarMultiplier * rtt_stats_.mean_deviation(),
-               kAlarmGranularity) +
+      kPtoRttvarMultiplier * rtt_stats_.mean_deviation() +
+               //kAlarmGranularity +
       (ShouldAddMaxAckDelay(space) ? peer_max_ack_delay_
                                    : QuicTime::Delta::Zero());
   return pto_delay * (1 << consecutive_pto_count_);

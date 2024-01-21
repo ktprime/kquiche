@@ -223,7 +223,7 @@ bool QuicStreamSequencer::IsClosed() const {
   return buffered_frames_.BytesConsumed() >= close_offset_;
 }
 
-void QuicStreamSequencer::MarkConsumed(size_t num_bytes_consumed) {
+int QuicStreamSequencer::MarkConsumed(size_t num_bytes_consumed) {
   QUICHE_DCHECK(!blocked_);
   bool result = buffered_frames_.MarkConsumed(num_bytes_consumed);
   QUICHE_DCHECK(result);
@@ -234,9 +234,10 @@ void QuicStreamSequencer::MarkConsumed(size_t num_bytes_consumed) {
         << ", but not enough bytes available. " << DebugString();
     stream_->ResetWithError(
         QuicResetStreamError::FromInternal(QUIC_ERROR_PROCESSING_STREAM));
-    return;
+    return -1;
   }
   stream_->AddBytesConsumed(num_bytes_consumed);
+  return ReadableBytes();
 }
 
 void QuicStreamSequencer::SetBlockedUntilFlush() { blocked_ = true; }

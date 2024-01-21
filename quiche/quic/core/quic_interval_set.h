@@ -89,7 +89,7 @@ class QUIC_NO_EXPORT QuicIntervalSet {
     bool operator()(T&& point, const value_type& a) const;
   };
 
-//  using Set = absl::btree_set<value_type, IntervalLess;
+//  using Set = absl::btree_set<value_type, IntervalLess>;
   using Set = sfl::small_flat_set<value_type, 32, IntervalLess>;
 //  using Set = std::set<value_type, IntervalLess, stm::allocator<value_type>>;
 

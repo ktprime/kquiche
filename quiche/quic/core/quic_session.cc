@@ -253,7 +253,8 @@ void QuicSession::OnStreamFrame(const QuicStreamFrame& frame) {
     }
 
     stream = GetOrCreateStream(stream_id);
-
+    if (!stream)
+      return;
     // The stream no longer exists, but we may still be interested in the
     // final stream byte offset sent by the peer. A frame with a FIN can give
     // us this offset.
@@ -261,8 +262,6 @@ void QuicSession::OnStreamFrame(const QuicStreamFrame& frame) {
       QuicStreamOffset final_byte_offset = frame.offset + frame.data_length;
       OnFinalByteOffsetReceived(stream_id, final_byte_offset);
     }
-    if (!stream)
-      return;
   }
   stream->OnStreamFrame(frame);
 }

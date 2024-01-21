@@ -1411,7 +1411,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
           server_connection_id(server_connection_id),
           stateless_reset_token(stateless_reset_token) {}
 
-    PathState(PathState&& other);
+    PathState(PathState&& other) noexcept;
 
     PathState& operator=(PathState&& other);
 

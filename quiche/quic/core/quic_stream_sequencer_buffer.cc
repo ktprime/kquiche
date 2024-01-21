@@ -109,7 +109,7 @@ bool QuicStreamSequencerBuffer::RetireBlock(size_t index) {
 void QuicStreamSequencerBuffer::MaybeAddMoreBlocks(
     QuicStreamOffset next_expected_byte) {
 
-  const auto num_of_blocks_needed = (next_expected_byte - total_bytes_read_) / kBlockSizeBytes + 2;
+  const auto num_of_blocks_needed = ((int64_t)next_expected_byte - (int64_t)total_bytes_read_) / (int)kBlockSizeBytes + 2;
   QUICHE_DCHECK(num_of_blocks_needed > current_blocks_count_);
 
   auto new_block_count = std::max(current_blocks_count_, kInitialBlockCount);
