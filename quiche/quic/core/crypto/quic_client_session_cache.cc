@@ -10,7 +10,7 @@ namespace quic {
 
 namespace {
 
-const size_t kDefaultMaxEntries = 1024;
+constexpr size_t kDefaultMaxEntries = 1024;
 // Returns false if the SSL |session| doesn't exist or it is expired at |now|.
 bool IsValid(SSL_SESSION* session, uint64_t now) {
   if (!session) return false;

@@ -490,11 +490,11 @@ const QuicTag kCertificateSCTTag =
 
 #undef TAG
 
-const size_t kMaxEntries = 128;  // Max number of entries in a message.
+inline constexpr size_t kMaxEntries = 128;  // Max number of entries in a message.
 
-const size_t kNonceSize = 32;  // Size in bytes of the connection nonce.
+inline constexpr size_t kNonceSize = 32;  // Size in bytes of the connection nonce.
 
-const size_t kOrbitSize = 8;  // Number of bytes in an orbit value.
+inline constexpr size_t kOrbitSize = 8;  // Number of bytes in an orbit value.
 
 // kProofSignatureLabel is prepended to the CHLO hash and server configs before
 // signing to avoid any cross-protocol attacks on the signature.
@@ -508,7 +508,7 @@ const char kProofSignatureLabel[] = "QUIC CHLO and server config signature";
 // A client may pad an inchoate client hello to a size larger than
 // kClientHelloMinimumSize to make it more likely to receive a complete
 // rejection message.
-const size_t kClientHelloMinimumSize = 1024;
+inline constexpr size_t kClientHelloMinimumSize = 1024;
 
 }  // namespace quic
 

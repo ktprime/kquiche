@@ -184,7 +184,7 @@ std::vector<CertEntry> MatchCerts(const std::vector<std::string>& certs,
       !client_cached_cert_hashes.empty();
 
   for (auto i = certs.begin(); i != certs.end(); ++i) {
-    CertEntry entry;
+    CertEntry entry; entry.hash = 0;
 
     if (cached_valid) {
       bool cached = false;

@@ -50,7 +50,7 @@ class QUIC_EXPORT_PRIVATE AeadBaseEncrypter : public QuicEncrypter {
   // Make these constants available to the subclasses so that the subclasses
   // can assert at compile time their key_size_ and nonce_size_ do not
   // exceed the maximum.
-  static const size_t kMaxKeySize = 32;
+  static constexpr size_t kMaxKeySize = 32;
   enum : size_t { kMaxNonceSize = 12 };
 
  private:

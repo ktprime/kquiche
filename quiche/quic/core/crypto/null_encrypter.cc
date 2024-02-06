@@ -11,7 +11,7 @@
 
 namespace quic {
 
-const size_t kHashSizeShort = 12;  // size of uint128 serialized short
+constexpr size_t kHashSizeShort = 12;  // size of uint128 serialized short
 
 NullEncrypter::NullEncrypter(Perspective perspective)
     : perspective_(perspective) {}

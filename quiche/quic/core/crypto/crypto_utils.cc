@@ -63,7 +63,7 @@ std::vector<uint8_t> HkdfExpandLabel(const EVP_MD* prf,
   // 20 = size(u16) + size(u8) + len("tls13 ") +
   //      max_len("client in", "server in", "quicv2 key", ... ) +
   //      size(u8);
-  static const size_t max_quic_hkdf_label_length = 20;
+  constexpr size_t max_quic_hkdf_label_length = 20;
   if (!CBB_init(quic_hkdf_label.get(), max_quic_hkdf_label_length) ||
       !CBB_add_u16(quic_hkdf_label.get(), out_len) ||
       !CBB_add_u8_length_prefixed(quic_hkdf_label.get(), &inner_label) ||

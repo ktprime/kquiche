@@ -534,24 +534,15 @@ QuicErrorCode QuicCryptoClientConfig::FillClientHello(
     *error_details = "Unsupported AEAD or KEXS";
     return QUIC_CRYPTO_NO_SUPPORT;
   }
-
+  out->SetVector(kAEAD, QuicTagVector{out_params->aead});
 #if 0
   //hybchanged
-  if (0 /*&& GetQuicFlag(FLAGS_quic_use_unencrypted_transmission)**/) {
+  if (GetQuicFlag(FLAGS_quic_use_unencrypted_transmission)) {
       if (std::find(their_aeads.begin(), their_aeads.end(), kTEXT) != their_aeads.end()) {
           out->SetVector(kAEAD, QuicTagVector{ kTEXT });
       }
-      else {
-          out->SetVector(kAEAD, QuicTagVector{ out_params->aead });
-          //SetQuicFlag(FLAGS_quic_use_unencrypted_transmission, false);
-      }
   }
-  else
 #endif
-  {
-      out->SetVector(kAEAD, QuicTagVector{ out_params->aead });
-  }
-
   out->SetVector(kKEXS, QuicTagVector{out_params->key_exchange});
 
   absl::string_view public_value;

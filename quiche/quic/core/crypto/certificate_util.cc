@@ -23,7 +23,7 @@ namespace quic {
 namespace {
 bool AddEcdsa256SignatureAlgorithm(CBB* cbb) {
   // See RFC 5758. This is the encoding of OID 1.2.840.10045.4.3.2.
-  static const uint8_t kEcdsaWithSha256[] = {0x2a, 0x86, 0x48, 0xce,
+  const uint8_t kEcdsaWithSha256[] = {0x2a, 0x86, 0x48, 0xce,
                                              0x3d, 0x04, 0x03, 0x02};
 
   // An AlgorithmIdentifier is described in RFC 5280, 4.1.1.2.
@@ -44,10 +44,10 @@ bool AddEcdsa256SignatureAlgorithm(CBB* cbb) {
 // Adds an X.509 Name with the specified distinguished name to |cbb|.
 bool AddName(CBB* cbb, absl::string_view name) {
   // See RFC 4519.
-  static const uint8_t kCommonName[] = {0x55, 0x04, 0x03};
-  static const uint8_t kCountryName[] = {0x55, 0x04, 0x06};
-  static const uint8_t kOrganizationName[] = {0x55, 0x04, 0x0a};
-  static const uint8_t kOrganizationalUnitName[] = {0x55, 0x04, 0x0b};
+  const uint8_t kCommonName[] = {0x55, 0x04, 0x03};
+  const uint8_t kCountryName[] = {0x55, 0x04, 0x06};
+  const uint8_t kOrganizationName[] = {0x55, 0x04, 0x0a};
+  const uint8_t kOrganizationalUnitName[] = {0x55, 0x04, 0x0b};
 
   std::vector<std::string> attributes =
       absl::StrSplit(name, ',', absl::SkipEmpty());
@@ -132,8 +132,8 @@ bool CBBAddTime(CBB* cbb, const CertificateTimestamp& timestamp) {
                         timestamp.month, timestamp.day, timestamp.hour,
                         timestamp.minute, timestamp.second);
 
-  static const size_t kGeneralizedTimeLength = 15;
-  static const size_t kUTCTimeLength = 13;
+  constexpr size_t kGeneralizedTimeLength = 15;
+  constexpr size_t kUTCTimeLength = 13;
   QUICHE_DCHECK_EQ(formatted_time.size(),
                    is_utc_time ? kUTCTimeLength : kGeneralizedTimeLength);
 

@@ -448,7 +448,7 @@ std::string TransportParameters::ToString() const {
   for (const auto& kv : custom_parameters) {
     absl::StrAppend(&rv, " 0x", absl::Hex(static_cast<uint32_t>(kv.first)),
                     "=");
-    static constexpr size_t kMaxPrintableLength = 32;
+    constexpr size_t kMaxPrintableLength = 32;
     if (kv.second.length() <= kMaxPrintableLength) {
       rv += absl::BytesToHexString(kv.second);
     } else {
@@ -708,24 +708,24 @@ bool SerializeTransportParameters(const TransportParameters& in,
   }
 
   // Maximum length of the GREASE transport parameter (see below).
-  static constexpr size_t kMaxGreaseLength = 16;
+  constexpr size_t kMaxGreaseLength = 16;
 
   // Empirically transport parameters generally fit within 128 bytes, but we
   // need to allocate the size up front. Integer transport parameters
   // have a maximum encoded length of 24 bytes (3 variable length integers),
   // other transport parameters have a length of 16 + the maximum value length.
-  static constexpr size_t kTypeAndValueLength = 2 * sizeof(uint64_t);
-  static constexpr size_t kIntegerParameterLength =
+  constexpr size_t kTypeAndValueLength = 2 * sizeof(uint64_t);
+  constexpr size_t kIntegerParameterLength =
       kTypeAndValueLength + sizeof(uint64_t);
-  static constexpr size_t kStatelessResetParameterLength =
+  constexpr size_t kStatelessResetParameterLength =
       kTypeAndValueLength + 16 /* stateless reset token length */;
-  static constexpr size_t kConnectionIdParameterLength =
+  constexpr size_t kConnectionIdParameterLength =
       kTypeAndValueLength + 255 /* maximum connection ID length */;
-  static constexpr size_t kPreferredAddressParameterLength =
+  constexpr size_t kPreferredAddressParameterLength =
       kTypeAndValueLength + 4 /*IPv4 address */ + 2 /* IPv4 port */ +
       16 /* IPv6 address */ + 1 /* Connection ID length */ +
       255 /* maximum connection ID length */ + 16 /* stateless reset token */;
-  static constexpr size_t kKnownTransportParamLength =
+  constexpr size_t kKnownTransportParamLength =
       kConnectionIdParameterLength +      // original_destination_connection_id
       kIntegerParameterLength +           // max_idle_timeout
       kStatelessResetParameterLength +    // stateless_reset_token

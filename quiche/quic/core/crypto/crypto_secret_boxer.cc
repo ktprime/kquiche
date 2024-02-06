@@ -19,12 +19,12 @@ namespace quic {
 // AES-GCM-SIV takes a 12-byte nonce and, since the messages are so small, each
 // key is good for more than 2^64 source-address tokens. See table 1 of
 // https://eprint.iacr.org/2017/168.pdf
-static const size_t kSIVNonceSize = 12;
+constexpr size_t kSIVNonceSize = 12;
 
 // AES-GCM-SIV comes in AES-128 and AES-256 flavours. The AES-256 version is
 // used here so that the key size matches the 256-bit XSalsa20 keys that we
 // used to use.
-static const size_t kBoxKeySize = 32;
+constexpr size_t kBoxKeySize = 32;
 
 struct CryptoSecretBoxer::State {
   // ctxs are the initialised AEAD contexts. These objects contain the

@@ -62,9 +62,9 @@ namespace {
 // must stay under when the client doesn't present a valid source-address
 // token. This is used to protect QUIC from amplification attacks.
 // TODO(rch): Reduce this to 2 again once b/25933682 is fixed.
-const size_t kMultiplier = 3;
+constexpr size_t kMultiplier = 3;
 
-const int kMaxTokenAddresses = 4;
+constexpr int kMaxTokenAddresses = 4;
 
 std::string DeriveSourceAddressTokenKey(
     absl::string_view source_address_token_secret) {
@@ -760,11 +760,11 @@ void QuicCryptoServerConfig::ProcessClientHello(
 
   // No need to get a new proof if one was already generated.
   if (!context->signed_config()->chain) {
-    //hybchanged. only for gquic ? reduce one more sign
+    //hybchanged. TODO2 only for gquic ? reduce one more sign
     const std::string chlo_hash = version.handshake_protocol == PROTOCOL_QUIC_CRYPTO ? "" :
         CryptoUtils::HashHandshakeMessage(
         context->client_hello(), Perspective::IS_SERVER);
-    const QuicSocketAddress server_address = context->server_address();
+    const QuicSocketAddress context_server_address = context->server_address();
     const std::string sni = std::string(context->info().sni);
     const QuicTransportVersion transport_version = context->transport_version();
 
@@ -772,7 +772,7 @@ void QuicCryptoServerConfig::ProcessClientHello(
         this, std::move(context), configs);
 
     QUICHE_DCHECK(proof_source_.get());
-    proof_source_->GetProof(server_address, client_address, sni,
+    proof_source_->GetProof(context_server_address, client_address, sni,
                             configs.primary->serialized, transport_version,
                             chlo_hash, std::move(cb));
     return;
@@ -1529,7 +1529,7 @@ void QuicCryptoServerConfig::BuildRejection(
   // SCFG
   //   SCID: 16 bytes
   //   PUBS: 38 bytes
-  const size_t kREJOverheadBytes = 166;
+  constexpr size_t kREJOverheadBytes = 166;
   // max_unverified_size is the number of bytes that the certificate chain,
   // signature, and (optionally) signed certificate timestamp can consume before
   // we will demand a valid source-address token.
@@ -1813,11 +1813,11 @@ HandshakeFailureReason QuicCryptoServerConfig::ParseSourceAddressToken(
     // Some clients might still be using the old source token format so
     // attempt to parse that format.
     // TODO(rch): remove this code once the new format is ubiquitous.
-    SourceAddressToken token;
-    if (!token.ParseFromArray(plaintext.data(), plaintext.size())) {
+    SourceAddressToken old_source_token;
+    if (!old_source_token.ParseFromArray(plaintext.data(), plaintext.size())) {
       return SOURCE_ADDRESS_TOKEN_PARSE_FAILURE;
     }
-    *tokens.add_tokens() = token;
+    *tokens.add_tokens() = old_source_token;
   }
 
   return HANDSHAKE_OK;
@@ -1874,7 +1874,7 @@ QuicCryptoServerConfig::ValidateSourceAddressTokenTimestamp(
 
 // kServerNoncePlaintextSize is the number of bytes in an unencrypted server
 // nonce.
-static const size_t kServerNoncePlaintextSize =
+constexpr size_t kServerNoncePlaintextSize =
     4 /* timestamp */ + 20 /* random bytes */;
 
 std::string QuicCryptoServerConfig::NewServerNonce(QuicRandom* rand,

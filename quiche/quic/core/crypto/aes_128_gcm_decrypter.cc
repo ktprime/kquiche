@@ -13,8 +13,8 @@ namespace quic {
 
 namespace {
 
-const size_t kKeySize = 16;
-const size_t kNonceSize = 12;
+constexpr size_t kKeySize = 16;
+constexpr size_t kNonceSize = 12;
 
 }  // namespace
 

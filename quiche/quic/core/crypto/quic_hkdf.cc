@@ -13,8 +13,8 @@
 
 namespace quic {
 
-const size_t kSHA256HashLength = 32;
-const size_t kMaxKeyMaterialSize = kSHA256HashLength * 256;
+constexpr size_t kSHA256HashLength = 32;
+constexpr size_t kMaxKeyMaterialSize = kSHA256HashLength * 256;
 
 QuicHKDF::QuicHKDF(absl::string_view secret, absl::string_view salt,
                    absl::string_view info, size_t key_bytes_to_generate,
@@ -89,7 +89,7 @@ QuicHKDF::QuicHKDF(absl::string_view secret, absl::string_view salt,
   if (server_key_bytes_to_generate) {
     server_hp_key_ = absl::string_view(reinterpret_cast<char*>(&output_[j]),
                                        server_key_bytes_to_generate);
-    j += server_key_bytes_to_generate;
+    //j += server_key_bytes_to_generate;
   }
 }
 
