@@ -35,7 +35,7 @@ struct QUIC_EXPORT_PRIVATE QuicStreamFrame final
   QuicPacketLength data_length = 0;
   // TODO(wub): Change to a QuicUtils::GetInvalidStreamId when it is not version
   // dependent.
-  QuicStreamId stream_id = -1;
+  QuicStreamId stream_id = (QuicStreamId)(-1);
   const char* data_buffer = nullptr;  // Not owned.
   QuicStreamOffset offset = 0;        // Location of this data in the stream.
 

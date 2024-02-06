@@ -41,9 +41,9 @@ typedef uint16_t HuffmanCodeBitCount;
 typedef std::bitset<32> HuffmanCodeBitSet;
 typedef std::bitset<64> HuffmanAccumulatorBitSet;
 
-static constexpr HuffmanCodeBitCount kMinCodeBitCount = 5;
-static constexpr HuffmanCodeBitCount kMaxCodeBitCount = 30;
-static constexpr HuffmanCodeBitCount kHuffmanCodeBitCount =
+constexpr HuffmanCodeBitCount kMinCodeBitCount = 5;
+constexpr HuffmanCodeBitCount kMaxCodeBitCount = 30;
+constexpr HuffmanCodeBitCount kHuffmanCodeBitCount =
     std::numeric_limits<HuffmanCode>::digits;
 
 static_assert(std::numeric_limits<HuffmanCode>::digits >= kMaxCodeBitCount,
@@ -53,9 +53,9 @@ static_assert(std::numeric_limits<HuffmanAccumulator>::digits >=
                   kMaxCodeBitCount,
               "HuffmanAccumulator isn't big enough.");
 
-static constexpr HuffmanAccumulatorBitCount kHuffmanAccumulatorBitCount =
+constexpr HuffmanAccumulatorBitCount kHuffmanAccumulatorBitCount =
     std::numeric_limits<HuffmanAccumulator>::digits;
-static constexpr HuffmanAccumulatorBitCount kExtraAccumulatorBitCount =
+constexpr HuffmanAccumulatorBitCount kExtraAccumulatorBitCount =
     kHuffmanAccumulatorBitCount - kHuffmanCodeBitCount;
 
 // PrefixInfo holds info about a group of codes that are all of the same length.

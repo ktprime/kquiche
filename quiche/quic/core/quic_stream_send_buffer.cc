@@ -55,7 +55,7 @@ QuicStreamSendBuffer::QuicStreamSendBuffer(
       stream_bytes_written_(0),
       stream_bytes_outstanding_(0)
 {
-      bytes_acked_.AddEmpty(0);
+  bytes_acked_.AddEmpty(0);
 }
 
 QuicStreamSendBuffer::~QuicStreamSendBuffer() {

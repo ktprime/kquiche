@@ -162,7 +162,7 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
   // Offset of next inserted byte.
   QuicStreamOffset stream_offset_;
   // Offset of first block byte
-  QuicStreamOffset first_block_end_;
+  QuicStreamOffset stream_bytes_start_;
 
   absl::InlinedVector<BufferBlock*, kSmallBlocks> blocks_;
 

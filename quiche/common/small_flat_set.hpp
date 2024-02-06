@@ -682,7 +682,7 @@ public:
         initialize_copy(other);
     }
 
-    small_flat_set(small_flat_set&& other)
+    small_flat_set(small_flat_set&& other) noexcept
         : data_
         (
             std::move(other.data_.ref_to_comp()),
@@ -734,7 +734,7 @@ public:
         return *this;
     }
 
-    small_flat_set& operator=(small_flat_set&& other)
+    small_flat_set& operator=(small_flat_set&& other) noexcept
     {
         assign_move(other);
         other.clear();

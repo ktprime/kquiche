@@ -30,7 +30,7 @@ bool QuicheDataReader::ReadUInt8(uint8_t* result) {
 #if 0
   return ReadBytes(result, sizeof(*result));
 #else
-  auto res = CanRead(1);
+  //auto res = CanRead(1);
   *result = data_[pos_++];
   return true;
 #endif

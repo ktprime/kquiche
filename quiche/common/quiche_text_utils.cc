@@ -40,7 +40,7 @@ absl::optional<std::string> QuicheTextUtils::Base64Decode(
 
 // static
 std::string QuicheTextUtils::HexDump(absl::string_view binary_data) {
-  const int kBytesPerLine = 16;  // Maximum bytes dumped per line.
+  constexpr int kBytesPerLine = 16;  // Maximum bytes dumped per line.
   int offset = 0;
   const char* p = binary_data.data();
   int bytes_remaining = binary_data.size();

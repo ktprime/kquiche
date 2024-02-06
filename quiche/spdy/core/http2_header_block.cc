@@ -21,7 +21,7 @@ namespace {
 // count for a particular capacity.  |kInitialMapBuckets| is chosen to reduce
 // memory usage for small header blocks, at the cost of having to rehash for
 // large header blocks.
-const size_t kInitialMapBuckets = 11;
+constexpr size_t kInitialMapBuckets = 11;
 
 const char kCookieKey[] = "cookie";
 const char kNullSeparator = 0;

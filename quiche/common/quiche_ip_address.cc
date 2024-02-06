@@ -120,7 +120,7 @@ std::string QuicheIpAddress::ToString() const {
   return buffer;
 }
 
-static const uint8_t kMappedAddressPrefix[] = {
+static constexpr uint8_t kMappedAddressPrefix[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
 };
 

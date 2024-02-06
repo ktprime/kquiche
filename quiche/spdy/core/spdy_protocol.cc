@@ -589,7 +589,7 @@ int SpdyUnknownIR::flow_control_window_consumed() const {
 }
 
 // Wire size of pad length field.
-const size_t kPadLengthFieldSize = 1;
+constexpr size_t kPadLengthFieldSize = 1;
 
 size_t GetHeaderFrameSizeSansBlock(const SpdyHeadersIR& header_ir) {
   size_t min_size = kFrameHeaderSize;
