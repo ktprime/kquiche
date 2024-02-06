@@ -26,10 +26,10 @@ namespace {
 // reduce the number of acks sent that have no benefit for fast retransmission.
 // Set to the number of nacks needed for fast retransmit plus one for protection
 // against an ack loss
-const size_t kMaxPacketsAfterNewMissing = 4;
+constexpr size_t kMaxPacketsAfterNewMissing = 4;
 
 // One eighth RTT delay when doing ack decimation.
-const float kShortAckDecimationDelay = 0.125;
+constexpr float kShortAckDecimationDelay = 0.125;
 }  // namespace
 
 QuicReceivedPacketManager::QuicReceivedPacketManager()
@@ -201,19 +201,18 @@ void QuicReceivedPacketManager::DontWaitForPacketsBefore(
 QuicTime::Delta QuicReceivedPacketManager::GetMaxAckDelay(
     QuicPacketNumber last_received_packet_number,
     const RttStats& rtt_stats) const {
-  if (
 #if QUIC_TLS_SESSION //hybchanged only tls ack_frame can update
-    AckFrequencyFrameReceived() ||
-#endif
+  if (AckFrequencyFrameReceived() ||
       last_received_packet_number < PeerFirstSendingPacketNumber() +
                                         min_received_before_ack_decimation_) {
     return local_max_ack_delay_;
   }
+#endif
 
   // Wait for the minimum of the ack decimation delay or the delayed ack time
   // before sending an ack.
   QuicTime::Delta ack_delay = std::min(
-      local_max_ack_delay_, rtt_stats.smoothed_rtt() / ack_decimation_delay_);
+      local_max_ack_delay_, rtt_stats.smoothed_rtt() / 3);
   return ack_delay + kAlarmGranularity;// std::max(ack_delay, kAlarmGranularity);
 }
 

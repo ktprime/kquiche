@@ -24,31 +24,31 @@ namespace {
 // Constants based on TCP defaults.
 // The minimum CWND to ensure delayed acks don't reduce bandwidth measurements.
 // Does not inflate the pacing rate.
-const QuicByteCount kDefaultMinimumCongestionWindow = 4 * kMaxSegmentSize;
+constexpr QuicByteCount kDefaultMinimumCongestionWindow = 4 * kMaxSegmentSize;
 
 // The gain used for the STARTUP, equal to 2/ln(2).
-const float kDefaultHighGain = 2.885f;
+constexpr float kDefaultHighGain = 2.885f;
 // The newly derived gain for STARTUP, equal to 4 * ln(2)
-const float kDerivedHighGain = 2.773f;
+constexpr float kDerivedHighGain = 2.773f;
 // The newly derived CWND gain for STARTUP, 2.
-const float kDerivedHighCWNDGain = 2.0f;
+constexpr float kDerivedHighCWNDGain = 2.0f;
 // The cycle of gains used during the PROBE_BW stage.
-const float kPacingGain[] = {1.25, 0.75, 1, 1, 1, 1, 1, 1};
+constexpr float kPacingGain[] = {1.25, 0.75, 1, 1, 1, 1, 1, 1};
 
 // The length of the gain cycle.
-const size_t kGainCycleLength = sizeof(kPacingGain) / sizeof(kPacingGain[0]);
+constexpr size_t kGainCycleLength = sizeof(kPacingGain) / sizeof(kPacingGain[0]);
 // The size of the bandwidth filter window, in round-trips.
-const QuicRoundTripCount kBandwidthWindowSize = kGainCycleLength + 2;
+constexpr QuicRoundTripCount kBandwidthWindowSize = kGainCycleLength + 2;
 
 // The time after which the current min_rtt value expires.
-const QuicTime::Delta kMinRttExpiry = QuicTime::Delta::FromSeconds(5);
+constexpr QuicTime::Delta kMinRttExpiry = QuicTime::Delta::FromSeconds(5);
 // The minimum time the connection can spend in PROBE_RTT mode.
-const QuicTime::Delta kProbeRttTime = QuicTime::Delta::FromMilliseconds(200);
+constexpr QuicTime::Delta kProbeRttTime = QuicTime::Delta::FromMilliseconds(200);
 // If the bandwidth does not increase by the factor of |kStartupGrowthTarget|
 // within |kRoundTripsWithoutGrowthBeforeExitingStartup| rounds, the connection
 // will exit the STARTUP mode.
-const float kStartupGrowthTarget = 1.25;
-const QuicRoundTripCount kRoundTripsWithoutGrowthBeforeExitingStartup = 3;
+constexpr float kStartupGrowthTarget = 1.25;
+constexpr QuicRoundTripCount kRoundTripsWithoutGrowthBeforeExitingStartup = 3;
 }  // namespace
 
 BbrSender::DebugState::DebugState(const BbrSender& sender)
@@ -151,7 +151,7 @@ void BbrSender::OnPacketSent(QuicTime sent_time, QuicByteCount bytes_in_flight,
                              QuicPacketNumber packet_number,
                              QuicByteCount bytes,
                              HasRetransmittableData is_retransmittable) {
-  if (stats_ && InSlowStart()) {
+  if (InSlowStart()) {
     ++stats_->slowstart_packets_sent;
     stats_->slowstart_bytes_sent += bytes;
   }

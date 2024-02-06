@@ -87,7 +87,7 @@ bool QuicFlowController::UpdateHighestReceivedOffset(
 }
 
 void QuicFlowController::AddBytesSent(QuicByteCount bytes_sent) {
-  if (bytes_sent_ + bytes_sent > send_window_offset_) {
+  if (DCHECK_FLAG && bytes_sent_ + bytes_sent > send_window_offset_) {
     QUIC_BUG(quic_bug_10836_1)
         << ENDPOINT << LogLabel() << " Trying to send an extra " << bytes_sent
         << " bytes, when bytes_sent = " << bytes_sent_
@@ -190,7 +190,7 @@ void QuicFlowController::MaybeSendWindowUpdate() {
   // Send WindowUpdate to increase receive window if
   // (receive window offset - consumed bytes) < (max window / 2).
   // This is behaviour copied from SPDY.
-  QUICHE_DCHECK_LE(bytes_consumed_, receive_window_offset_);
+  //QUICHE_DCHECK_LE(bytes_consumed_, receive_window_offset_);
   QuicStreamOffset available_window = receive_window_offset_ - bytes_consumed_;
   QuicByteCount threshold = WindowUpdateThreshold();
 

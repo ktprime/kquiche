@@ -12,14 +12,14 @@ namespace quic {
 
 // Note(pwestin): the magic clamping numbers come from the original code in
 // tcp_cubic.c.
-const int64_t kHybridStartLowWindow = 16;
+constexpr int64_t kHybridStartLowWindow = 16;
 // Number of delay samples for detecting the increase of delay.
-const uint32_t kHybridStartMinSamples = 8;
+constexpr uint32_t kHybridStartMinSamples = 8;
 // Exit slow start if the min rtt has increased by more than 1/8th.
-const int kHybridStartDelayFactorExp = 3;  // 2^3 = 8
+constexpr int kHybridStartDelayFactorExp = 3;  // 2^3 = 8
 // The original paper specifies 2 and 8ms, but those have changed over time.
-const int64_t kHybridStartDelayMinThresholdUs = 4000;
-const int64_t kHybridStartDelayMaxThresholdUs = 16000;
+constexpr int64_t kHybridStartDelayMinThresholdUs = 4000;
+constexpr int64_t kHybridStartDelayMaxThresholdUs = 16000;
 
 HybridSlowStart::HybridSlowStart()
     : started_(false),

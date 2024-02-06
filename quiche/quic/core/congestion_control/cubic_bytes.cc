@@ -21,19 +21,19 @@ namespace {
 // Constants based on TCP defaults.
 // The following constants are in 2^10 fractions of a second instead of ms to
 // allow a 10 shift right to divide.
-const int kCubeScale = 40;  // 1024*1024^3 (first 1024 is from 0.100^3)
+constexpr int kCubeScale = 40;  // 1024*1024^3 (first 1024 is from 0.100^3)
                             // where 0.100 is 100 ms which is the scaling
                             // round trip time.
-const int kCubeCongestionWindowScale = 410;
+constexpr int kCubeCongestionWindowScale = 410;
 // The cube factor for packets in bytes.
-const uint64_t kCubeFactor =
+constexpr uint64_t kCubeFactor =
     (UINT64_C(1) << kCubeScale) / kCubeCongestionWindowScale / kDefaultTCPMSS;
 
-const float kDefaultCubicBackoffFactor = 0.7f;  // Default Cubic backoff factor.
+constexpr float kDefaultCubicBackoffFactor = 0.7f;  // Default Cubic backoff factor.
 // Additional backoff factor when loss occurs in the concave part of the Cubic
 // curve. This additional backoff factor is expected to give up bandwidth to
 // new concurrent flows and speed up convergence.
-const float kBetaLastMax = 0.85f;
+constexpr float kBetaLastMax = 0.85f;
 
 }  // namespace
 

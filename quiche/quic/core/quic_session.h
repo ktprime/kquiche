@@ -493,11 +493,11 @@ class QUIC_EXPORT_PRIVATE QuicSession
   }
 
 #if QUIC_SERVER_SESSION == 1
-  Perspective perspective() const { return perspective_; }
+  constexpr Perspective perspective() const { return perspective_; }
 #elif QUIC_SERVER_SESSION == 0
-  Perspective perspective() const { return Perspective::IS_CLIENT; }
+  constexpr Perspective perspective() const { return Perspective::IS_CLIENT; }
 #else
-  Perspective perspective() const { return Perspective::IS_SERVER; }
+  constexpr Perspective perspective() const { return Perspective::IS_SERVER; }
 #endif
 
   QuicFlowController* flow_controller() { return &flow_controller_; }
@@ -625,7 +625,8 @@ class QUIC_EXPORT_PRIVATE QuicSession
 
   virtual QuicSSLConfig GetSSLConfig() const { return QuicSSLConfig(); }
 
-  // Try converting all pending streams to normal streams.
+  // Start converting all pending streams to normal streams in the same order as
+  // they are created, which may need several event loops to finish.
   void ProcessAllPendingStreams();
 
   const ParsedQuicVersionVector& client_original_supported_versions() const {
@@ -658,7 +659,8 @@ class QUIC_EXPORT_PRIVATE QuicSession
   using StreamMap =
 //    emhash5::HashMap<QuicStreamId, QuicStream*>;
     sfl::small_unordered_flat_map<QuicStreamId, QuicStream*, 4>;
-
+  // Use a linked hash map for pending streams so that they will be processed in
+  // a FIFO order to avoid starvation.
   using PendingStreamMap =
     std::map<QuicStreamId, std::unique_ptr<PendingStream>>;
 
@@ -923,15 +925,15 @@ class QUIC_EXPORT_PRIVATE QuicSession
   // Store perspective on QuicSession during the constructor as it may be needed
   // during our destructor when connection_ may have already been destroyed.
 #if QUIC_SERVER_SESSION == 0
-  constexpr static Perspective perspective_ = Perspective::IS_CLIENT;
+  static constexpr Perspective perspective_ = Perspective::IS_CLIENT;
 #elif QUIC_SERVER_SESSION == 2
-  constexpr static Perspective perspective_ = Perspective::IS_SERVER;
+  static constexpr Perspective perspective_ = Perspective::IS_SERVER;
 #else
   const Perspective perspective_;
 #endif
 
   // May be null.
-  constexpr static Visitor* visitor_ = nullptr;
+  static constexpr Visitor* visitor_ = nullptr;
 
   // A list of streams which need to write more data.  Stream register
   // themselves in their constructor, and unregisterm themselves in their

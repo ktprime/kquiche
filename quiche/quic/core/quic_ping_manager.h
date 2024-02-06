@@ -79,9 +79,9 @@ class QUIC_EXPORT_PRIVATE QuicPingManager {
   QuicTime GetEarliestDeadline() const;
 
 #if QUIC_SERVER_SESSION == 0
-  constexpr static Perspective perspective_ = Perspective::IS_CLIENT;
+  static constexpr Perspective perspective_ = Perspective::IS_CLIENT;
 #elif QUIC_SERVER_SESSION == 2
-  constexpr static Perspective perspective_ = Perspective::IS_SERVER;
+  static constexpr Perspective perspective_ = Perspective::IS_SERVER;
 #else
   const Perspective perspective_;
 #endif

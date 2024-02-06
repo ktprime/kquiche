@@ -392,7 +392,7 @@ void QuicSession::OnRstStream(const QuicRstStreamFrame& frame) {
     return;
   }
 
-  //TODO hybchanged no need add
+  //TODO2 hybchanged no need add
   if (stream_map_.count(stream_id) == 0) {
     HandleRstOnValidNonexistentStream(frame);
     return;  //TODO2 hybchanged no need create rst stream and then close it.
@@ -891,9 +891,17 @@ bool QuicSession::WriteControlFrame(const QuicFrame& frame,
 //      << absl::StrCat("Try to write control frame: ", QuicFrameToString(frame),
 //                      " when connection is closed: ")
 //      << on_closed_frame_string();
-  if (!IsEncryptionEstablished()) {
+  if (false && !IsEncryptionEstablished()) {
     // Suppress the write before encryption gets established.
     return false;
+  }
+  if (true) {
+    QUIC_RESTART_FLAG_COUNT_N(quic_allow_control_frames_while_procesing, 1, 3);
+  } else {
+    if (connection_->framer().is_processing_packet()) {
+      // The frame will be sent when OnCanWrite() is called.
+      return false;
+    }
   }
   SetTransmissionType(type);
   QuicConnection::ScopedEncryptionLevelContext context(
@@ -1929,7 +1937,7 @@ QuicStream* QuicSession::GetOrCreateStream(const QuicStreamId stream_id) {
   QUICHE_DCHECK(!pending_stream_map_.count(stream_id));
   auto it = stream_map_.at(stream_id);
   if (it) {
-    return it->IsZombie() ? nullptr : it;
+    return it; /*->IsZombie() ? nullptr : it**/;
   }
 
   if (QuicUtils::IsCryptoStreamId(transport_version(), stream_id)) {
@@ -2538,7 +2546,7 @@ void QuicSession::CleanUpClosedStreams() {
   for (QuicStream* v: closed_streams_)
     delete v;
   closed_streams_.clear();
-  for (auto& s: stream_map_)
+  for (const auto& s: stream_map_)
     delete s.second;
   stream_map_.clear();
 }

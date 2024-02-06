@@ -68,15 +68,26 @@ bool QuicDataWriter::WriteUFloat16(uint64_t value) {
 }
 
 bool QuicDataWriter::WriteConnectionId(QuicConnectionId connection_id) {
-  //if (connection_id.IsEmpty()) {
-   // return true;
-  //}
+#if 1
+  if (DCHECK_FLAG && connection_id.IsEmpty()) {
+    return true;
+  }
+
+  QUICHE_DCHECK(connection_id.length() == sizeof(uint64_t));
+  *(uint64_t*)(BeginWrite(connection_id.length())) = *(uint64_t*)(connection_id.data());
+  IncreaseLength(connection_id.length());
+  return true;
+#else
   return WriteBytes(connection_id.data(), connection_id.length());
+#endif
 }
 
 bool QuicDataWriter::WriteLengthPrefixedConnectionId(
     QuicConnectionId connection_id) {
-  return WriteUInt8(connection_id.length()) && WriteConnectionId(connection_id);
+  WriteUInt8(connection_id.length());
+  if (!connection_id.IsEmpty())
+  WriteConnectionId(connection_id);
+  return true;
 }
 
 bool QuicDataWriter::WriteRandomBytes(QuicRandom* random, size_t length) {

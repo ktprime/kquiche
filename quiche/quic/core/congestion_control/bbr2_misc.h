@@ -76,13 +76,13 @@ struct QUIC_EXPORT_PRIVATE Bbr2Params {
    */
 
   // The gain for CWND in startup.
-  float startup_cwnd_gain = 2.0;
+  float startup_cwnd_gain = 2.0f;
   // TODO(wub): Maybe change to the newly derived value of 2.773 (4 * ln(2)).
-  float startup_pacing_gain = 2.885;
+  float startup_pacing_gain = 2.885f;
 
   // STARTUP or PROBE_UP are exited if the total bandwidth growth is less than
   // |full_bw_threshold| in the last |startup_full_bw_rounds| round trips.
-  float full_bw_threshold = 1.25;
+  float full_bw_threshold = 1.25f;
 
   QuicRoundTripCount startup_full_bw_rounds = 3;
 
@@ -107,8 +107,8 @@ struct QUIC_EXPORT_PRIVATE Bbr2Params {
   /*
    * DRAIN parameters.
    */
-  float drain_cwnd_gain = 2.0;
-  float drain_pacing_gain = 1.0 / 2.885;
+  float drain_cwnd_gain = 2.0f;
+  float drain_pacing_gain = 1.0f / 2.885f;
 
   /*
    * PROBE_BW parameters.
@@ -180,7 +180,7 @@ struct QUIC_EXPORT_PRIVATE Bbr2Params {
 
   // A common factor for multiplicative decreases. Used for adjusting
   // bandwidth_lo, inflight_lo and inflight_hi upon losses.
-  float beta = 0.3;
+  float beta = 0.3f;
 
   Limits<QuicByteCount> cwnd_limits;
 
@@ -296,19 +296,19 @@ struct QUIC_EXPORT_PRIVATE Bbr2CongestionEvent {
   QuicTime event_time = QuicTime::Zero();
 
   // The congestion window prior to the processing of the ack/loss events.
-  QuicByteCount prior_cwnd;
+  QuicStreamCount prior_cwnd;
 
   // Total bytes inflight before the processing of the ack/loss events.
-  QuicByteCount prior_bytes_in_flight = 0;
+  QuicStreamCount prior_bytes_in_flight = 0;
 
   // Total bytes inflight after the processing of the ack/loss events.
-  QuicByteCount bytes_in_flight = 0;
+  QuicStreamCount bytes_in_flight = 0;
 
   // Total bytes acked from acks in this event.
-  QuicByteCount bytes_acked = 0;
+  QuicStreamCount bytes_acked = 0;
 
   // Total bytes lost from losses in this event.
-  QuicByteCount bytes_lost = 0;
+  QuicStreamCount bytes_lost = 0;
 
   // Whether acked_packets indicates the end of a round trip.
   bool end_of_round_trip = false;
@@ -365,6 +365,8 @@ class QUIC_EXPORT_PRIVATE Bbr2NetworkModel {
   void AdvanceMaxBandwidthFilter() { max_bandwidth_filter_.Advance(); }
 
   void OnApplicationLimited() { bandwidth_sampler_.OnAppLimited(); }
+
+  float GetLossRate() const { return 1.0 * bandwidth_sampler_.total_bytes_lost() / bandwidth_sampler_.total_bytes_sent(); }
 
   // Calculates BDP using the current MaxBandwidth.
   QuicByteCount BDP() const { return BDP(MaxBandwidth()); }

@@ -29,7 +29,7 @@ size_t CalculateBlockCount(size_t max_capacity_bytes) {
 // Upper limit of how many gaps allowed in buffer, which ensures a reasonable
 // number of iterations needed to find the right gap to fill when a frame
 // arrives.
-const size_t kMaxNumDataIntervalsAllowed = 2 * kMaxPacketGap;
+constexpr size_t kMaxNumDataIntervalsAllowed = 2 * kMaxPacketGap;
 
 // Number of blocks allocated initially.
 constexpr size_t kInitialBlockCount = 2u;

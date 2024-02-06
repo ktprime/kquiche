@@ -23,8 +23,9 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
 
   QuicByteCount bytes_sent = 0;  // Includes retransmissions.
   QuicPacketCount packets_sent = 0;
+  QuicPacketCount stream_packets_sent = 0;
   // Non-retransmitted bytes sent in a stream frame.
-  QuicByteCount stream_bytes_sent = 0;
+  //QuicByteCount stream_bytes_sent = 0;
   // Packets serialized and discarded before sending.
   QuicPacketCount packets_discarded = 0;
 

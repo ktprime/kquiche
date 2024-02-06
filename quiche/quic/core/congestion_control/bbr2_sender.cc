@@ -25,11 +25,11 @@ namespace {
 // Constants based on TCP defaults.
 // The minimum CWND to ensure delayed acks don't reduce bandwidth measurements.
 // Does not inflate the pacing rate.
-const QuicByteCount kDefaultMinimumCongestionWindow = 4 * kMaxSegmentSize;
+constexpr QuicByteCount kDefaultMinimumCongestionWindow = 4 * kMaxSegmentSize;
 
-const float kInitialPacingGain = 2.885f;
+constexpr float kInitialPacingGain = 2.885f;
 
-const int kMaxModeChangesPerCongestionEvent = 4;
+constexpr int kMaxModeChangesPerCongestionEvent = 4;
 }  // namespace
 
 // Call |member_function_call| based on the current Bbr2Mode we are in. e.g.
@@ -261,7 +261,7 @@ void Bbr2Sender::AdjustNetworkParameters(const NetworkParams& params) {
     }
 
     pacing_rate_ = std::max(pacing_rate_, QuicBandwidth::FromBytesAndTimeDelta(
-                                              cwnd_, model_.MinRtt()));
+      GetCongestionWindow(), model_.MinRtt()));
   }
 }
 
@@ -375,7 +375,7 @@ void Bbr2Sender::UpdatePacingRate(QuicByteCount bytes_acked) {
 
   if (model_.total_bytes_acked() == bytes_acked) {
     // After the first ACK, cwnd_ is still the initial congestion window.
-    pacing_rate_ = QuicBandwidth::FromBytesAndTimeDelta(cwnd_, model_.MinRtt());
+    pacing_rate_ = QuicBandwidth::FromBytesAndTimeDelta(GetCongestionWindow(), model_.MinRtt());
     return;
   }
 
@@ -461,6 +461,7 @@ void Bbr2Sender::OnPacketNeutered(QuicPacketNumber packet_number) {
 }
 
 bool Bbr2Sender::CanSend(QuicByteCount bytes_in_flight) {
+  //float loss_rate = 1 - (2.0 * connection_stats_->packets_lost) / (connection_stats_->packets_sent + 1);
   const bool result = bytes_in_flight < GetCongestionWindow();
   return result;
 }
@@ -471,7 +472,8 @@ QuicByteCount Bbr2Sender::GetCongestionWindow() const {
 }
 
 QuicBandwidth Bbr2Sender::PacingRate(QuicByteCount /*bytes_in_flight*/) const {
-  return pacing_rate_;
+  const float loss_rate = 1 - 3.0 * connection_stats_->packets_lost / (1000 + connection_stats_->packets_sent); //* model_.GetLossRate();
+  return pacing_rate_ * loss_rate;
 }
 
 void Bbr2Sender::OnApplicationLimited(QuicByteCount bytes_in_flight) {

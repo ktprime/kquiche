@@ -20,9 +20,9 @@ using BufferedPacketList = QuicBufferedPacketStore::BufferedPacketList;
 using EnqueuePacketResult = QuicBufferedPacketStore::EnqueuePacketResult;
 
 // Max number of connections this store can keep track.
-static const size_t kDefaultMaxConnectionsInStore = 100;
+constexpr size_t kDefaultMaxConnectionsInStore = 100;
 // Up to half of the capacity can be used for storing non-CHLO packets.
-static const size_t kMaxConnectionsWithoutCHLO =
+constexpr size_t kMaxConnectionsWithoutCHLO =
     kDefaultMaxConnectionsInStore / 2;
 
 namespace {

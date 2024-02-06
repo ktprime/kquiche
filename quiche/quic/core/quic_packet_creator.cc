@@ -815,7 +815,7 @@ bool QuicPacketCreator::SerializePacket(QuicOwnedPacketBuffer encrypted_buffer,
                 << packet_.encryption_level
                 << ", allow_padding:" << allow_padding;
 
-  if (!framer_->HasEncrypterOfEncryptionLevel(packet_.encryption_level)) {
+  if (DCHECK_FLAG && !framer_->HasEncrypterOfEncryptionLevel(packet_.encryption_level)) {
     // TODO(fayang): Use QUIC_MISSING_WRITE_KEYS for serialization failures due
     // to missing keys.
     QUIC_BUG(quic_bug_10752_15)
@@ -1564,11 +1564,12 @@ void QuicPacketCreator::AttachPacketFlusher() {
 }
 
 void QuicPacketCreator::Flush() {
-  FlushCurrentPacket();
-  if (pending_padding_bytes() > 0)
-  SendRemainingPendingPadding();
+  if (HasPendingFrames())
+    FlushCurrentPacket();
+  else if (pending_padding_bytes_ > 0)
+    SendRemainingPendingPadding();
   flusher_attached_ = false;
-  if (false && GetQuicFlag(quic_export_write_path_stats_at_server)) {
+  if (DCHECK_FLAG && GetQuicFlag(quic_export_write_path_stats_at_server)) {
     if (!write_start_packet_number_.IsInitialized()) {
       QUIC_BUG(quic_bug_10752_32)
           << ENDPOINT << "write_start_packet_number is not initialized";
@@ -1688,7 +1689,7 @@ size_t QuicPacketCreator::GetSerializedFrameLength(const QuicFrame& frame) {
     // No extra bytes is needed.
     return serialized_frame_length;
   }
-  if (BytesFree() < serialized_frame_length) {
+  if (DCHECK_FLAG && BytesFree() < serialized_frame_length) {
     QUIC_BUG(quic_bug_10752_35) << ENDPOINT << "Frame does not fit: " << frame;
     return 0;
   }

@@ -131,10 +131,11 @@ static_assert(offsetof(QuicStreamFrame, type) == offsetof(QuicFrame, type),
 // A inline size of 1 is chosen to optimize the typical use case of
 // 1-stream-frame in QuicTransmissionInfo.retransmittable_frames.
 #ifndef _DEBUG
-using QuicFrames = absl::InlinedVector<QuicFrame, 2>;
-//using QuicFrames = sfl::small_vector<QuicFrame, 2>;
+using QuicFrames = absl::InlinedVector<QuicFrame, 3>;
+//using QuicFrames = sfl::small_vector<QuicFrame, 3>;
 #else
-using QuicFrames = std::vector<QuicFrame>;
+using QuicFrames = absl::InlinedVector<QuicFrame, 2>;
+//using QuicFrames = std::vector<QuicFrame>;
 #endif
 
 // Deletes all the sub-frames contained in |frames|.

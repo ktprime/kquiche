@@ -23,9 +23,9 @@
 namespace quic {
 namespace {
 #if QUIC_TLS_SESSION
-constexpr static bool enable_tls = true;
+static constexpr bool enable_tls = true;
 #else
-constexpr static bool enable_tls = false;
+static constexpr bool enable_tls = false;
 #endif
 
 QuicVersionLabel CreateRandomVersionLabelForNegotiation() {

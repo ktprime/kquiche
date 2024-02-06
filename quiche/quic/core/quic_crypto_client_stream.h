@@ -110,7 +110,7 @@ class QUIC_EXPORT_PRIVATE QuicCryptoClientStream final
   //   * One failure due to the ServerConfig private key being located on a
   //     remote oracle which has become unavailable, forcing the server to send
   //     the client a fallback ServerConfig.
-  static const int kMaxClientHellos = 4;
+  inline static constexpr int kMaxClientHellos = 4;
 
   // QuicCryptoClientStream creates a HandshakerInterface at construction time
   // based on the QuicTransportVersion of the connection. Different

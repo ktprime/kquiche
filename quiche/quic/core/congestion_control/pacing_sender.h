@@ -90,13 +90,13 @@ class QUIC_EXPORT_PRIVATE PacingSender {
   QuicBandwidth max_pacing_rate_;
 
   // Number of unpaced packets to be sent before packets are delayed.
-  uint32_t burst_tokens_;
-  QuicTime ideal_next_packet_send_time_;  // When can the next packet be sent.
-  uint32_t initial_burst_size_;
-
+  uint16_t burst_tokens_;
   // Number of unpaced packets to be sent before packets are delayed. This token
   // is consumed after burst_tokens_ ran out.
-  uint32_t lumpy_tokens_;
+  uint16_t lumpy_tokens_;
+  uint32_t initial_burst_size_;
+  QuicTime ideal_next_packet_send_time_;  // When can the next packet be sent.
+
 
   // If the next send time is within alarm_granularity_, send immediately.
   // TODO(fayang): Remove alarm_granularity_ when deprecating
@@ -106,6 +106,9 @@ class QUIC_EXPORT_PRIVATE PacingSender {
   // Indicates whether pacing throttles the sending. If true, make up for lost
   // time.
   bool pacing_limited_;
+
+  constexpr static bool remove_non_initial_burst_ = true;
+//      GetQuicReloadableFlag(quic_pacing_remove_non_initial_burst);
 };
 
 }  // namespace quic

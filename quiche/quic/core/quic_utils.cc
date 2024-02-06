@@ -224,7 +224,7 @@ AddressChangeType QuicUtils::DetermineAddressChangeType(
     return migrating_ip_is_ipv4 ? IPV6_TO_IPV4_CHANGE : IPV6_TO_IPV6_CHANGE;
   }
 
-  const int kSubnetMaskLength = 24;
+  constexpr int kSubnetMaskLength = 24;
   if (old_address.host().InSameSubnet(new_address.host(), kSubnetMaskLength)) {
     // Subnet part does not change (here, we use /24), which is considered to be
     // caused by NATs.

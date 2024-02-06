@@ -546,9 +546,9 @@ class QUIC_EXPORT_PRIVATE QuicStream
   // True if the subclass has written a FIN with WriteOrBufferData, but it was
   // buffered in queued_data_ rather than being sent to the session.
 #ifdef STREAM_NO_FIN
-  constexpr static bool fin_buffered_ = false;
+  static constexpr bool fin_buffered_ = false;
   // True if a FIN has been sent to the session.
-  constexpr static bool fin_sent_ = false;
+  static constexpr bool fin_sent_ = false;
 #else
   bool fin_buffered_;
   // True if a FIN has been sent to the session.
@@ -617,9 +617,9 @@ class QUIC_EXPORT_PRIVATE QuicStream
   const QuicTime creation_time_;
 
 #if QUIC_SERVER_SESSION == 0
-  constexpr static Perspective perspective_ = Perspective::IS_CLIENT;
+  static constexpr Perspective perspective_ = Perspective::IS_CLIENT;
 #elif QUIC_SERVER_SESSION == 2
-  constexpr static Perspective perspective_ = Perspective::IS_SERVER;
+  static constexpr Perspective perspective_ = Perspective::IS_SERVER;
 #else
   const Perspective perspective_;
 #endif

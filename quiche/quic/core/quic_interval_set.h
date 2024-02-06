@@ -133,6 +133,7 @@ class QUIC_NO_EXPORT QuicIntervalSet {
   void AddEmpty(const T& min) {
       QUICHE_DCHECK(intervals_.empty());
       intervals_.append(value_type(min, min));
+      //intervals_.insert(intervals_.end(), value_type(min, min));
   }
 
   // Same semantics as Add(const value_type&), but optimized for the case where
@@ -140,6 +141,7 @@ class QUIC_NO_EXPORT QuicIntervalSet {
   void AddOptimizedForAppend(const value_type& interval) {
     if (intervals_.empty()) {// || !GetQuicFlag(quic_interval_set_enable_add_optimization)) {
       intervals_.append(interval);
+      //intervals_.insert(intervals_.end(), interval);
       return;
     }
 

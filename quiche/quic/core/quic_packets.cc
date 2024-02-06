@@ -28,7 +28,7 @@ QuicConnectionId GetServerConnectionIdAsRecipient(
 
 QuicConnectionId GetClientConnectionIdAsRecipient(
     const QuicPacketHeader& header, Perspective perspective) {
-  if (perspective == Perspective::IS_CLIENT) {
+  if (QUIC_SERVER_SESSION == Perspective::IS_CLIENT || perspective == Perspective::IS_CLIENT) {
     return header.destination_connection_id;
   }
   return header.source_connection_id;
@@ -36,7 +36,7 @@ QuicConnectionId GetClientConnectionIdAsRecipient(
 
 QuicConnectionId GetServerConnectionIdAsSender(const QuicPacketHeader& header,
                                                Perspective perspective) {
-  if (perspective == Perspective::IS_CLIENT) {
+  if (QUIC_SERVER_SESSION == Perspective::IS_CLIENT || perspective == Perspective::IS_CLIENT) {
     return header.destination_connection_id;
   }
   return header.source_connection_id;
@@ -44,7 +44,7 @@ QuicConnectionId GetServerConnectionIdAsSender(const QuicPacketHeader& header,
 
 QuicConnectionIdIncluded GetServerConnectionIdIncludedAsSender(
     const QuicPacketHeader& header, Perspective perspective) {
-  if (perspective == Perspective::IS_CLIENT) {
+  if (QUIC_SERVER_SESSION == Perspective::IS_CLIENT || perspective == Perspective::IS_CLIENT) {
     return header.destination_connection_id_included;
   }
   return header.source_connection_id_included;
@@ -52,7 +52,7 @@ QuicConnectionIdIncluded GetServerConnectionIdIncludedAsSender(
 
 QuicConnectionId GetClientConnectionIdAsSender(const QuicPacketHeader& header,
                                                Perspective perspective) {
-  if (perspective == Perspective::IS_CLIENT) {
+  if (QUIC_SERVER_SESSION == Perspective::IS_CLIENT || perspective == Perspective::IS_CLIENT) {
     return header.source_connection_id;
   }
   return header.destination_connection_id;
@@ -60,7 +60,7 @@ QuicConnectionId GetClientConnectionIdAsSender(const QuicPacketHeader& header,
 
 QuicConnectionIdIncluded GetClientConnectionIdIncludedAsSender(
     const QuicPacketHeader& header, Perspective perspective) {
-  if (perspective == Perspective::IS_CLIENT) {
+  if (QUIC_SERVER_SESSION == Perspective::IS_CLIENT || perspective == Perspective::IS_CLIENT) {
     return header.source_connection_id_included;
   }
   return header.destination_connection_id_included;
@@ -360,7 +360,7 @@ QuicReceivedPacket::QuicReceivedPacket(const char* buffer, size_t length,
       owns_header_buffer_(owns_header_buffer) {}
 
 QuicReceivedPacket::~QuicReceivedPacket() {
-  if (false && owns_header_buffer_) {
+  if (DCHECK_FLAG && owns_header_buffer_) {
     delete[] static_cast<char*>(packet_headers_);
   }
 }

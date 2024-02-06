@@ -179,9 +179,10 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
     const_cast<size_t&>(lmax) = ending_offset;
     *newly_acked_length = data_length;
     stream_bytes_outstanding_ -= data_length;
-    if (!pending_retransmissions_.Empty())
-      pending_retransmissions_.Difference(off);
-    return FreeMemSlices(offset, ending_offset);
+    if (!pending_retransmissions_.Empty()) pending_retransmissions_.Difference(off);
+    if (ending_offset >= stream_bytes_start_ + kBlockSizeBytes)
+      FreeMemSlices(offset, ending_offset);
+    return true;
   }
   else if (offset > lmax) {
     // Optimization for the typical case, hole happend.
@@ -190,8 +191,7 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
       return false;
     }
     bytes_acked_.AppendBack(off);
-    if (!pending_retransmissions_.Empty())
-      pending_retransmissions_.Difference(off);
+    if (!pending_retransmissions_.Empty()) pending_retransmissions_.Difference(off);
     *newly_acked_length = data_length;
     stream_bytes_outstanding_ -= data_length;
     return true;
@@ -201,8 +201,7 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
     bytes_acked_.AddInter(off);
     *newly_acked_length = data_length;
     stream_bytes_outstanding_ -= data_length;
-    if (!pending_retransmissions_.Empty())
-      pending_retransmissions_.Difference(off);
+    if (!pending_retransmissions_.Empty()) pending_retransmissions_.Difference(off);
     return FreeMemSlices(offset, ending_offset);
   }
   // Exit if dupliacted
@@ -221,8 +220,7 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
   }
   stream_bytes_outstanding_ -= *newly_acked_length;
   bytes_acked_.AddInter(off);
-  if (!pending_retransmissions_.Empty())
-    pending_retransmissions_.Difference(off);
+  if (!pending_retransmissions_.Empty()) pending_retransmissions_.Difference(off);
   QUICHE_DCHECK(!newly_acked.Empty());
   //if (newly_acked.Empty()) {
     //return true;
@@ -277,8 +275,7 @@ StreamPendingRetransmission QuicStreamSendBuffer::NextPendingRetransmission()
 }
 
 bool QuicStreamSendBuffer::FreeMemSlices(QuicStreamOffset start, QuicStreamOffset end) {
-  if (end < stream_bytes_start_ + kBlockSizeBytes)
-    return true;
+//  if (end < stream_bytes_start_ + kBlockSizeBytes) return true;
 
   for (int i = 0; i < (int)blocks_.size(); i++) {
     if (bytes_acked_.Contains(stream_bytes_start_, stream_bytes_start_ + kBlockSizeBytes)) {

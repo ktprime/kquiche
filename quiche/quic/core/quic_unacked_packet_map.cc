@@ -547,7 +547,7 @@ PacketNumberSpace QuicUnackedPacketMap::GetPacketNumberSpace(
   if (supports_multiple_packet_number_spaces_) {
     return QuicUtils::GetPacketNumberSpace(encryption_level);
   }
-  if (perspective_ == Perspective::IS_CLIENT) {
+  if (QUIC_SERVER_SESSION == 0 || perspective_ == Perspective::IS_CLIENT) {
     return encryption_level == ENCRYPTION_INITIAL ? HANDSHAKE_DATA
                                                   : APPLICATION_DATA;
   }
@@ -557,7 +557,7 @@ PacketNumberSpace QuicUnackedPacketMap::GetPacketNumberSpace(
 
 QuicPacketNumber QuicUnackedPacketMap::GetLargestAckedOfPacketNumberSpace(
     PacketNumberSpace packet_number_space) const {
-  if (false && packet_number_space >= NUM_PACKET_NUMBER_SPACES) {
+  if (DCHECK_FLAG && packet_number_space >= NUM_PACKET_NUMBER_SPACES) {
     QUIC_BUG(quic_bug_10518_4)
         << "Invalid packet number space: " << packet_number_space;
     return QuicPacketNumber();
@@ -567,7 +567,7 @@ QuicPacketNumber QuicUnackedPacketMap::GetLargestAckedOfPacketNumberSpace(
 
 QuicTime QuicUnackedPacketMap::GetLastInFlightPacketSentTime(
     PacketNumberSpace packet_number_space) const {
-  if (false && packet_number_space >= NUM_PACKET_NUMBER_SPACES) {
+  if (DCHECK_FLAG && packet_number_space >= NUM_PACKET_NUMBER_SPACES) {
     QUIC_BUG(quic_bug_10518_5)
         << "Invalid packet number space: " << packet_number_space;
     return QuicTime::Zero();

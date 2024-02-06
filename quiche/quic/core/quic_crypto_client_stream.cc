@@ -22,7 +22,7 @@
 
 namespace quic {
 
-const int QuicCryptoClientStream::kMaxClientHellos;
+constexpr int QuicCryptoClientStream::kMaxClientHellos;
 
 QuicCryptoClientStreamBase::QuicCryptoClientStreamBase(QuicSession* session)
     : QuicCryptoStream(session) {}

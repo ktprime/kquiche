@@ -25,7 +25,7 @@ namespace {
 
 // The maximum number of buffered control frames which are waiting to be ACKed
 // or sent for the first time.
-const size_t kMaxNumControlFrames = 1000;
+constexpr size_t kMaxNumControlFrames = 1000;
 
 }  // namespace
 

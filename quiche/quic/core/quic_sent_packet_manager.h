@@ -204,7 +204,7 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
                     HasRetransmittableData has_retransmittable_data,
                     bool measure_rtt);
 
-  bool CanSendAckFrequency() const {
+  constexpr bool CanSendAckFrequency() const {
 #if QUIC_TLS_SESSION //hybchanged
     return !peer_min_ack_delay_.IsInfinite() && handshake_finished_;
 #else
@@ -580,7 +580,7 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   QuicRandom* random_;
   QuicConnectionStats* stats_;
 
-  constexpr static DebugDelegate* debug_delegate_ = nullptr;
+  static constexpr DebugDelegate* debug_delegate_ = nullptr;
   NetworkChangeVisitor* network_change_visitor_;
   QuicPacketCount initial_congestion_window_;
   RttStats rtt_stats_;

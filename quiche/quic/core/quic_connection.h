@@ -442,7 +442,7 @@ class QUIC_EXPORT_PRIVATE QuicConnectionDebugVisitor final
 
 class QUIC_EXPORT_PRIVATE QuicConnectionHelperInterface {
  public:
-  ~QuicConnectionHelperInterface() {}
+  ~QuicConnectionHelperInterface() = default;
 
   // Returns a QuicClock to be used for all time related functions.
   virtual const QuicClock* GetClock() const = 0;
@@ -917,11 +917,11 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   const QuicDecrypter* alternative_decrypter() const;
 
 #if QUIC_SERVER_SESSION == 1
-  Perspective perspective() const { return perspective_; }
+  constexpr Perspective perspective() const { return perspective_; }
 #elif QUIC_SERVER_SESSION == 0
-  Perspective perspective() const { return Perspective::IS_CLIENT; }
+  constexpr Perspective perspective() const { return Perspective::IS_CLIENT; }
 #else
-  Perspective perspective() const { return Perspective::IS_SERVER; }
+  constexpr Perspective perspective() const { return Perspective::IS_SERVER; }
 #endif
 
   // Allow easy overriding of truncated connection IDs.
@@ -2095,9 +2095,9 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
 
   // Tracks if the connection was created by the server or the client.
 #if QUIC_SERVER_SESSION == 0
-  constexpr static Perspective perspective_ = Perspective::IS_CLIENT;
+  static constexpr Perspective perspective_ = Perspective::IS_CLIENT;
 #elif QUIC_SERVER_SESSION == 2
-  constexpr static Perspective perspective_ = Perspective::IS_SERVER;
+  static constexpr Perspective perspective_ = Perspective::IS_SERVER;
 #else
   const Perspective perspective_;
 #endif
@@ -2143,7 +2143,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   bool write_error_occurred_;
 
   // Indicates not to send or process stop waiting frames.
-  constexpr static bool no_stop_waiting_frames_ = true;
+  static constexpr bool no_stop_waiting_frames_ = true;
 
   // Consecutive number of sent packets which have no retransmittable frames.
   size_t consecutive_num_packets_with_no_retransmittable_frames_;
@@ -2276,7 +2276,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
 
   // Enable this via reloadable flag once this feature is complete.
 #if QUIC_TLS_SESSION == 0
-  constexpr static
+  static constexpr
 #endif
   bool connection_migration_use_new_cid_ = false;
 

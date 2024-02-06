@@ -44,13 +44,10 @@ SendAlgorithmInterface* SendAlgorithmInterface::Create(
       // PCC is currently not supported, fall back to CUBIC instead.
       ABSL_FALLTHROUGH_INTENDED;
     case kCubicBytes:
-      return new TcpCubicSenderBytes(
-          clock, rtt_stats, false /* don't use Reno */,
-          initial_congestion_window, max_congestion_window, stats);
     case kRenoBytes:
-      return new TcpCubicSenderBytes(clock, rtt_stats, true /* use Reno */,
-                                     initial_congestion_window,
-                                     max_congestion_window, stats);
+      return new TcpCubicSenderBytes(
+          clock, rtt_stats, congestion_control_type == kRenoBytes,
+          initial_congestion_window, max_congestion_window, stats);
   }
   return nullptr;
 }

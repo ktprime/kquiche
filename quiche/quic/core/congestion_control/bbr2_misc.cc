@@ -262,7 +262,7 @@ void Bbr2NetworkModel::AdaptLowerBounds(
     case Bbr2Params::INFLIGHT_REDUCTION: {
       // Use a max of BDP and inflight to avoid starving app-limited flows.
       const QuicByteCount effective_inflight =
-          std::max(BDP(), congestion_event.prior_bytes_in_flight);
+          std::max(BDP(), (QuicByteCount)congestion_event.prior_bytes_in_flight);
       // This could use bytes_lost_in_round if the bandwidth_lo_ was saved
       // when entering 'recovery', but this BBRv2 implementation doesn't have
       // recovery defined.

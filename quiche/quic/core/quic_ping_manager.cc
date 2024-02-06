@@ -13,7 +13,7 @@ namespace {
 // Maximum shift used to calculate retransmittable on wire timeout. For 200ms
 // initial retransmittable on wire delay, this would get a maximum of 200ms * (1
 // << 10) = 204.8s
-const int kMaxRetransmittableOnWireDelayShift = 10;
+constexpr int kMaxRetransmittableOnWireDelayShift = 10;
 
 class AlarmDelegate : public QuicAlarm::DelegateWithContext {
  public:

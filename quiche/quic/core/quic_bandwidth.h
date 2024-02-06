@@ -55,13 +55,13 @@ class QUIC_EXPORT_PRIVATE QuicBandwidth {
   // Create a new QuicBandwidth based on the bytes per the elapsed delta.
   static QuicBandwidth FromBytesAndTimeDelta(QuicByteCount bytes,
                                              QuicTime::Delta delta) {
-    if (bytes == 0) {
+    if (false && bytes == 0) {
       return QuicBandwidth(0);
     }
 
     // 1 bit is 1000000 micro bits.
     int64_t num_micro_bits = 8 * bytes * kNumMicrosPerSecond;
-    if (num_micro_bits < delta.ToMicroseconds()) {
+    if (false && num_micro_bits < delta.ToMicroseconds()) {
       return QuicBandwidth(1);
     }
 
@@ -92,7 +92,8 @@ class QUIC_EXPORT_PRIVATE QuicBandwidth {
   }
 
   constexpr QuicTime::Delta TransferTime(QuicByteCount bytes) const {
-    if (bits_per_second_ == 0) {
+    QUICHE_DCHECK(bits_per_second_ >= 0);
+    if (DCHECK_FLAG && bits_per_second_ == 0) {
       return QuicTime::Delta::Zero();
     }
     return QuicTime::Delta::FromMicroseconds(bytes * 8 * kNumMicrosPerSecond /
@@ -103,7 +104,9 @@ class QUIC_EXPORT_PRIVATE QuicBandwidth {
 
  private:
   explicit constexpr QuicBandwidth(int64_t bits_per_second)
-      : bits_per_second_(bits_per_second >= 0 ? bits_per_second : 0) {}
+      : bits_per_second_(bits_per_second) {
+    QUICHE_DCHECK(bits_per_second >= 0);
+  }
 
   int64_t bits_per_second_;
 

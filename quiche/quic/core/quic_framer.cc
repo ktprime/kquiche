@@ -66,7 +66,7 @@ namespace {
 
 // Number of bits the packet number length bits are shifted from the right
 // edge of the header.
-const uint8_t kPublicHeaderSequenceNumberShift = 4;
+constexpr uint8_t kPublicHeaderSequenceNumberShift = 4;
 
 // There are two interpretations for the Frame Type byte in the QUIC protocol,
 // resulting in two Frame Types: Special Frame Types and Regular Frame Types.
@@ -90,10 +90,10 @@ const uint8_t kPublicHeaderSequenceNumberShift = 4;
 
 // Masks to determine if the frame type is a special use
 // and for specific special frame types.
-const uint8_t kQuicFrameTypeBrokenMask = 0xE0;   // 0b 11100000
-const uint8_t kQuicFrameTypeSpecialMask = 0xC0;  // 0b 11000000
-const uint8_t kQuicFrameTypeStreamMask = 0x80;
-const uint8_t kQuicFrameTypeAckMask = 0x40;
+constexpr uint8_t kQuicFrameTypeBrokenMask = 0xE0;   // 0b 11100000
+constexpr uint8_t kQuicFrameTypeSpecialMask = 0xC0;  // 0b 11000000
+constexpr uint8_t kQuicFrameTypeStreamMask = 0x80;
+constexpr uint8_t kQuicFrameTypeAckMask = 0x40;
 static_assert(kQuicFrameTypeSpecialMask ==
                   (kQuicFrameTypeStreamMask | kQuicFrameTypeAckMask),
               "Invalid kQuicFrameTypeSpecialMask");
@@ -107,46 +107,46 @@ static_assert(kQuicFrameTypeSpecialMask ==
 // be determined only by knowing the QUIC Version.
 // Stream frame relative shifts and masks for interpreting the stream flags.
 // StreamID may be 1, 2, 3, or 4 bytes.
-const uint8_t kQuicStreamIdShift = 2;
-const uint8_t kQuicStreamIDLengthMask = 0x03;
+constexpr uint8_t kQuicStreamIdShift = 2;
+constexpr uint8_t kQuicStreamIDLengthMask = 0x03;
 
 // Offset may be 0, 2, 4, or 8 bytes.
-const uint8_t kQuicStreamShift = 3;
-const uint8_t kQuicStreamOffsetMask = 0x07;
+constexpr uint8_t kQuicStreamShift = 3;
+constexpr uint8_t kQuicStreamOffsetMask = 0x07;
 
 // Data length may be 0 or 2 bytes.
-const uint8_t kQuicStreamDataLengthShift = 1;
-const uint8_t kQuicStreamDataLengthMask = 0x01;
+constexpr uint8_t kQuicStreamDataLengthShift = 1;
+constexpr uint8_t kQuicStreamDataLengthMask = 0x01;
 
 // Fin bit may be set or not.
-const uint8_t kQuicStreamFinShift = 1;
-const uint8_t kQuicStreamFinMask = 0x01;
+constexpr uint8_t kQuicStreamFinShift = 1;
+constexpr uint8_t kQuicStreamFinMask = 0x01;
 
 // The format is 01M0LLOO, where
 //   M if set, there are multiple ack blocks in the frame.
 //  LL is the size of the largest ack field.
 //  OO is the size of the ack blocks offset field.
 // packet number size shift used in AckFrames.
-const uint8_t kQuicSequenceNumberLengthNumBits = 2;
-const uint8_t kActBlockLengthOffset = 0;
-const uint8_t kLargestAckedOffset = 2;
+constexpr uint8_t kQuicSequenceNumberLengthNumBits = 2;
+constexpr uint8_t kActBlockLengthOffset = 0;
+constexpr uint8_t kLargestAckedOffset = 2;
 
 // Acks may have only one ack block.
-const uint8_t kQuicHasMultipleAckBlocksOffset = 5;
+constexpr uint8_t kQuicHasMultipleAckBlocksOffset = 5;
 
 // Timestamps are 4 bytes followed by 2 bytes.
-const uint8_t kQuicNumTimestampsLength = 1;
-const uint8_t kQuicFirstTimestampLength = 4;
-const uint8_t kQuicTimestampLength = 2;
+constexpr uint8_t kQuicNumTimestampsLength = 1;
+constexpr uint8_t kQuicFirstTimestampLength = 4;
+constexpr uint8_t kQuicTimestampLength = 2;
 // Gaps between packet numbers are 1 byte.
-const uint8_t kQuicTimestampPacketNumberGapLength = 1;
+constexpr uint8_t kQuicTimestampPacketNumberGapLength = 1;
 
 // Maximum length of encoded error strings.
-const int kMaxErrorStringLength = 256;
+constexpr int kMaxErrorStringLength = 256;
 
-const uint8_t kConnectionIdLengthAdjustment = 3;
-const uint8_t kDestinationConnectionIdLengthMask = 0xF0;
-const uint8_t kSourceConnectionIdLengthMask = 0x0F;
+constexpr uint8_t kConnectionIdLengthAdjustment = 3;
+constexpr uint8_t kDestinationConnectionIdLengthMask = 0xF0;
+constexpr uint8_t kSourceConnectionIdLengthMask = 0x0F;
 
 // Returns the absolute value of the difference between |a| and |b|.
 uint64_t Delta(uint64_t a, uint64_t b) {
@@ -294,7 +294,6 @@ EncryptionLevel GetEncryptionLevel(const QuicPacketHeader& header) {
               << QuicUtils::QuicLongHeaderTypetoString(header.long_packet_type);
       }
     case GOOGLE_QUIC_PACKET:
-    default:
         QUIC_BUG(quic_bug_10850_7)
             << "Cannot determine EncryptionLevel from Google QUIC header";
         break;
@@ -344,8 +343,8 @@ bool AppendIetfConnectionIds(bool version_flag, bool use_length_prefix,
   }
 
   if (use_length_prefix) {
-    return writer->WriteLengthPrefixedConnectionId(destination_connection_id) &&
-           writer->WriteLengthPrefixedConnectionId(source_connection_id);
+    writer->WriteLengthPrefixedConnectionId(destination_connection_id);
+    return writer->WriteLengthPrefixedConnectionId(source_connection_id);
   }
 
   // Compute connection ID length byte.
@@ -353,9 +352,10 @@ bool AppendIetfConnectionIds(bool version_flag, bool use_length_prefix,
   uint8_t scil = GetConnectionIdLengthValue(source_connection_id.length());
   uint8_t connection_id_length = dcil << 4 | scil;
   writer->WriteUInt8(connection_id_length);
-  return
-         writer->WriteConnectionId(destination_connection_id) &&
-         writer->WriteConnectionId(source_connection_id);
+  writer->WriteConnectionId(destination_connection_id);
+  if (!source_connection_id.IsEmpty())
+  writer->WriteConnectionId(source_connection_id);
+  return true;
 }
 
 enum class DroppedPacketReason {
@@ -443,7 +443,12 @@ QuicFramer::QuicFramer(const ParsedQuicVersionVector& supported_versions,
     ;//<< ParsedQuicVersionVectorToString(supported_versions_);
 }
 
-QuicFramer::~QuicFramer() {}
+QuicFramer::~QuicFramer() {
+  for (int i = 0; i < NUM_ENCRYPTION_LEVELS; i++) {
+    delete encrypter_[i];
+    delete decrypter_[i];
+  }
+}
 
 // static
 size_t QuicFramer::GetMinStreamFrameSize(QuicTransportVersion version,
@@ -474,8 +479,6 @@ size_t QuicFramer::GetMinCryptoFrameSize(QuicStreamOffset offset,
 size_t QuicFramer::GetMessageFrameSize(QuicTransportVersion version,
                                        bool last_frame_in_packet,
                                        QuicByteCount length) {
-  QUIC_BUG_IF(quic_bug_12975_1, !VersionSupportsMessageFrames(version))
-      << "Try to serialize MESSAGE frame in " << version;
   return kQuicFrameTypeSize +
          (last_frame_in_packet ? 0 : QuicDataWriter::GetVarInt62Len(length)) +
          length;
@@ -596,7 +599,7 @@ size_t QuicFramer::GetWindowUpdateFrameSize(
 // static
 size_t QuicFramer::GetMaxStreamsFrameSize(QuicTransportVersion version,
                                           const QuicMaxStreamsFrame& frame) {
-  if (!VersionHasIetfQuicFrames(version)) {
+  if (DCHECK_FLAG && !VersionHasIetfQuicFrames(version)) {
     QUIC_BUG(quic_bug_10850_9)
         << "In version " << version
         << ", which does not support IETF Frames, and tried to serialize "
@@ -609,7 +612,7 @@ size_t QuicFramer::GetMaxStreamsFrameSize(QuicTransportVersion version,
 // static
 size_t QuicFramer::GetStreamsBlockedFrameSize(
     QuicTransportVersion version, const QuicStreamsBlockedFrame& frame) {
-  if (!VersionHasIetfQuicFrames(version)) {
+  if (DCHECK_FLAG && !VersionHasIetfQuicFrames(version)) {
     QUIC_BUG(quic_bug_10850_10)
         << "In version " << version
         << ", which does not support IETF frames, and tried to serialize "
@@ -792,7 +795,7 @@ size_t QuicFramer::GetSerializedFrameLength(
     const QuicFrame& frame, size_t free_bytes, bool first_frame,
     bool last_frame, QuicPacketNumberLength packet_number_length) {
   // Prevent a rare crash reported in b/19458523.
-  if (frame.type == ACK_FRAME && frame.ack_frame == nullptr) {
+  if (DCHECK_FLAG && frame.type == ACK_FRAME && frame.ack_frame == nullptr) {
     QUIC_BUG(quic_bug_10850_13)
         << "Cannot compute the length of a null ack frame. free_bytes:"
         << free_bytes << " first_frame:" << first_frame
@@ -884,9 +887,9 @@ size_t QuicFramer::BuildDataPacket(const QuicPacketHeader& header,
                                    const QuicFrames& frames, char* buffer,
                                    size_t packet_length,
                                    EncryptionLevel level) {
-  QUIC_BUG_IF(quic_bug_12975_2,
-              header.version_flag && version().HasIetfInvariantHeader() &&
-                  header.long_packet_type == RETRY && !frames.empty())
+  QUIC_BUG_IF(quic_bug_12975_2, header.version_flag &&
+                                    header.long_packet_type == RETRY &&
+                                    !frames.empty())
       << "IETF RETRY packets cannot contain frames " << header;
   QuicDataWriter writer(packet_length, buffer);
   size_t length_field_offset = 0;
@@ -909,7 +912,7 @@ size_t QuicFramer::BuildDataPacket(const QuicPacketHeader& header,
     // Determine if we should write stream frame length in header.
     const bool last_frame_in_packet = i == frames.size() - 1;
     AppendTypeByte(frame, last_frame_in_packet, &writer);
-    bool add_frame = true;
+    bool add_frame;
 
     switch (frame.type) {
       case STREAM_FRAME:
@@ -928,9 +931,11 @@ size_t QuicFramer::BuildDataPacket(const QuicPacketHeader& header,
         add_frame = AppendStopWaitingFrame(header, frame.stop_waiting_frame, &writer);
         break;
       case MTU_DISCOVERY_FRAME:
+        add_frame = true;
         // MTU discovery frames are serialized as ping frames.
         ABSL_FALLTHROUGH_INTENDED;
       case PING_FRAME:
+        add_frame = true;
         // Ping has no payload.
         break;
       case RST_STREAM_FRAME:
@@ -992,10 +997,10 @@ size_t QuicFramer::BuildDataPacket(const QuicPacketHeader& header,
         add_frame = AppendCryptoFrame(*frame.crypto_frame, &writer);
         break;
       case HANDSHAKE_DONE_FRAME:
+       add_frame = true;
         // HANDSHAKE_DONE has no payload.
         break;
       default:
-        add_frame = false;
         RaiseError(QUIC_INVALID_FRAME_DATA);
         QUIC_BUG(quic_bug_10850_29) << "QUIC_INVALID_FRAME_DATA";
         return 0;
@@ -1501,10 +1506,10 @@ bool QuicFramer::ProcessPacketInternal(const QuicEncryptedPacket& packet) {
     rv = ProcessRetryPacket(&reader, header);
   } else if (header.reset_flag) {
     rv = ProcessPublicResetPacket(&reader, header);
-  } else if (packet.length() <= kMaxIncomingPacketSize) {
+  } else if (packet.length() <= kMaxIncomingPacketSize * 2) {
     // The optimized decryption algorithm implementations run faster when
     // operating on aligned memory.
-    ABSL_CACHELINE_ALIGNED char buffer[kMaxIncomingPacketSize];
+    ABSL_CACHELINE_ALIGNED char buffer[kMaxIncomingPacketSize * 2];
     if (packet_has_ietf_packet_header) {
       rv = ProcessIetfDataPacket(&reader, &header, packet, buffer,
                                  ABSL_ARRAYSIZE(buffer));
@@ -1513,15 +1518,8 @@ bool QuicFramer::ProcessPacketInternal(const QuicEncryptedPacket& packet) {
                              ABSL_ARRAYSIZE(buffer));
     }
   } else {
-    std::unique_ptr<char[]> large_buffer(new char[packet.length()]);
-    if (packet_has_ietf_packet_header) {
-      rv = ProcessIetfDataPacket(&reader, &header, packet, large_buffer.get(),
-                                 packet.length());
-    } else {
-      rv = ProcessDataPacket(&reader, &header, packet, large_buffer.get(),
-                             packet.length());
-    }
-    QUIC_BUG_IF(quic_bug_10850_53, rv)
+    rv = false;
+    QUIC_BUG(quic_bug_10850_53)
         << "QUIC should never successfully process packets larger"
         << "than kMaxIncomingPacketSize. packet size:" << packet.length();
   }
@@ -2352,8 +2350,8 @@ bool QuicFramer::ProcessPublicHeader(QuicDataReader* reader,
   header->reset_flag = (public_flags & PACKET_PUBLIC_FLAGS_RST) != 0;
   header->version_flag = (public_flags & PACKET_PUBLIC_FLAGS_VERSION) != 0;
 
-  if (validate_flags_ && !header->version_flag &&
-      public_flags > PACKET_PUBLIC_FLAGS_MAX) {
+  if (public_flags > PACKET_PUBLIC_FLAGS_MAX &&
+    validate_flags_ && !header->version_flag) {
     set_detailed_error("Illegal public flags value.");
     return false;
   }
@@ -2372,11 +2370,8 @@ bool QuicFramer::ProcessPublicHeader(QuicDataReader* reader,
   }
   switch (public_flags & PACKET_PUBLIC_FLAGS_8BYTE_CONNECTION_ID) {
     case PACKET_PUBLIC_FLAGS_8BYTE_CONNECTION_ID:
-      if (!reader->ReadConnectionId(header_connection_id,
-                                    kQuicDefaultConnectionIdLength)) {
-        set_detailed_error("Unable to read ConnectionId.");
-        return false;
-      }
+      reader->ReadConnectionId(header_connection_id,
+                                    kQuicDefaultConnectionIdLength);
       *header_connection_id_included = CONNECTION_ID_PRESENT;
       break;
     case PACKET_PUBLIC_FLAGS_0BYTE_CONNECTION_ID:
@@ -4232,7 +4227,7 @@ bool QuicFramer::ProcessBlockedFrame(QuicDataReader* reader,
 
 static bool memvcmp(const char* memory, unsigned char val, unsigned int size)
 {
-    unsigned char* mm = (unsigned char*)memory;
+    const unsigned char* mm = (unsigned char*)memory;
     return (*mm == val) && memcmp(mm, mm + 1, size - 1) == 0;
 }
 
@@ -4313,8 +4308,10 @@ void QuicFramer::SetDecrypter(EncryptionLevel level,
   QUICHE_DCHECK(!version_.KnowsWhichDecrypterToUse());
   QUIC_DVLOG(1) << ENDPOINT << "Setting decrypter from level "
                 << decrypter_level_ << " to " << level;
+  delete decrypter_[decrypter_level_];
   decrypter_[decrypter_level_] = nullptr;
-  decrypter_[level] = std::move(decrypter);
+  delete decrypter_[level];
+  decrypter_[level] = decrypter.release();
   decrypter_level_ = level;
 }
 
@@ -4326,9 +4323,11 @@ void QuicFramer::SetAlternativeDecrypter(
   QUIC_DVLOG(1) << ENDPOINT << "Setting alternative decrypter from level "
                 << alternative_decrypter_level_ << " to " << level;
   if (alternative_decrypter_level_ != NUM_ENCRYPTION_LEVELS) {
+    delete decrypter_[alternative_decrypter_level_];
     decrypter_[alternative_decrypter_level_] = nullptr;
   }
-  decrypter_[level] = std::move(decrypter);
+  delete decrypter_[level];
+  decrypter_[level] = decrypter.release();
   alternative_decrypter_level_ = level;
   alternative_decrypter_latch_ = latch_once_used;
 }
@@ -4337,12 +4336,13 @@ void QuicFramer::InstallDecrypter(EncryptionLevel level,
                                   std::unique_ptr<QuicDecrypter> decrypter) {
   QUICHE_DCHECK(version_.KnowsWhichDecrypterToUse());
   QUIC_DVLOG(1) << ENDPOINT << "Installing decrypter at level " << level;
-  decrypter_[level] = std::move(decrypter);
+  decrypter_[level] = decrypter.release();
 }
 
 void QuicFramer::RemoveDecrypter(EncryptionLevel level) {
   QUICHE_DCHECK(version_.KnowsWhichDecrypterToUse());
   QUIC_DVLOG(1) << ENDPOINT << "Removing decrypter at level " << level;
+  delete decrypter_[level];
   decrypter_[level] = nullptr;
 }
 
@@ -4362,7 +4362,7 @@ bool QuicFramer::DoKeyUpdate(KeyUpdateReason reason) {
   if (!next_decrypter_) {
     // If key update is locally initiated, next decrypter might not be created
     // yet.
-    next_decrypter_ = visitor_->AdvanceKeysAndCreateCurrentOneRttDecrypter();
+    next_decrypter_ = visitor_->AdvanceKeysAndCreateCurrentOneRttDecrypter().release();
   }
   std::unique_ptr<QuicEncrypter> next_encrypter =
       visitor_->CreateCurrentOneRttEncrypter();
@@ -4375,9 +4375,10 @@ bool QuicFramer::DoKeyUpdate(KeyUpdateReason reason) {
   QUIC_DLOG(INFO) << ENDPOINT << "DoKeyUpdate: new current_key_phase_bit_="
                   << current_key_phase_bit_;
   current_key_phase_first_received_packet_number_.Clear();
-  previous_decrypter_ = std::move(decrypter_[ENCRYPTION_FORWARD_SECURE]);
-  decrypter_[ENCRYPTION_FORWARD_SECURE] = std::move(next_decrypter_);
-  encrypter_[ENCRYPTION_FORWARD_SECURE] = std::move(next_encrypter);
+  previous_decrypter_ = decrypter_[ENCRYPTION_FORWARD_SECURE];
+  decrypter_[ENCRYPTION_FORWARD_SECURE] = next_decrypter_;
+  delete encrypter_[ENCRYPTION_FORWARD_SECURE];
+  encrypter_[ENCRYPTION_FORWARD_SECURE] = next_encrypter.release();
   switch (reason) {
     case KeyUpdateReason::kInvalid:
       QUIC_CODE_COUNT(quic_key_update_invalid);
@@ -4408,18 +4409,18 @@ QuicPacketCount QuicFramer::PotentialPeerKeyUpdateAttemptCount() const {
 
 const QuicDecrypter* QuicFramer::GetDecrypter(EncryptionLevel level) const {
   QUICHE_DCHECK(version_.KnowsWhichDecrypterToUse());
-  return decrypter_[level].get();
+  return decrypter_[level];
 }
 
 const QuicDecrypter* QuicFramer::decrypter() const {
-  return decrypter_[decrypter_level_].get();
+  return decrypter_[decrypter_level_];
 }
 
 const QuicDecrypter* QuicFramer::alternative_decrypter() const {
   if (alternative_decrypter_level_ == NUM_ENCRYPTION_LEVELS) {
     return nullptr;
   }
-  return decrypter_[alternative_decrypter_level_].get();
+  return decrypter_[alternative_decrypter_level_];
 }
 
 void QuicFramer::SetEncrypter(EncryptionLevel level,
@@ -4427,11 +4428,13 @@ void QuicFramer::SetEncrypter(EncryptionLevel level,
   QUICHE_DCHECK_GE(level, 0);
   QUICHE_DCHECK_LT(level, NUM_ENCRYPTION_LEVELS);
   QUIC_DVLOG(1) << ENDPOINT << "Setting encrypter at level " << level;
-  encrypter_[level] = std::move(encrypter);
+  delete encrypter_[level];
+  encrypter_[level] = encrypter.release();
 }
 
 void QuicFramer::RemoveEncrypter(EncryptionLevel level) {
   QUIC_DVLOG(1) << ENDPOINT << "Removing encrypter of " << level;
+  delete encrypter_[level];
   encrypter_[level] = nullptr;
 }
 
@@ -4439,8 +4442,8 @@ void QuicFramer::SetInitialObfuscators(QuicConnectionId connection_id) {
   CrypterPair crypters;
   CryptoUtils::CreateInitialObfuscators(perspective_, version_, connection_id,
                                         &crypters);
-  encrypter_[ENCRYPTION_INITIAL] = std::move(crypters.encrypter);
-  decrypter_[ENCRYPTION_INITIAL] = std::move(crypters.decrypter);
+  encrypter_[ENCRYPTION_INITIAL] = crypters.encrypter.release();
+  decrypter_[ENCRYPTION_INITIAL] = crypters.decrypter.release();
 }
 
 size_t QuicFramer::EncryptInPlace(EncryptionLevel level,
@@ -4589,7 +4592,7 @@ bool QuicFramer::RemoveHeaderProtection(QuicDataReader* reader,
                                         uint64_t* full_packet_number,
                                         absl::InlinedVector<char, 128>* associated_data) {
   EncryptionLevel expected_decryption_level = GetEncryptionLevel(*header);
-  QuicDecrypter* decrypter = decrypter_[expected_decryption_level].get();
+  QuicDecrypter* decrypter = decrypter_[expected_decryption_level];
   if (decrypter == nullptr) {
     QUIC_DVLOG(1)
         << ENDPOINT
@@ -4805,11 +4808,13 @@ bool QuicFramer::DecryptPayload(size_t udp_packet_length,
     return false;
   }
   EncryptionLevel level = decrypter_level_;
-  QuicDecrypter* decrypter = decrypter_[level].get();
+  QuicDecrypter* decrypter = decrypter_[level];
   QuicDecrypter* alternative_decrypter = nullptr;
+#if QUIC_TLS_SESSION
   bool key_phase_parsed = false;
-  bool key_phase;
+  bool key_phase = false;
   bool attempt_key_update = false;
+#endif
   if (version().KnowsWhichDecrypterToUse()) {
     if (DCHECK_FLAG && header.form == GOOGLE_QUIC_PACKET) {
       QUIC_BUG(quic_bug_10850_68)
@@ -4824,8 +4829,8 @@ bool QuicFramer::DecryptPayload(size_t udp_packet_length,
       QUIC_BUG(quic_bug_10850_69) << "Attempted to decrypt with bad level";
       return false;
     }
-    decrypter = decrypter_[level].get();
-    if (false && decrypter == nullptr) {
+    decrypter = decrypter_[level];
+    if (DCHECK_FLAG && decrypter == nullptr) {
       return false;
     }
     if (level == ENCRYPTION_ZERO_RTT &&
@@ -4850,7 +4855,7 @@ bool QuicFramer::DecryptPayload(size_t udp_packet_length,
              !key_update_performed_)) {
           if (!next_decrypter_) {
             next_decrypter_ =
-                visitor_->AdvanceKeysAndCreateCurrentOneRttDecrypter();
+                visitor_->AdvanceKeysAndCreateCurrentOneRttDecrypter().release();
             if (!next_decrypter_) {
               QUIC_BUG(quic_bug_10850_70) << "Failed to create next_decrypter";
               return false;
@@ -4860,13 +4865,13 @@ bool QuicFramer::DecryptPayload(size_t udp_packet_length,
                         << " attempt_key_update=true";
           attempt_key_update = true;
           potential_peer_key_update_attempt_count_++;
-          decrypter = next_decrypter_.get();
+          decrypter = next_decrypter_;
         } else {
           if (previous_decrypter_) {
             QUIC_DVLOG(1) << ENDPOINT
                           << "trying previous_decrypter_ for packet "
                           << header.packet_number;
-            decrypter = previous_decrypter_.get();
+            decrypter = previous_decrypter_;
           } else {
             QUIC_DVLOG(1) << ENDPOINT << "dropping packet "
                           << header.packet_number << " with old key phase";
@@ -4882,7 +4887,7 @@ bool QuicFramer::DecryptPayload(size_t udp_packet_length,
           << "Attempted to decrypt with bad alternative_decrypter_level_";
       return false;
     }
-    alternative_decrypter = decrypter_[alternative_decrypter_level_].get();
+    alternative_decrypter = decrypter_[alternative_decrypter_level_];
   }
 
   if (DCHECK_FLAG && decrypter == nullptr) {

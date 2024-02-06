@@ -33,37 +33,38 @@ class QuicFramer;
 class QuicStreamFrameDataProducer;
 
 // Number of bytes reserved for the frame type preceding each frame.
-const size_t kQuicFrameTypeSize = 1;
+inline constexpr size_t kQuicFrameTypeSize = 1;
 // Number of bytes reserved for error code.
-const size_t kQuicErrorCodeSize = 4;
+inline constexpr size_t kQuicErrorCodeSize = 4;
 // Number of bytes reserved to denote the length of error details field.
-const size_t kQuicErrorDetailsLengthSize = 2;
+inline constexpr size_t kQuicErrorDetailsLengthSize = 2;
 
 // Maximum number of bytes reserved for stream id.
-const size_t kQuicMaxStreamIdSize = 4;
+inline constexpr size_t kQuicMaxStreamIdSize = 4;
 // Maximum number of bytes reserved for byte offset in stream frame.
-const size_t kQuicMaxStreamOffsetSize = 8;
+inline constexpr size_t kQuicMaxStreamOffsetSize = 8;
 // Number of bytes reserved to store payload length in stream frame.
-const size_t kQuicStreamPayloadLengthSize = 2;
+inline constexpr size_t kQuicStreamPayloadLengthSize = 2;
 // Number of bytes to reserve for IQ Error codes (for the Connection Close,
 // Application Close, and Reset Stream frames).
-const size_t kQuicIetfQuicErrorCodeSize = 2;
+inline constexpr size_t kQuicIetfQuicErrorCodeSize = 2;
 // Minimum size of the IETF QUIC Error Phrase's length field
-const size_t kIetfQuicMinErrorPhraseLengthSize = 1;
+inline constexpr size_t kIetfQuicMinErrorPhraseLengthSize = 1;
 
 // Size in bytes reserved for the delta time of the largest observed
 // packet number in ack frames.
-const size_t kQuicDeltaTimeLargestObservedSize = 2;
+inline constexpr size_t kQuicDeltaTimeLargestObservedSize = 2;
 // Size in bytes reserved for the number of received packets with timestamps.
-const size_t kQuicNumTimestampsSize = 1;
+inline constexpr size_t kQuicNumTimestampsSize = 1;
 // Size in bytes reserved for the number of missing packets in ack frames.
-const size_t kNumberOfNackRangesSize = 1;
+inline constexpr size_t kNumberOfNackRangesSize = 1;
 // Size in bytes reserved for the number of ack blocks in ack frames.
-const size_t kNumberOfAckBlocksSize = 1;
+inline constexpr size_t kNumberOfAckBlocksSize = 1;
 // Maximum number of missing packet ranges that can fit within an ack frame.
-const size_t kMaxNackRanges = (1 << (kNumberOfNackRangesSize * 8)) - 1;
+inline constexpr size_t kMaxNackRanges =
+    (1 << (kNumberOfNackRangesSize * 8)) - 1;
 // Maximum number of ack blocks that can fit within an ack frame.
-const size_t kMaxAckBlocks = (1 << (kNumberOfAckBlocksSize * 8)) - 1;
+inline constexpr size_t kMaxAckBlocks = (1 << (kNumberOfAckBlocksSize * 8)) - 1;
 
 // This class receives callbacks from the framer when packets
 // are processed.
@@ -648,11 +649,11 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
   void set_validate_flags(bool value) { validate_flags_ = value; }
 
 #if QUIC_SERVER_SESSION == 1
-  Perspective perspective() const { return perspective_; }
+  constexpr Perspective perspective() const { return perspective_; }
 #elif QUIC_SERVER_SESSION == 0
-  Perspective perspective() const { return Perspective::IS_CLIENT; }
+  constexpr Perspective perspective() const { return Perspective::IS_CLIENT; }
 #else
-  Perspective perspective() const { return Perspective::IS_SERVER; }
+  constexpr Perspective perspective() const { return Perspective::IS_SERVER; }
 #endif
 
   QuicStreamFrameDataProducer* data_producer() const { return data_producer_; }
@@ -1114,7 +1115,7 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
   // skipped as necessary).
   ParsedQuicVersionVector supported_versions_;
   // Decrypters used to decrypt packets during parsing.
-  std::unique_ptr<QuicDecrypter> decrypter_[NUM_ENCRYPTION_LEVELS];
+  QuicDecrypter* decrypter_[NUM_ENCRYPTION_LEVELS] = {};
   // The encryption level of the primary decrypter to use in |decrypter_|.
   EncryptionLevel decrypter_level_;
   // The encryption level of the alternative decrypter to use in |decrypter_|.
@@ -1126,13 +1127,13 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
   // install it as the only decrypter.
   bool alternative_decrypter_latch_;
   // Encrypters used to encrypt packets via EncryptPayload().
-  std::unique_ptr<QuicEncrypter> encrypter_[NUM_ENCRYPTION_LEVELS];
+  QuicEncrypter* encrypter_[NUM_ENCRYPTION_LEVELS] = {};
   // Tracks if the framer is being used by the entity that received the
   // connection or the entity that initiated it.
 #if QUIC_SERVER_SESSION == 0
-  constexpr static Perspective perspective_ = Perspective::IS_CLIENT;
+  static constexpr Perspective perspective_ = Perspective::IS_CLIENT;
 #elif QUIC_SERVER_SESSION == 2
-  constexpr static Perspective perspective_ = Perspective::IS_SERVER;
+  static constexpr Perspective perspective_ = Perspective::IS_SERVER;
 #else
   const Perspective perspective_;
 #endif
@@ -1171,10 +1172,10 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
   QuicPacketCount potential_peer_key_update_attempt_count_;
   // Decrypter for the previous key phase. Will be null if in the first key
   // phase or previous keys have been discarded.
-  std::unique_ptr<QuicDecrypter> previous_decrypter_;
+  QuicDecrypter* previous_decrypter_ = nullptr;
   // Decrypter for the next key phase. May be null if next keys haven't been
   // generated yet.
-  std::unique_ptr<QuicDecrypter> next_decrypter_;
+  QuicDecrypter* next_decrypter_ = nullptr;
 
   // If this is a framer of a connection, this is the packet number of first
   // sending packet. If this is a framer of a framer of dispatcher, this is the

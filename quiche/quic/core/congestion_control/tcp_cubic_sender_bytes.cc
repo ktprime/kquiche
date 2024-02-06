@@ -20,11 +20,11 @@ namespace quic {
 
 namespace {
 // Constants based on TCP defaults.
-const QuicByteCount kMaxBurstBytes = 3 * kDefaultTCPMSS;
-const float kRenoBeta = 0.7f;  // Reno backoff factor.
+constexpr QuicByteCount kMaxBurstBytes = 3 * kDefaultTCPMSS;
+constexpr float kRenoBeta = 0.7f;  // Reno backoff factor.
 // The minimum cwnd based on RFC 3782 (TCP NewReno) for cwnd reductions on a
 // fast retransmission.
-const QuicByteCount kDefaultMinimumCongestionWindow = 2 * kDefaultTCPMSS;
+constexpr QuicByteCount kDefaultMinimumCongestionWindow = 2 * kDefaultTCPMSS;
 }  // namespace
 
 TcpCubicSenderBytes::TcpCubicSenderBytes(
