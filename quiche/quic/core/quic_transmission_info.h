@@ -24,7 +24,7 @@ struct QUIC_EXPORT_PRIVATE QuicTransmissionInfo {
   QuicTransmissionInfo(EncryptionLevel level,
                        TransmissionType transmission_type, QuicTime sent_time,
                        QuicPacketLength bytes_sent, bool has_crypto_handshake,
-                       bool has_ack_frequency, QuicFrames& retransmittable_frames) noexcept;
+                       QuicFrames& retransmittable_frames) noexcept;
 
   QuicTransmissionInfo(const QuicTransmissionInfo& other) noexcept = default;
   QuicTransmissionInfo& operator= (QuicTransmissionInfo& other) noexcept = delete;

@@ -90,10 +90,10 @@ class QUIC_EXPORT_PRIVATE PacingSender {
   QuicBandwidth max_pacing_rate_;
 
   // Number of unpaced packets to be sent before packets are delayed.
-  uint16_t burst_tokens_;
+  int16_t burst_tokens_;
   // Number of unpaced packets to be sent before packets are delayed. This token
   // is consumed after burst_tokens_ ran out.
-  uint16_t lumpy_tokens_;
+  int16_t lumpy_tokens_;
   uint32_t initial_burst_size_;
   QuicTime ideal_next_packet_send_time_;  // When can the next packet be sent.
 

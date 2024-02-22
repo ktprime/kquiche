@@ -2809,8 +2809,8 @@ void QuicConnection::ProcessUdpPacket(const QuicSocketAddress& self_address,
       perspective_ == Perspective::IS_SERVER &&
       !validate_client_addresses_ &&
        sent_packet_manager_.GetLargestObserved() >
-           highest_packet_sent_before_effective_peer_migration_) {    
-      OnEffectivePeerMigrationValidated(/*is_migration_linkable=*/true);    
+           highest_packet_sent_before_effective_peer_migration_) {
+      OnEffectivePeerMigrationValidated(/*is_migration_linkable=*/true);
   }
 
 #if QUIC_TLS_SESSION
@@ -3206,7 +3206,7 @@ bool QuicConnection::ShouldGeneratePacket(
   return connected_ && !HandleWriteBlocked();
 }
 
-const QuicFrames QuicConnection::MaybeBundleAckOpportunistically() {
+const QuicFrame QuicConnection::MaybeBundleAckOpportunistically() {
   if (sent_packet_manager_.CanSendAckFrequency() && !ack_frequency_sent_) {
     if (packet_creator_.NextSendingPacketNumber() >=
         FirstSendingPacketNumber() + kMinReceivedBeforeAckDecimation) {
@@ -3217,13 +3217,14 @@ const QuicFrames QuicConnection::MaybeBundleAckOpportunistically() {
     }
   }
 
-  QuicFrames frames;
   const bool has_pending_ack =
       uber_received_packet_manager_
           .GetAckTimeout(QuicUtils::GetPacketNumberSpace(encryption_level_))
           .IsInitialized();
   if (!has_pending_ack) {
+    QuicFrame frames;
     QUICHE_DCHECK(stop_waiting_count_ <= 1);
+    frames.type = PADDING_FRAME;
     // No need to send an ACK.
     return frames;
   }
@@ -3235,14 +3236,14 @@ const QuicFrames QuicConnection::MaybeBundleAckOpportunistically() {
       << ENDPOINT << "Attempted to opportunistically bundle an empty "
       << encryption_level_ << " ACK, "
       << "has_pending_ack, stop_waiting_count_ " << stop_waiting_count_;
-  frames.push_back(updated_ack_frame);
+  //frames.push_back(updated_ack_frame);
 
   if (!no_stop_waiting_frames_) {
     QuicStopWaitingFrame stop_waiting;
     PopulateStopWaitingFrame(&stop_waiting);
-    frames.push_back(QuicFrame(stop_waiting));
+    //frames.push_back(QuicFrame(stop_waiting));
   }
-  return frames;
+  return updated_ack_frame;
 }
 
 bool QuicConnection::CanWrite(HasRetransmittableData retransmittable) {
@@ -3270,7 +3271,7 @@ bool QuicConnection::CanWrite(HasRetransmittableData retransmittable) {
   }
 #endif
 
-  if (sent_packet_manager_.pending_timer_transmission_count() > 0) {
+  if (DCHECK_FLAG && sent_packet_manager_.pending_timer_transmission_count() > 0) {
     // Allow sending if there are pending tokens, which occurs when:
     // 1) firing PTO,
     // 2) bundling CRYPTO data with ACKs,
@@ -3298,6 +3299,7 @@ bool QuicConnection::CanWrite(HasRetransmittableData retransmittable) {
   }
 
   // Allow acks and probing frames to be sent immediately.
+  QUICHE_DCHECK(retransmittable != NO_RETRANSMITTABLE_DATA);
   if (false && retransmittable == NO_RETRANSMITTABLE_DATA) {
     return true;
   }
@@ -3417,7 +3419,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
         << "Packet " << packet->packet_number
         << " with non-probing frames was sent on alternative path: "
            "nonretransmittable_frames: "
-        << QuicFramesToString(packet->nonretransmittable_frames)
+        //<< QuicFramesToString(packet->nonretransmittable_frames)
         << " retransmittable_frames: "
         << QuicFramesToString(packet->retransmittable_frames);
   }
@@ -3493,7 +3495,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
       // a normal(non-GSO) packet, so the kernel can return EMSGSIZE and we will
       // not close the connection.
       packet_send_time = packet_send_time + result.send_time_offset;
-      if (is_mtu_discovery && writer_->IsBatchMode()) {
+      if (DCHECK_FLAG && is_mtu_discovery && writer_->IsBatchMode()) {
         result = writer_->Flush();
       }
       break;
@@ -3525,7 +3527,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
 
   // In some cases, an MTU probe can cause EMSGSIZE. This indicates that the
   // MTU discovery is permanently unsuccessful.
-  if (false && IsMsgTooBig(writer_, result)) {
+  if (DCHECK_FLAG && IsMsgTooBig(writer_, result)) {
     if (is_mtu_discovery) {
       // When MSG_TOO_BIG is returned, the system typically knows what the
       // actual MTU is, so there is no need to probe further.
@@ -3544,7 +3546,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
     }
   }
 
-  if (false && IsWriteError(result.status)) {
+  if (DCHECK_FLAG && IsWriteError(result.status)) {
     QUIC_LOG_FIRST_N(ERROR, 10)
         << ENDPOINT << "Failed writing packet " << packet_number << " of "
         << encrypted_length << " bytes from " << self_address().host() << " to "
@@ -3562,28 +3564,29 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
   }
 
   auto has_retransmittable_data = HAS_RETRANSMITTABLE_DATA;
-  if (packet->retransmittable_frames.empty())
-    has_retransmittable_data = packet->transmission_type != NOT_RETRANSMISSION ?
-    HAS_RETRANSMITTABLE_DATA : NO_RETRANSMITTABLE_DATA;
 
-  if (has_retransmittable_data == HAS_RETRANSMITTABLE_DATA /** && !is_termination_packet **/) { //TODO hybchanged
+  if (!packet->retransmittable_frames.empty() /** && !is_termination_packet **/) { //TODO hybchanged
     // Start blackhole/path degrading detections if the sent packet is not
     // termination packet and contains retransmittable data.
     // Do not restart detection if detection is in progress indicating no
     // forward progress has been made since last event (i.e., packet was sent
     // or new packets were acknowledged).
-    if (!blackhole_detector_.IsDetectionInProgress()) {
+    if (kConsecutivePtoCount == 0 && !blackhole_detector_.IsDetectionInProgress()) {
       // Try to start detections if no detection in progress. This could
       // because either both detections are inactive when sending last packet
       // or this connection just gets out of quiescence.
-      if (kConsecutivePtoCount == 0)
       blackhole_detector_.RestartDetection(GetPathDegradingDeadline(),
                                            GetNetworkBlackholeDeadline(),
                                            GetPathMtuReductionDeadline());
     }
     idle_network_detector_.OnPacketSent(packet_send_time, QuicTime::Delta::FromMilliseconds(0) /*
                                         sent_packet_manager_.GetPtoDelay()***/);
+  } else {
+    QUICHE_DCHECK(packet->transmission_type == NOT_RETRANSMISSION);
+    has_retransmittable_data = NO_RETRANSMITTABLE_DATA;// packet->transmission_type != NOT_RETRANSMISSION ?
+    //      HAS_RETRANSMITTABLE_DATA : NO_RETRANSMITTABLE_DATA;
   }
+
 
 #if QUIC_TLS_SESSION
   MaybeSetMtuAlarm(packet_number);
@@ -3623,12 +3626,12 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
     } else {
       debug_visitor_->OnPacketSent(
           packet->packet_number, packet->encrypted_length,
-          packet->has_crypto_handshake, packet->transmission_type,
+          false, packet->transmission_type,
           packet->encryption_level,
           sent_packet_manager_.unacked_packets()
               .rbegin()
               ->retransmittable_frames,
-          packet->nonretransmittable_frames, packet_send_time);
+          packet->retransmittable_frames, packet_send_time);
     }
   }
 #if QUIC_TLS_SESSION
@@ -4083,12 +4086,11 @@ void QuicConnection::SendOrQueuePacket(SerializedPacket& packet) {
 void QuicConnection::SendAck() {
   QUICHE_DCHECK(!SupportsMultiplePacketNumberSpaces());
   QUIC_DVLOG(1) << ENDPOINT << "Sending an ACK proactively";
-  QuicFrames frames;
-  frames.push_back(GetUpdatedAckFrame());
+  QuicFrame frames = GetUpdatedAckFrame();
   if (!no_stop_waiting_frames_) {
     QuicStopWaitingFrame stop_waiting;
     PopulateStopWaitingFrame(&stop_waiting);
-    frames.push_back(QuicFrame(stop_waiting));
+//    frames.push_back(QuicFrame(stop_waiting));
   }
   if (!packet_creator_.FlushAckFrame(frames)) {
     return;
@@ -4573,8 +4575,7 @@ void QuicConnection::SendConnectionClosePacket(
         !uber_received_packet_manager_.IsAckFrameEmpty(
             QuicUtils::GetPacketNumberSpace(encryption_level_)) &&
         !packet_creator_.has_ack()) {
-      QuicFrames frames;
-      frames.push_back(GetUpdatedAckFrame());
+      auto frames = GetUpdatedAckFrame();
       packet_creator_.FlushAckFrame(frames);
     }
 
@@ -5111,12 +5112,12 @@ bool QuicConnection::WritePacketUsingWriter(
     } else {
       debug_visitor_->OnPacketSent(
           packet->packet_number, packet->encrypted_length,
-          packet->has_crypto_handshake, packet->transmission_type,
+          false, packet->transmission_type,
           packet->encryption_level,
           sent_packet_manager_.unacked_packets()
               .rbegin()
               ->retransmittable_frames,
-          packet->nonretransmittable_frames, packet_send_time);
+          packet->retransmittable_frames, packet_send_time);
     }
   }
 
@@ -5829,9 +5830,8 @@ void QuicConnection::SendAllPendingAcks() {
     ScopedEncryptionLevelContext context(
         this, QuicUtils::GetEncryptionLevelToSendAckofSpace(
                   static_cast<PacketNumberSpace>(i)));
-    QuicFrames frames;
-    frames.push_back(uber_received_packet_manager_.GetUpdatedAckFrame(
-        static_cast<PacketNumberSpace>(i), clock_->ApproximateNow()));
+    auto frames = uber_received_packet_manager_.GetUpdatedAckFrame(
+        static_cast<PacketNumberSpace>(i), clock_->ApproximateNow());
     const bool flushed = packet_creator_.FlushAckFrame(frames);
     if (!flushed) {
       // Connection is write blocked.
@@ -6500,6 +6500,7 @@ bool QuicConnection::ShouldDetectBlackhole() const {
   return num_rtos_for_blackhole_detection_ > 0;
 }
 
+#if QUIC_TLS_SESSION
 QuicTime QuicConnection::GetRetransmissionDeadline() const {
   if (!undecryptable_packets_.empty() && perspective_ == Perspective::IS_CLIENT &&
       SupportsMultiplePacketNumberSpaces() && !IsHandshakeConfirmed() &&
@@ -6512,6 +6513,7 @@ QuicTime QuicConnection::GetRetransmissionDeadline() const {
   }
   return sent_packet_manager_.GetRetransmissionTime();
 }
+#endif
 
 bool QuicConnection::SendPathChallenge(
     const QuicPathFrameBuffer& data_buffer,

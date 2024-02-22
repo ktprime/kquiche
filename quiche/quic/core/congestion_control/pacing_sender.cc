@@ -25,7 +25,7 @@ PacingSender::PacingSender()
       ideal_next_packet_send_time_(QuicTime::Zero()),
       initial_burst_size_(kInitialUnpacedBurst),
       lumpy_tokens_(0),
-      alarm_granularity_(kAlarmGranularity * 2),
+      alarm_granularity_(kAlarmGranularity),
       pacing_limited_(false) {}
 
 PacingSender::~PacingSender() {}
@@ -87,7 +87,7 @@ void PacingSender::OnPacketSent(
   // transferred.  PacingRate is based on bytes in flight including this packet.
   QuicTime::Delta delay =
       PacingRate(bytes_in_flight + bytes).TransferTime(bytes);
-  if (!pacing_limited_ || lumpy_tokens_ == 0) {
+  if (!pacing_limited_ || lumpy_tokens_ <= 0) {
     // Reset lumpy_tokens_ if either application or cwnd throttles sending or
     // token runs out.
     lumpy_tokens_ = //std::max(1u,
@@ -133,15 +133,9 @@ QuicTime::Delta PacingSender::TimeUntilSend(
     QuicTime now, QuicByteCount bytes_in_flight) const {
   QUICHE_DCHECK(sender_ != nullptr);
 
-  if (!sender_->CanSend(bytes_in_flight)) {
-    // The underlying sender prevents sending.
-    //return QuicTime::Delta::FromSeconds(1); 
-    return PacingRate(bytes_in_flight).TransferTime(bytes_in_flight - sender_->GetCongestionWindow());
-  }
-
   if (remove_non_initial_burst_) {
     QUIC_RELOADABLE_FLAG_COUNT_N(quic_pacing_remove_non_initial_burst, 2, 2);
-    if (burst_tokens_ | lumpy_tokens_) {
+    if (burst_tokens_ > 0 || lumpy_tokens_ > 0) {
       // Don't pace if we have burst or lumpy tokens available.
       QUIC_DVLOG(1) << "Can send packet now. burst_tokens:" << burst_tokens_
                     << ", lumpy_tokens:" << lumpy_tokens_;
@@ -155,6 +149,12 @@ QuicTime::Delta PacingSender::TimeUntilSend(
                     << ", lumpy_tokens:" << lumpy_tokens_;
       return QuicTime::Delta::Zero();
     }
+  }
+
+  if (!sender_->CanSend(bytes_in_flight)) {
+    // The underlying sender prevents sending.
+    //return QuicTime::Delta::FromSeconds(1);
+    return PacingRate(bytes_in_flight).TransferTime(bytes_in_flight - sender_->GetCongestionWindow());
   }
 
   const auto delay = ideal_next_packet_send_time_ - now;

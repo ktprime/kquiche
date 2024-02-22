@@ -712,7 +712,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // QuicPacketCreator::DelegateInterface
   bool ShouldGeneratePacket(HasRetransmittableData retransmittable,
                             IsHandshake handshake) final;
-  const QuicFrames MaybeBundleAckOpportunistically() final;
+  const QuicFrame MaybeBundleAckOpportunistically() final;
   QuicPacketBuffer GetPacketBuffer() final;
   void OnSerializedPacket(SerializedPacket& packet) final;
   void OnUnrecoverableError(QuicErrorCode error,

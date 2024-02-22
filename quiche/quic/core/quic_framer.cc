@@ -3701,7 +3701,7 @@ bool QuicFramer::ProcessAckFrame(QuicDataReader* reader, uint8_t frame_type) {
   uint64_t largest_acked;
   reader->ReadBytesToUInt64(largest_acked_length, &largest_acked);
 
-  if (false && largest_acked < first_sending_packet_number_.ToUint64()) {
+  if (first_sending_packet_number_.ToUint64() > largest_acked) {
     // Connection always sends packet starting from kFirstSendingPacketNumber >
     // 0, peer has observed an unsent packet.
     set_detailed_error("Largest acked is 0.");

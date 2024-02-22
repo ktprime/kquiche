@@ -57,7 +57,7 @@ class QUIC_EXPORT_PRIVATE QuicIdleNetworkDetector {
   void OnPacketReceived(QuicTime now);
 
   void enable_shorter_idle_timeout_on_sent_packet() {
-    shorter_idle_timeout_on_sent_packet_ = true;
+    //shorter_idle_timeout_on_sent_packet_ = true;
   }
 
   QuicTime::Delta handshake_timeout() const { return handshake_timeout_; }
@@ -109,7 +109,7 @@ class QUIC_EXPORT_PRIVATE QuicIdleNetworkDetector {
 
   QuicArenaScopedPtr<QuicAlarm> alarm_;
 
-  bool shorter_idle_timeout_on_sent_packet_ = false;
+  constexpr static bool shorter_idle_timeout_on_sent_packet_ = false;
 
   // Whether |StopDetection| has been called.
   bool stopped_ = false;

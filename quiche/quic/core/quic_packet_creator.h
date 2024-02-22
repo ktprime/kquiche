@@ -62,7 +62,7 @@ class QUIC_EXPORT_PRIVATE QuicPacketCreator {
                                       IsHandshake handshake) = 0;
     // Called when there is data to be sent. Retrieves updated ACK frame from
     // the delegate.
-    virtual const QuicFrames MaybeBundleAckOpportunistically() = 0;
+    virtual const QuicFrame MaybeBundleAckOpportunistically() = 0;
 
     // Returns the packet fate for serialized packets which will be handed over
     // to delegate via OnSerializedPacket(). Called when a packet is about to be
@@ -314,7 +314,7 @@ class QUIC_EXPORT_PRIVATE QuicPacketCreator {
 
   QuicByteCount max_packet_length() const { return max_packet_length_; }
 
-  bool has_ack() const { return packet_.has_ack; }
+  bool has_ack() const { return packet_.frame_types & (1 << ACK_FRAME); }
 
   //bool has_stop_waiting() const { return false; /* packet_.has_stop_waiting***/; }
 
@@ -384,7 +384,7 @@ class QUIC_EXPORT_PRIVATE QuicPacketCreator {
 
   // Called to flush ACK and STOP_WAITING frames, returns false if the flush
   // fails.
-  bool FlushAckFrame(const QuicFrames& frames);
+  bool FlushAckFrame(const QuicFrame& frames);
 
   // Adds a random amount of padding (between 1 to 256 bytes).
   void AddRandomPadding();

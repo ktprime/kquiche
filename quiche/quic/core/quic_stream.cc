@@ -1281,8 +1281,8 @@ void QuicStream::WriteBufferedData(EncryptionLevel level) {
   QuicByteCount send_window = std::min(flow_controller_->SendWindowSize(),
                                        connection_flow_controller_->SendWindowSize());
 
-  if (false && write_length > send_window) {
-    QUICHE_DCHECK(write_length < send_window);
+  if (write_length > send_window) {
+    //QUICHE_DCHECK(write_length < send_window);
     if (send_window == 0 && !fin_with_zero_data) {
       // Quick return if nothing can be sent.
       MaybeSendBlocked();

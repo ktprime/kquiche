@@ -364,17 +364,18 @@ struct QUIC_EXPORT_PRIVATE SerializedPacket {
   std::function<void(const char*)> release_encrypted_buffer;
 
   QuicFrames retransmittable_frames;
-  QuicFrames nonretransmittable_frames;
-  IsHandshake has_crypto_handshake;
+  QuicFramesN nonretransmittable_frames;
+  //IsHandshake has_crypto_handshake;
   QuicPacketNumber packet_number;
   QuicPacketNumberLength packet_number_length;
   EncryptionLevel encryption_level;
   // TODO(fayang): Remove has_ack and has_stop_waiting.
-  bool has_ack;
+  //bool has_ack;
 //  bool has_stop_waiting;
   TransmissionType transmission_type;
   // The largest acked of the AckFrame in this packet if has_ack is true,
   // 0 otherwise.
+  SerializedPacketFate fate;
   QuicPacketNumber largest_acked;
   size_t frame_types;
   // Indicates whether this packet has a copy of ack frame in
@@ -382,7 +383,6 @@ struct QUIC_EXPORT_PRIVATE SerializedPacket {
 //  bool has_ack_frame_copy;
 //  bool has_ack_frequency;
 //  bool has_message;
-  SerializedPacketFate fate;
   QuicSocketAddress peer_address;
   // Sum of bytes from frames that are not retransmissions. This field is only
   // populated for packets with "mixed frames": at least one frame of a

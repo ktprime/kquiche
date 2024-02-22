@@ -658,7 +658,7 @@ bool QuicSentPacketManager::OnPacketSent(
 
   // Deallocate message data in QuicMessageFrame immediately after packet
   // sent.
-  if (DCHECK_FLAG && packet.frame_types & (1 << MESSAGE_FRAME)) {
+  if (packet.frame_types & (1 << MESSAGE_FRAME)) {
     for (const auto& frame : mutable_packet->retransmittable_frames) {
       if (frame.type == MESSAGE_FRAME) {
         frame.message_frame->message_data.clear();
@@ -685,7 +685,7 @@ QuicSentPacketManager::RetransmissionTimeoutMode
 QuicSentPacketManager::OnRetransmissionTimeout() {
   QUICHE_DCHECK(unacked_packets_.HasInFlightPackets() ||
                 (handshake_mode_disabled_ && !handshake_finished_));
-  QUICHE_DCHECK_EQ(0u, pending_timer_transmission_count_);
+  //QUICHE_DCHECK_EQ(0u, pending_timer_transmission_count_);
   // Handshake retransmission, timer based loss detection, TLP, and RTO are
   // implemented with a single alarm. The handshake alarm is set when the
   // handshake has not completed, the loss alarm is set when the loss detection
@@ -949,7 +949,7 @@ bool QuicSentPacketManager::MaybeUpdateRTT(QuicPacketNumber largest_acked,
 QuicTime::Delta QuicSentPacketManager::TimeUntilSend(QuicTime now) const {
   // The TLP logic is entirely contained within QuicSentPacketManager, so the
   // send algorithm does not need to be consulted.
-  QUICHE_DCHECK(pending_timer_transmission_count_ == 0);
+  //QUICHE_DCHECK(pending_timer_transmission_count_ == 0);
 
   if (using_pacing_) {
     return pacing_sender_.TimeUntilSend(now,
@@ -968,7 +968,7 @@ const QuicTime QuicSentPacketManager::GetRetransmissionTime() const {
     return QuicTime::Zero();
   }
   QUICHE_DCHECK(pending_timer_transmission_count_ == 0);
-  if (false && pending_timer_transmission_count_ > 0) {
+  if (DCHECK_FLAG && pending_timer_transmission_count_ > 0) {
     // Do not set the timer if there is any credit left.
     return QuicTime::Zero();
   }

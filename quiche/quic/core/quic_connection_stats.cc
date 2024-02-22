@@ -24,7 +24,7 @@ std::ostream& operator<<(std::ostream& os, const QuicConnectionStats& s) {
   os << " bytes_retransmitted: " << s.bytes_retransmitted << " packets_retransmitted: " << s.packets_retransmitted;
   if (s.packet_spuriously_detected_lost + s.bytes_spuriously_retransmitted) {
   os << " packet_spuriously_detected_lost: " << s.packet_spuriously_detected_lost;
-  os << " bytes_spuriously_retransmitted: " << s.bytes_spuriously_retransmitted;
+//  os << " bytes_spuriously_retransmitted: " << s.bytes_spuriously_retransmitted;
   os << " packets_spuriously_retransmitted: "
      << s.packets_spuriously_retransmitted;
   }
@@ -34,7 +34,7 @@ std::ostream& operator<<(std::ostream& os, const QuicConnectionStats& s) {
   os << " slowstart_packets_sent: " << s.slowstart_packets_sent;
   if (s.slowstart_packets_lost) {
   os << " slowstart_packets_lost: " << s.slowstart_packets_lost;
-  os << " slowstart_bytes_lost: " << s.slowstart_bytes_lost;
+//  os << " slowstart_bytes_lost: " << s.slowstart_bytes_lost;
   }
   if (s.packets_dropped)
   os << " packets_dropped: " << s.packets_dropped;

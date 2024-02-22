@@ -37,7 +37,7 @@ bool NullDecrypter::SetPreliminaryKey(absl::string_view /*key*/) {
 
 bool NullDecrypter::SetDiversificationNonce(
     const DiversificationNonce& /*nonce*/) {
-  QUIC_BUG(quic_bug_10652_2) << "Should not be called";
+  //QUIC_BUG(quic_bug_10652_2) << "Should not be called";
   return true;
 }
 

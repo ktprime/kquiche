@@ -47,12 +47,12 @@ void QuicPingManager::SetAlarm(QuicTime now, bool should_keep_alive,
                                bool has_in_flight_packets) {
   UpdateDeadlines(now, should_keep_alive, has_in_flight_packets);
   const QuicTime earliest_deadline = GetEarliestDeadline();
-  if (earliest_deadline == keep_alive_deadline_) {
+  if (DCHECK_FLAG && earliest_deadline == keep_alive_deadline_) {
     // Use 1s granularity for keep-alive time.
     alarm_->Update(earliest_deadline, QuicTime::Delta::FromSeconds(1));
     return;
   }
-  alarm_->Update(earliest_deadline, kAlarmGranularity);
+  alarm_->Update(earliest_deadline, QuicTime::Delta::FromMilliseconds(100));
 }
 
 void QuicPingManager::OnAlarm() {

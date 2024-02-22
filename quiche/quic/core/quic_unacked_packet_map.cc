@@ -149,10 +149,9 @@ void QuicUnackedPacketMap::AddSentPacket(SerializedPacket* mutable_packet,
     unacked_packets_.emplace_back(QuicTransmissionInfo());
   }
 
-  const bool has_crypto_handshake = packet.has_crypto_handshake == IS_HANDSHAKE;
+  const bool has_crypto_handshake = packet.frame_types & (1 << CRYPTO_FRAME);
   unacked_packets_.emplace_back(packet.encryption_level, transmission_type,
-    sent_time, bytes_sent, has_crypto_handshake,
-    packet.frame_types & (1 << ACK_FREQUENCY_FRAME), mutable_packet->retransmittable_frames);
+    sent_time, bytes_sent, has_crypto_handshake, mutable_packet->retransmittable_frames);
 
   auto& info = unacked_packets_.back();
   info.largest_acked = packet.largest_acked;
@@ -165,8 +164,8 @@ void QuicUnackedPacketMap::AddSentPacket(SerializedPacket* mutable_packet,
         << TransmissionTypeToString(mutable_packet->transmission_type)
         << ", retransmittable frames: "
         << QuicFramesToString(mutable_packet->retransmittable_frames)
-        << ", nonretransmittable_frames: "
-        << QuicFramesToString(mutable_packet->nonretransmittable_frames);
+        << ", nonretransmittable_frames: ";
+        //<< QuicFramesToString(mutable_packet->nonretransmittable_frames);
     info.state = NOT_CONTRIBUTING_RTT;
   }
 

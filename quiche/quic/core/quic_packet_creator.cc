@@ -490,8 +490,8 @@ void QuicPacketCreator::OnSerializedPacket() {
 }
 
 void QuicPacketCreator::ClearPacket() {
-  packet_.has_ack = false;
-  packet_.has_crypto_handshake = NOT_HANDSHAKE;
+//  packet_.has_ack = false;
+  //packet_.has_crypto_handshake = NOT_HANDSHAKE;
   packet_.transmission_type = NOT_RETRANSMISSION;
   packet_.encrypted_buffer = nullptr;
   packet_.encrypted_length = 0;
@@ -1130,9 +1130,9 @@ size_t QuicPacketCreator::SerializeCoalescedPacket(
         << ", retransmittable frames: "
         << QuicFramesToString(
                coalesced.initial_packet()->retransmittable_frames)
-        << ", nonretransmittable frames: "
-        << QuicFramesToString(
-               coalesced.initial_packet()->nonretransmittable_frames);
+        << ", nonretransmittable frames: ";
+        //<< QuicFramesToString(
+        //       coalesced.initial_packet()->nonretransmittable_frames);
     buffer += initial_length;
     buffer_len -= initial_length;
     packet_length += initial_length;
@@ -1512,44 +1512,51 @@ void QuicPacketCreator::MaybeBundleAckOpportunistically() {
                                        NOT_HANDSHAKE)) {
     return;
   }
-  const bool flushed =
-      FlushAckFrame(delegate_->MaybeBundleAckOpportunistically());
+
+  auto ack_frame = delegate_->MaybeBundleAckOpportunistically();
+  if (ack_frame.type != ACK_FRAME)
+    return;
+
+  const bool flushed = FlushAckFrame(ack_frame);
   QUIC_BUG_IF(quic_bug_10752_29, !flushed)
       << ENDPOINT << "Failed to flush ACK frame. encryption_level:"
       << packet_.encryption_level;
 }
 
-bool QuicPacketCreator::FlushAckFrame(const QuicFrames& frames) {
+bool QuicPacketCreator::FlushAckFrame(const QuicFrame& frame) {
   QUIC_BUG_IF(quic_bug_10752_30, !flusher_attached_)
       << ENDPOINT
       << "Packet flusher is not attached when "
          "generator tries to send ACK frame.";
   // MaybeBundleAckOpportunistically could be called nestedly when sending a
   // control frame causing another control frame to be sent.
-  QUIC_BUG_IF(quic_bug_12398_18, !frames.empty() && has_ack())
-      << ENDPOINT << "Trying to flush " << quiche::PrintElements(frames)
+  QUIC_BUG_IF(quic_bug_12398_18, has_ack())
+      << ENDPOINT << "Trying to flush " << frame
       << " when there is ACK queued";
-  for (const auto& frame : frames) {
-    QUICHE_DCHECK(frame.type == ACK_FRAME || frame.type == STOP_WAITING_FRAME)
-        ;//<< ENDPOINT;
-    if (HasPendingFrames()) {
-      if (AddFrame(frame, next_transmission_type_)) {
-        // There is pending frames and current frame fits.
-        continue;
-      }
+
+  QUICHE_DCHECK(frame.type == ACK_FRAME || frame.type == STOP_WAITING_FRAME);
+
+#if 0
+  if (HasPendingFrames()) {
+    if (AddFrame(frame, next_transmission_type_)) {
+      // There is pending frames and current frame fits.
+      return true;
     }
-    QUICHE_DCHECK(!HasPendingFrames()) ;//<< ENDPOINT;
-    // There is no pending frames, consult the delegate whether a packet can be
-    // generated.
-    if (false && !delegate_->ShouldGeneratePacket(NO_RETRANSMITTABLE_DATA, //TODO2
-                                         NOT_HANDSHAKE)) {
-      return false;
-    }
-    const bool success = AddFrame(frame, next_transmission_type_);
-    QUIC_BUG_IF(quic_bug_10752_31, !success)
-        << ENDPOINT << "Failed to flush " << frame;
   }
-  return true;
+  QUICHE_DCHECK(!HasPendingFrames()) ;//<< ENDPOINT;
+#endif
+  // There is no pending frames, consult the delegate whether a packet can be
+  // generated.
+  if (false && !delegate_->ShouldGeneratePacket(NO_RETRANSMITTABLE_DATA, //TODO2
+                                        NOT_HANDSHAKE)) {
+    return false;
+  }
+
+  const bool success = AddFrame(frame, next_transmission_type_);
+  QUIC_BUG_IF(quic_bug_10752_31, !success)
+      << ENDPOINT << "Failed to flush " << frame;
+
+  return success;
 }
 
 void QuicPacketCreator::AddRandomPadding() {
@@ -1677,8 +1684,8 @@ size_t QuicPacketCreator::GetSerializedFrameLength(const QuicFrame& frame) {
   size_t serialized_frame_length = framer_->GetSerializedFrameLength(
       frame, BytesFree(), queued_frames_.empty(),
       /* last_frame_in_packet= */ true, GetPacketNumberLength());
-  if (!framer_->version().HasHeaderProtection() ||
-      serialized_frame_length == 0) {
+  if (!framer_->version().HasHeaderProtection() /* ||
+      serialized_frame_length == 0 **/) {
     return serialized_frame_length;
   }
   // Calculate frame bytes and bytes free with this frame added.
@@ -1759,19 +1766,20 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
       return false;
     }
   }
-  if (queued_frames_.empty()) {
-    packet_size_ = PacketHeaderSize();
-  }
-  QUICHE_DCHECK_LT(0u, packet_size_) ;//<< ENDPOINT;
-
-  packet_size_ += ExpansionOnNewFrame() + frame_len;
+  if (queued_frames_.empty())
+    packet_size_ = PacketHeaderSize() + frame_len;
+  else
+    packet_size_ += ExpansionOnNewFrameWithLastFrame(queued_frames_.back(), framer_->transport_version()) + frame_len;
 
   if (frame.type == ACK_FRAME) {
-    packet_.nonretransmittable_frames.push_back(frame);
-  } else if (frame.type == STREAM_FRAME || QuicUtils::IsRetransmittableFrame(frame.type)) {
-    packet_.retransmittable_frames.push_back(frame);
-    packet_.has_crypto_handshake =
-      QuicUtils::IsHandshakeFrame(frame, framer_->transport_version()) ? IS_HANDSHAKE : NOT_HANDSHAKE;
+    packet_.nonretransmittable_frames.emplace_back(frame);
+    packet_.largest_acked = LargestAcked(*frame.ack_frame);
+  } else if (QuicUtils::IsRetransmittableFrame(frame.type)) {
+    packet_.retransmittable_frames.emplace_back(frame);
+    auto is_handshake_frame = QuicUtils::IsHandshakeFrame(frame, framer_->transport_version());
+    if (is_handshake_frame)
+      packet_.frame_types |= 1u << CRYPTO_FRAME;
+    packet_.transmission_type = transmission_type;
   } else {
     if (frame.type == PADDING_FRAME &&
         frame.padding_frame.num_padding_bytes == -1) {
@@ -1783,14 +1791,9 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
       packet_.nonretransmittable_frames.push_back(frame);
     }
   }
-  queued_frames_.push_back(frame);
+  queued_frames_.emplace_back(frame);
 
-  if (frame.type == ACK_FRAME) {
-    packet_.has_ack = true;
-    packet_.largest_acked = LargestAcked(*frame.ack_frame);
-  } else {
-    packet_.frame_types |= 1u << frame.type;
-  }
+  packet_.frame_types |= 1u << frame.type;
   if (debug_delegate_ != nullptr) {
     debug_delegate_->OnFrameAddedToPacket(frame);
   }
@@ -1798,7 +1801,7 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
   if (transmission_type == NOT_RETRANSMISSION) {
     packet_.bytes_not_retransmitted.emplace(
         packet_.bytes_not_retransmitted.value_or(0) + frame_len);
-  } else if (QuicUtils::IsRetransmittableFrame(frame.type)) {
+  } else if (packet_.transmission_type != transmission_type && QuicUtils::IsRetransmittableFrame(frame.type)) {
     // Packet transmission type is determined by the last added retransmittable
     // frame of a retransmission type. If a packet has no retransmittable
     // retransmission frames, it has type NOT_RETRANSMISSION.

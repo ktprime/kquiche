@@ -411,24 +411,22 @@ SerializedPacket::SerializedPacket(QuicPacketNumber packet_number,
                                    QuicPacketLength encrypted_length)
     : encrypted_buffer(encrypted_buffer),
       encrypted_length(encrypted_length),
-      has_crypto_handshake(NOT_HANDSHAKE),
+      //has_crypto_handshake(NOT_HANDSHAKE),
       packet_number(packet_number),
       packet_number_length(packet_number_length),
       encryption_level(ENCRYPTION_INITIAL),
-      has_ack(false),
+//      has_ack(false),
       transmission_type(NOT_RETRANSMISSION),
       frame_types(0),
-      fate(SEND_TO_WRITER) {
-      QUICHE_DCHECK(!has_ack);
-}
+      fate(SEND_TO_WRITER) {}
 
 SerializedPacket::SerializedPacket(SerializedPacket&& other) noexcept
      : retransmittable_frames(std::move(other.retransmittable_frames)),
-      has_crypto_handshake(other.has_crypto_handshake),
+      //has_crypto_handshake(other.has_crypto_handshake),
       packet_number(other.packet_number),
       packet_number_length(other.packet_number_length),
       encryption_level(other.encryption_level),
-      has_ack(other.has_ack),
+//      has_ack(other.has_ack),
       transmission_type(other.transmission_type),
       largest_acked(other.largest_acked),
       frame_types(other.frame_types),
@@ -455,7 +453,7 @@ SerializedPacket::~SerializedPacket() {
     DeleteFrames(&retransmittable_frames);
   }
   for (auto& frame : nonretransmittable_frames) {
-    if ((frame.type == ACK_FRAME) && !(frame_types & (1 << ACK_FRAME))) {
+    if (frame.type == ACK_FRAME /*  && !(frame_types & (1 << ACK_FRAME_COPY)) **/) {
       // Do not delete ack frame if the packet does not own a copy of it.
       continue;
     }
@@ -469,8 +467,8 @@ SerializedPacket* CopySerializedPacket(const SerializedPacket& serialized,
   SerializedPacket* copy = new SerializedPacket(
       serialized.packet_number, serialized.packet_number_length,
       serialized.encrypted_buffer, serialized.encrypted_length);
-  copy->has_ack = serialized.has_ack;
-  copy->has_crypto_handshake = serialized.has_crypto_handshake;
+//  copy->has_ack = serialized.has_ack;
+  //copy->has_crypto_handshake = serialized.has_crypto_handshake;
   copy->encryption_level = serialized.encryption_level;
   copy->transmission_type = serialized.transmission_type;
   copy->largest_acked = serialized.largest_acked;
@@ -489,7 +487,7 @@ SerializedPacket* CopySerializedPacket(const SerializedPacket& serialized,
   QUICHE_DCHECK(copy->nonretransmittable_frames.empty());
   for (const auto& frame : serialized.nonretransmittable_frames) {
     if (frame.type == ACK_FRAME) {
-      copy->frame_types |= (1 << ACK_FRAME);
+      copy->frame_types |= (1 << ACK_FRAME); //TODO2  (1 << ACK_FRAME_COPY)
     }
     copy->nonretransmittable_frames.push_back(CopyQuicFrame(allocator, frame));
   }
