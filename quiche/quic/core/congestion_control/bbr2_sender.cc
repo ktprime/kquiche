@@ -261,7 +261,7 @@ void Bbr2Sender::AdjustNetworkParameters(const NetworkParams& params) {
     }
 
     pacing_rate_ = std::max(pacing_rate_, QuicBandwidth::FromBytesAndTimeDelta(
-      GetCongestionWindow(), model_.MinRtt()));
+                                              cwnd_, model_.MinRtt()));
   }
 }
 
@@ -375,7 +375,7 @@ void Bbr2Sender::UpdatePacingRate(QuicByteCount bytes_acked) {
 
   if (model_.total_bytes_acked() == bytes_acked) {
     // After the first ACK, cwnd_ is still the initial congestion window.
-    pacing_rate_ = QuicBandwidth::FromBytesAndTimeDelta(GetCongestionWindow(), model_.MinRtt());
+    pacing_rate_ = QuicBandwidth::FromBytesAndTimeDelta(cwnd_, model_.MinRtt());
     return;
   }
 

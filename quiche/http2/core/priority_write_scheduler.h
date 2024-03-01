@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -24,7 +25,6 @@
 //#include "quiche/common/quiche_circular_deque.h"
 #include "quiche/spdy/core/spdy_protocol.h"
 //#include "quiche/common/small_unordered_flat_map.hpp"
-#include "absl/container/inlined_vector.h"
 
 namespace http2 {
 
@@ -73,8 +73,7 @@ class QUICHE_EXPORT PriorityWriteScheduler {
     auto stream_info = std::make_unique<StreamInfo>(
         StreamInfo{std::move(priority), stream_id, false});
     bool inserted =
-        stream_infos_.emplace(stream_id, std::move(stream_info))
-            .second;
+        stream_infos_.emplace_unique(stream_id, std::move(stream_info));
     QUICHE_BUG_IF(spdy_bug_19_2, !inserted)
         << "Stream " << stream_id << " already registered";
   }

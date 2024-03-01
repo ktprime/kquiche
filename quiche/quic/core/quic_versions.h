@@ -612,18 +612,24 @@ QUIC_EXPORT_PRIVATE constexpr bool VersionHasIetfQuicFrames(
 // Returns whether this version supports long header 8-bit encoded
 // connection ID lengths as described in draft-ietf-quic-invariants-06 and
 // draft-ietf-quic-transport-22.
-QUIC_EXPORT_PRIVATE bool VersionHasLengthPrefixedConnectionIds(
-    QuicTransportVersion transport_version);
+QUIC_EXPORT_PRIVATE constexpr bool VersionHasLengthPrefixedConnectionIds(
+  QuicTransportVersion transport_version) {
+  return transport_version > QUIC_VERSION_46;
+}
 
 // Returns true if this version supports the old Google-style Alt-Svc
 // advertisement format.
-QUIC_EXPORT_PRIVATE bool VersionSupportsGoogleAltSvcFormat(
-    QuicTransportVersion transport_version);
+QUIC_EXPORT_PRIVATE constexpr bool VersionSupportsGoogleAltSvcFormat(
+  QuicTransportVersion transport_version) {
+  return transport_version <= QUIC_VERSION_46;
+}
 
 // Returns whether this version allows server connection ID lengths that are
 // not 64 bits.
-QUIC_EXPORT_PRIVATE bool VersionAllowsVariableLengthConnectionIds(
-    QuicTransportVersion transport_version);
+QUIC_EXPORT_PRIVATE constexpr bool VersionAllowsVariableLengthConnectionIds(
+  QuicTransportVersion transport_version) {
+  return transport_version > QUIC_VERSION_46;
+}
 
 // Returns whether this version label supports long header 4-bit encoded
 // connection ID lengths as described in draft-ietf-quic-invariants-05 and

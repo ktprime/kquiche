@@ -10,18 +10,22 @@ std::ostream& operator<<(std::ostream& os, const QuicConnectionStats& s) {
   //hybchanged simplicity
   //os << "{ bytes_sent: " << s.bytes_sent;
   os << " packets_sent: " << s.packets_sent;
+  os << " packets_received: " << s.packets_received;
   os << " stream_packets_sent: " << s.stream_packets_sent;
+  os << " stream_packets_recv: " << s.stream_packets_recv;
   //if (s.stream_bytes_sent > 0)
   //os << " stream_bytes_sent: " << s.stream_bytes_sent;
   if (s.packets_discarded > 0)
   os << " packets_discarded: " << s.packets_discarded;
   //os << " bytes_received: " << s.bytes_received;
-  os << " packets_received: " << s.packets_received;
+
 //  if (s.packets_processed != s.packets_received)
 //  os << " packets_processed: " << s.packets_processed;
-  os << " stream_bytes_received: " << s.stream_bytes_received;
-  if (s.packets_retransmitted > 0)
-  os << " bytes_retransmitted: " << s.bytes_retransmitted << " packets_retransmitted: " << s.packets_retransmitted;
+
+  if (s.packets_retransmitted > 0) {
+    os << " stream_bytes_received: " << s.stream_bytes_received;
+    os << " bytes_retransmitted: " << s.bytes_retransmitted << " packets_retransmitted: " << s.packets_retransmitted;
+  }
   if (s.packet_spuriously_detected_lost + s.bytes_spuriously_retransmitted) {
   os << " packet_spuriously_detected_lost: " << s.packet_spuriously_detected_lost;
 //  os << " bytes_spuriously_retransmitted: " << s.bytes_spuriously_retransmitted;
@@ -65,17 +69,16 @@ std::ostream& operator<<(std::ostream& os, const QuicConnectionStats& s) {
 //  if (s.blocked_frames_sent)
 //  os << " blocked_frames_sent: " << s.blocked_frames_sent;
   if (s.num_connectivity_probing_received)
-  os << " num_connectivity_probing_received: "
-     << s.num_connectivity_probing_received;
+  os << " num_connectivity_probing_received: " << s.num_connectivity_probing_received;
   if (s.num_path_response_received)
   os << " num_path_response_received: " << s.num_path_response_received;
+#if QUIC_TLS_SESSION
   if (s.retry_packet_processed)
   os << " retry_packet_processed: yes";
   if (s.num_coalesced_packets_received)
   os << " num_coalesced_packets_received: " << s.num_coalesced_packets_received;
   if (s.num_coalesced_packets_processed)
-  os << " num_coalesced_packets_processed: "
-     << s.num_coalesced_packets_processed;
+  os << " num_coalesced_packets_processed: "<< s.num_coalesced_packets_processed;
   if (s.num_ack_aggregation_epochs)
   os << " num_ack_aggregation_epochs: " << s.num_ack_aggregation_epochs;
   if (s.key_update_count)
@@ -84,7 +87,6 @@ std::ostream& operator<<(std::ostream& os, const QuicConnectionStats& s) {
   os << " num_failed_authentication_packets_received: "
      << s.num_failed_authentication_packets_received;
 
-#if QUIC_TLS_SESSION
   if (s.num_tls_server_zero_rtt_packets_received_after_discarding_decrypter)
   os << " num_tls_server_zero_rtt_packets_received_after_discarding_decrypter: "
      << s.num_tls_server_zero_rtt_packets_received_after_discarding_decrypter;

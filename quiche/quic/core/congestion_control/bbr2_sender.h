@@ -134,6 +134,8 @@ class QUIC_EXPORT_PRIVATE Bbr2Sender final : public SendAlgorithmInterface {
 
   DebugState ExportDebugState() const;
 
+  const Bbr2NetworkModel& GetNetworkModel() const { return model_; }
+
  private:
   void UpdatePacingRate(QuicByteCount bytes_acked);
   void UpdateCongestionWindow(QuicByteCount bytes_acked);

@@ -236,11 +236,11 @@ class QUIC_EXPORT_PRIVATE QuicUnackedPacketMap {
   int32_t GetLastPacketContent() const;
 
 #if QUIC_SERVER_SESSION == 1
-  Perspective perspective() const { return perspective_; }
+  constexpr Perspective perspective() const { return perspective_; }
 #elif QUIC_SERVER_SESSION == 0
-  Perspective perspective() const { return Perspective::IS_CLIENT; }
+  constexpr Perspective perspective() const { return Perspective::IS_CLIENT; }
 #else
-  Perspective perspective() const { return Perspective::IS_SERVER; }
+  constexpr Perspective perspective() const { return Perspective::IS_SERVER; }
 #endif
 
 #if QUIC_TLS_SESSION

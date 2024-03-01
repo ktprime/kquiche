@@ -192,13 +192,6 @@ bool ParsedQuicVersion::AlpnDeferToRFCv1() const {
   return transport_version == QUIC_VERSION_IETF_2_DRAFT_08;
 }
 
-bool VersionHasLengthPrefixedConnectionIds(
-    QuicTransportVersion transport_version) {
-  QUICHE_DCHECK(transport_version != QUIC_VERSION_UNSUPPORTED);
-  // Length-prefixed connection IDs were added in version 49.
-  return transport_version > QUIC_VERSION_46;
-}
-
 std::ostream& operator<<(std::ostream& os, const ParsedQuicVersion& version) {
   os << ParsedQuicVersionToString(version);
   return os;
@@ -581,16 +574,6 @@ std::string ParsedQuicVersionVectorToString(
     result.append(ParsedQuicVersionToString(versions[i]));
   }
   return result;
-}
-
-bool VersionSupportsGoogleAltSvcFormat(QuicTransportVersion transport_version) {
-  return transport_version <= QUIC_VERSION_46;
-}
-
-bool VersionAllowsVariableLengthConnectionIds(
-    QuicTransportVersion transport_version) {
-  QUICHE_DCHECK_NE(transport_version, QUIC_VERSION_UNSUPPORTED);
-  return transport_version > QUIC_VERSION_46;
 }
 
 bool QuicVersionLabelUses4BitConnectionIdLength(

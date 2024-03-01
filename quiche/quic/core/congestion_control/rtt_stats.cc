@@ -41,6 +41,8 @@ void RttStats::ExpireSmoothedMetrics() {
 // Updates the RTT based on a new sample.
 bool RttStats::UpdateRtt(QuicTime::Delta send_delta, QuicTime::Delta ack_delay,
                          QuicTime now) {
+  //QUICHE_DCHECK_IMPL(send_delta.ToMicroseconds() > 0);
+#if 1
   if (/*send_delta.IsInfinite() ||**/ send_delta <= QuicTime::Delta::Zero()) {
     QUIC_LOG_FIRST_N(WARNING, 3)
         << "Ignoring measured send_delta, because it's is "
@@ -48,6 +50,7 @@ bool RttStats::UpdateRtt(QuicTime::Delta send_delta, QuicTime::Delta ack_delay,
         << send_delta.ToMicroseconds();
     return false;
   }
+#endif
 
   last_update_time_ = now;
 
@@ -55,6 +58,7 @@ bool RttStats::UpdateRtt(QuicTime::Delta send_delta, QuicTime::Delta ack_delay,
   // ack_delay but the raw observed send_delta, since poor clock granularity at
   // the client may cause a high ack_delay to result in underestimation of the
   // min_rtt_.
+  QUICHE_DCHECK(min_rtt_.ToMicroseconds() > 0);
   if (min_rtt_ > send_delta) {
     min_rtt_ = send_delta;
   }
@@ -66,15 +70,10 @@ bool RttStats::UpdateRtt(QuicTime::Delta send_delta, QuicTime::Delta ack_delay,
   // send_delta.
   // TODO(fayang): consider to ignore rtt_sample if rtt_sample < ack_delay and
   // ack_delay is relatively large.
-  if (rtt_sample > ack_delay) {
-    if (rtt_sample - min_rtt_ >= ack_delay) {
-      rtt_sample = rtt_sample - ack_delay;
-    } else {
-      QUIC_CODE_COUNT(quic_ack_delay_makes_rtt_sample_smaller_than_min_rtt);
-    }
-  } else {
-    QUIC_CODE_COUNT(quic_ack_delay_greater_than_rtt_sample);
+  if (rtt_sample - min_rtt_ >= ack_delay) {
+    rtt_sample = rtt_sample - ack_delay;
   }
+
   latest_rtt_ = rtt_sample;
   if (calculate_standard_deviation_) {
     standard_deviation_calculator_.OnNewRttSample(rtt_sample, smoothed_rtt_);

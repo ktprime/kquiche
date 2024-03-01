@@ -35,7 +35,7 @@
 #include "quiche/quic/core/frames/quic_window_update_frame.h"
 #include "quiche/quic/core/quic_types.h"
 #include "quiche/quic/platform/api/quic_export.h"
-#include "quiche/common/small_vector.hpp"
+//#include "quiche/common/small_vector.hpp"
 
 #ifndef QUIC_FRAME_DEBUG
 #if !defined(NDEBUG) || defined(ADDRESS_SANITIZER)
@@ -135,7 +135,7 @@ using QuicFrames = absl::InlinedVector<QuicFrame, 2>;
 using QuicFramesN = absl::InlinedVector<QuicFrame, 1>;
 //using QuicFrames = sfl::small_vector<QuicFrame, 3>;
 #else
-using QuicFrames  = absl::InlinedVector<QuicFrame, 2>;
+using QuicFrames  = std::vector<QuicFrame>;
 using QuicFramesN = absl::InlinedVector<QuicFrame, 1>;
 //using QuicFramesN = std::vector<QuicFrame>;
 #endif

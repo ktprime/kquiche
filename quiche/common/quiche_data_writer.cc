@@ -66,7 +66,7 @@ bool QuicheDataWriter::WriteBytesToUInt64(size_t num_bytes, uint64_t value) {
     return true;
   }
 
-  if (false && endianness_ == quiche::HOST_BYTE_ORDER) {
+  if (DCHECK_FLAG && endianness_ == quiche::HOST_BYTE_ORDER) {
     return WriteBytes(&value, num_bytes);
   }
 

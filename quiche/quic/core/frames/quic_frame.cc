@@ -103,7 +103,7 @@ QuicFrame::QuicFrame(QuicAckFrequencyFrame* frame)
 
 void DeleteFrames(QuicFrames* frames) {
   for (QuicFrame& frame : *frames) {
-    if (frame.type != STREAM_FRAME && frame.type != WINDOW_UPDATE_FRAME)
+    if ((NO_FRAME_TYPES & (1 << frame.type)) == 0)
     DeleteFrame(&frame);
   }
   frames->clear();
@@ -195,12 +195,12 @@ bool IsControlFrame(QuicFrameType type) {
 
 QuicControlFrameId GetControlFrameId(const QuicFrame& frame) {
   switch (frame.type) {
+    case WINDOW_UPDATE_FRAME:
+      return frame.window_update_frame.control_frame_id;
     case RST_STREAM_FRAME:
       return frame.rst_stream_frame->control_frame_id;
     case GOAWAY_FRAME:
       return frame.goaway_frame->control_frame_id;
-    case WINDOW_UPDATE_FRAME:
-      return frame.window_update_frame.control_frame_id;
     case BLOCKED_FRAME:
       return frame.blocked_frame.control_frame_id;
     case PING_FRAME:
@@ -230,14 +230,14 @@ QuicControlFrameId GetControlFrameId(const QuicFrame& frame) {
 
 void SetControlFrameId(QuicControlFrameId control_frame_id, QuicFrame* frame) {
   switch (frame->type) {
+    case WINDOW_UPDATE_FRAME:
+      frame->window_update_frame.control_frame_id = control_frame_id;
+      return;
     case RST_STREAM_FRAME:
       frame->rst_stream_frame->control_frame_id = control_frame_id;
       return;
     case GOAWAY_FRAME:
       frame->goaway_frame->control_frame_id = control_frame_id;
-      return;
-    case WINDOW_UPDATE_FRAME:
-      frame->window_update_frame.control_frame_id = control_frame_id;
       return;
     case BLOCKED_FRAME:
       frame->blocked_frame.control_frame_id = control_frame_id;
@@ -280,14 +280,14 @@ void SetControlFrameId(QuicControlFrameId control_frame_id, QuicFrame* frame) {
 QuicFrame CopyRetransmittableControlFrame(const QuicFrame& frame) {
   QuicFrame copy;
   switch (frame.type) {
+    case WINDOW_UPDATE_FRAME:
+      copy = QuicFrame(QuicWindowUpdateFrame(frame.window_update_frame));
+      break;
     case RST_STREAM_FRAME:
       copy = QuicFrame(new QuicRstStreamFrame(*frame.rst_stream_frame));
       break;
     case GOAWAY_FRAME:
       copy = QuicFrame(new QuicGoAwayFrame(*frame.goaway_frame));
-      break;
-    case WINDOW_UPDATE_FRAME:
-      copy = QuicFrame(QuicWindowUpdateFrame(frame.window_update_frame));
       break;
     case BLOCKED_FRAME:
       copy = QuicFrame(QuicBlockedFrame(frame.blocked_frame));

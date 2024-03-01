@@ -381,7 +381,7 @@ QuicCryptoClientConfig::CachedState* QuicCryptoClientConfig::LookupOrCreate(
   }
 
   CachedState* cached = new CachedState;
-  cached_states_.emplace (server_id, absl::WrapUnique(cached));
+  cached_states_.emplace_unique(server_id, absl::WrapUnique(cached));
   bool cache_populated = PopulateFromCanonicalConfig(server_id, cached);
   QUIC_CLIENT_HISTOGRAM_BOOL(
       "QuicCryptoClientConfig.PopulatedFromCanonicalConfig", cache_populated,
@@ -539,7 +539,7 @@ QuicErrorCode QuicCryptoClientConfig::FillClientHello(
   //hybchanged
   if (GetQuicFlag(FLAGS_quic_use_unencrypted_transmission)) {
       if (std::find(their_aeads.begin(), their_aeads.end(), kTEXT) != their_aeads.end()) {
-          out->SetVector(kAEAD, QuicTagVector{ kTEXT });
+          out->SetVector(kAEAD, QuicTagVector{ kTEXT }, QuicTagVector{out_params->aead});
       }
   }
 #endif

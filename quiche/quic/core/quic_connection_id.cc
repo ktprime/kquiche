@@ -63,12 +63,13 @@ QuicConnectionId::QuicConnectionId(const char* data, uint8_t length) {
 }
 QuicConnectionId::QuicConnectionId(const QuicConnectionId& other)
     : QuicConnectionId(other.data(), other.length()) {}
-
+#if 0
 QuicConnectionId& QuicConnectionId::operator=(const QuicConnectionId& other) {
   data_short_ = other.data_short_; //x86
   length_ = other.length_;
   return *this;
 }
+#endif
 
 const char* QuicConnectionId::data() const {
   return (char*)&data_short_;

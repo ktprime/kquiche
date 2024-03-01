@@ -24,6 +24,7 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   QuicByteCount bytes_sent = 0;  // Includes retransmissions.
   QuicPacketCount packets_sent = 0;
   QuicPacketCount stream_packets_sent = 0;
+  QuicPacketCount stream_packets_recv = 0;
   // Non-retransmitted bytes sent in a stream frame.
   //QuicByteCount stream_bytes_sent = 0;
   // Packets serialized and discarded before sending.
@@ -64,7 +65,7 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   float total_loss_detection_response_time = 0.0;
 
   // Number of times this connection went through the slow start phase.
-  uint32_t slowstart_count = 0;
+  QuicPacketCount slowstart_count = 0;
   // Number of round trips spent in slow start.
   uint32_t slowstart_num_rtts = 0;
   // Number of packets sent in slow start.
@@ -86,22 +87,22 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   // BBRv2.
   bool bbr_exit_startup_due_to_loss = false;
 
-  QuicPacketCount packets_dropped = 0;  // Duplicate or less than least unacked.
+  uint32_t packets_dropped = 0;  // Duplicate or less than least unacked.
 
   // Packets that failed to decrypt when they were first received,
   // before the handshake was complete.
-  QuicPacketCount undecryptable_packets_received_before_handshake_complete = 0;
+  uint32_t undecryptable_packets_received_before_handshake_complete = 0;
 
-  size_t crypto_retransmit_count = 0;
+  uint32_t crypto_retransmit_count = 0;
   // Count of times the loss detection alarm fired.  At least one packet should
   // be lost when the alarm fires.
-  size_t loss_timeout_count = 0;
-  size_t pto_count = 0;
+  uint32_t loss_timeout_count = 0;
+  uint32_t pto_count = 0;
 
-  int64_t min_rtt_us = 0;                 // Minimum RTT in microseconds.
-  int64_t mean_deviation = 0;             // Minimum RTT in microseconds.
-  int64_t srtt_us = 0;                    // Smoothed RTT in microseconds.
-  int64_t cwnd_bootstrapping_rtt_us = 0;  // RTT used in cwnd_bootstrapping.
+  int32_t min_rtt_us = 0;                 // Minimum RTT in microseconds.
+  int32_t mean_deviation = 0;             // Minimum RTT in microseconds.
+  int32_t srtt_us = 0;                    // Smoothed RTT in microseconds.
+  int32_t cwnd_bootstrapping_rtt_us = 0;  // RTT used in cwnd_bootstrapping.
   // The connection's |long_term_mtu_| used for sending packets, populated by
   // QuicConnection::GetStats().
   QuicByteCount egress_mtu = 0;
@@ -114,17 +115,17 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
 
   // Reordering stats for received packets.
   // Number of packets received out of packet number order.
-  QuicPacketCount packets_reordered = 0;
+  uint32_t packets_reordered = 0;
   // Maximum reordering observed in packet number space.
-  QuicPacketCount max_sequence_reordering = 0;
+  QuicByteCount max_sequence_reordering = 0;
   // Maximum reordering observed in microseconds
   int64_t max_time_reordering_us = 0;
 
   // Maximum sequence reordering observed from acked packets.
-  QuicPacketCount sent_packets_max_sequence_reordering = 0;
+  uint32_t sent_packets_max_sequence_reordering = 0;
   // Number of times that a packet is not detected as lost per reordering_shift,
   // but would have been if the reordering_shift increases by one.
-  QuicPacketCount sent_packets_num_borderline_time_reorderings = 0;
+  uint32_t sent_packets_num_borderline_time_reorderings = 0;
 
   // The following stats are used only in TcpCubicSender.
   // The number of loss events from TCP's perspective.  Each loss event includes
@@ -137,25 +138,25 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   // Handshake completion time.
   QuicTime handshake_completion_time = QuicTime::Zero();
 
-  uint64_t blocked_frames_received = 0;
-  uint64_t blocked_frames_sent = 0;
+  uint32_t blocked_frames_received = 0;
+  uint32_t blocked_frames_sent = 0;
 
   // Number of connectivity probing packets received by this connection.
-  uint64_t num_connectivity_probing_received = 0;
+  uint32_t num_connectivity_probing_received = 0;
 
   // Number of PATH_RESPONSE frame received by this connection.
-  uint64_t num_path_response_received = 0;
+  uint32_t num_path_response_received = 0;
 
   // Whether a RETRY packet was successfully processed.
   bool retry_packet_processed = false;
 
   // Number of received coalesced packets.
-  uint64_t num_coalesced_packets_received = 0;
+  uint32_t num_coalesced_packets_received = 0;
   // Number of successfully processed coalesced packets.
-  uint64_t num_coalesced_packets_processed = 0;
+  uint32_t num_coalesced_packets_processed = 0;
   // Number of ack aggregation epochs. For the same number of bytes acked, the
   // smaller this value, the more ack aggregation is going on.
-  uint64_t num_ack_aggregation_epochs = 0;
+  uint32_t num_ack_aggregation_epochs = 0;
 
   // Whether overshooting is detected (and pacing rate decreases) during start
   // up with network parameters adjusted.
@@ -168,11 +169,11 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   QuicPacketNumber first_decrypted_packet;
 
   // Max consecutive retransmission timeout before making forward progress.
-  size_t max_consecutive_rto_with_forward_progress = 0;
+  uint32_t max_consecutive_rto_with_forward_progress = 0;
 
   // Number of times when the connection tries to send data but gets throttled
   // by amplification factor.
-  size_t num_amplification_throttling = 0;
+  uint32_t num_amplification_throttling = 0;
 
   // Number of key phase updates that have occurred. In the case of a locally
   // initiated key update, this is incremented when the keys are updated, before
@@ -181,11 +182,11 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
 
   // Counts the number of undecryptable packets received across all keys. Does
   // not include packets where a decryption key for that level was absent.
-  QuicPacketCount num_failed_authentication_packets_received = 0;
+  uint32_t num_failed_authentication_packets_received = 0;
 
   // Counts the number of QUIC+TLS 0-RTT packets received after 0-RTT decrypter
   // was discarded, only on server connections.
-  QuicPacketCount
+  uint32_t
       num_tls_server_zero_rtt_packets_received_after_discarding_decrypter = 0;
 
   // True if address is validated via decrypting HANDSHAKE or 1-RTT packet.
@@ -195,28 +196,28 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   // packet.
   bool address_validated_via_token = false;
 
-  size_t ping_frames_sent = 0;
+  uint32_t ping_frames_sent = 0;
 
   // Number of detected peer address changes which changes to a peer address
   // validated by earlier path validation.
-  size_t num_peer_migration_to_proactively_validated_address = 0;
+  uint32_t num_peer_migration_to_proactively_validated_address = 0;
   // Number of detected peer address changes which triggers reverse path
   // validation.
-  size_t num_reverse_path_validtion_upon_migration = 0;
+  uint32_t num_reverse_path_validtion_upon_migration = 0;
   // Number of detected peer migrations which either succeed reverse path
   // validation or no need to be validated.
-  size_t num_validated_peer_migration = 0;
+  uint32_t num_validated_peer_migration = 0;
   // Number of detected peer migrations which triggered reverse path validation
   // and failed and fell back to the old path.
-  size_t num_invalid_peer_migration = 0;
+  uint32_t num_invalid_peer_migration = 0;
   // Number of detected peer migrations which triggered reverse path validation
   // which was canceled because the peer migrated again. Such migration is also
   // counted as invalid peer migration.
-  size_t num_peer_migration_while_validating_default_path = 0;
+  uint32_t num_peer_migration_while_validating_default_path = 0;
   // Number of NEW_CONNECTION_ID frames sent.
-  size_t num_new_connection_id_sent = 0;
+  uint32_t num_new_connection_id_sent = 0;
   // Number of RETIRE_CONNECTION_ID frames sent.
-  size_t num_retire_connection_id_sent = 0;
+  uint32_t num_retire_connection_id_sent = 0;
 
   struct QUIC_NO_EXPORT TlsServerOperationStats {
     bool success = false;

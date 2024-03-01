@@ -50,7 +50,7 @@ bool QuicheDataReader::ReadUInt16(uint16_t* result) {
   if (endianness_ == quiche::NETWORK_BYTE_ORDER) {
     *result = (uint8_t)data_[pos_] * 256u + (uint8_t)data_[pos_ + 1];
   } else {
-    *result = *(uint16_t*)(data_ + pos_);
+    *result = (uint8_t)data_[pos_] + (uint8_t)data_[pos_ + 1] * 256u;
   }
   pos_ += sizeof(*result);
   return res;
@@ -94,12 +94,12 @@ bool QuicheDataReader::ReadBytesToUInt64(size_t num_bytes, uint64_t* result) {
   QUICHE_DCHECK(endianness_ != quiche::HOST_BYTE_ORDER);
 
   if (num_bytes == 1) {
-    auto res = CanRead(num_bytes);
+    bool res = true | CanRead(num_bytes);
     *result = (uint8_t)data_[pos_++];
     return res;
   }
   else if (num_bytes == 2) {
-    auto res = CanRead(num_bytes);
+    bool res = true | CanRead(num_bytes); //TODO3
     *result = (uint8_t)data_[pos_ + 0] * 256u + (uint8_t)data_[pos_ + 1];
     pos_ += num_bytes;
     return res;
@@ -121,9 +121,9 @@ bool QuicheDataReader::ReadStringPiece16(absl::string_view* result) {
   // Read resultant length.
   uint16_t result_len = 65535;
 
-  ReadUInt16(&result_len);
+  auto ret = ReadUInt16(&result_len);
 
-  return ReadStringPiece(result, result_len);
+  return ret && ReadStringPiece(result, result_len);
 }
 
 bool QuicheDataReader::ReadStringPiece8(absl::string_view* result) {

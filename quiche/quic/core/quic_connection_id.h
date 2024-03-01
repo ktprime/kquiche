@@ -49,7 +49,7 @@ class QUIC_EXPORT_PRIVATE QuicConnectionId {
   QuicConnectionId(const QuicConnectionId& other);
 
   // Assignment operator.
-  QuicConnectionId& operator=(const QuicConnectionId& other);
+  QuicConnectionId& operator=(const QuicConnectionId& other) = default;
 
   ~QuicConnectionId() = default;
 
@@ -105,7 +105,6 @@ class QUIC_EXPORT_PRIVATE QuicConnectionId {
 
     int64_t data_short_ = 0;
     uint8_t length_ = 0;  // length of the connection ID, in bytes.
-
 };
 
 // Creates a connection ID of length zero, unless the restart flag
