@@ -29,14 +29,14 @@ size_t CalculateBlockCount(size_t max_capacity_bytes) {
 // Upper limit of how many gaps allowed in buffer, which ensures a reasonable
 // number of iterations needed to find the right gap to fill when a frame
 // arrives.
-constexpr size_t kMaxNumDataIntervalsAllowed = 2 * kMaxPacketGap;
+constexpr uint32_t kMaxNumDataIntervalsAllowed = 2 * kMaxPacketGap;
 
 // Number of blocks allocated initially.
-constexpr size_t kInitialBlockCount = 2u;
+constexpr uint32_t kInitialBlockCount = 2u;
 
 // How fast block pointers container grow in size.
 // Choose 4 to reduce the amount of reallocation.
-constexpr int kBlocksGrowthFactor = 2;
+constexpr uint32_t kBlocksGrowthFactor = 2;
 
 }  // namespace
 
@@ -57,13 +57,13 @@ QuicStreamSequencerBuffer::QuicStreamSequencerBuffer(size_t max_capacity_bytes)
 QuicStreamSequencerBuffer::~QuicStreamSequencerBuffer() { Clear(); }
 
 void QuicStreamSequencerBuffer::Clear() {
-  for (size_t i = 0; i < current_blocks_count_; ++i) {
+  for (uint32_t i = 0; i < current_blocks_count_; ++i) {
     if (blocks_[i] != nullptr) {
       delete blocks_[i];
       blocks_[i] = nullptr;
     }
   }
-  for (size_t i = 0; i < empty_blocks_count_; ++i) {
+  for (uint32_t i = 0; i < empty_blocks_count_; ++i) {
     delete empty_blocks[i];
   }
 
@@ -136,6 +136,7 @@ QuicErrorCode QuicStreamSequencerBuffer::OnStreamData(
     QuicStreamOffset starting_offset, absl::string_view data,
     size_t* const bytes_buffered, std::string_view* error_details) {
   size_t size = data.size();
+  QUICHE_DCHECK(*bytes_buffered == 0);
   //QUICHE_DCHECK(size && *bytes_buffered == 0);
   if (false && size == 0) {
     *error_details = "Received empty stream frame without FIN.";
@@ -164,12 +165,12 @@ QuicErrorCode QuicStreamSequencerBuffer::OnStreamData(
 
   QuicInterval<QuicStreamOffset> off(starting_offset, ending_offset);
   const auto& lmax = bytes_received_.rbegin()->max();
+  num_bytes_buffered_ += size;
+
   if (starting_offset == lmax) {
     // Optimization for the normal case, when all data is newly received.
     const_cast<size_t&>(lmax) = ending_offset;
     CopyStreamData(starting_offset, data, bytes_buffered, error_details);
-    QUICHE_DCHECK(*bytes_buffered == size);
-    num_bytes_buffered_ += size;
     return QUIC_NO_ERROR;
   }
   else if (starting_offset > lmax) {
@@ -181,18 +182,17 @@ QuicErrorCode QuicStreamSequencerBuffer::OnStreamData(
       return QUIC_TOO_MANY_STREAM_DATA_INTERVALS;
     }
     CopyStreamData(starting_offset, data, bytes_buffered, error_details);
-    QUICHE_DCHECK(*bytes_buffered == size);
-    num_bytes_buffered_ += size;
     return QUIC_NO_ERROR;
   }
   else if (bytes_received_.IsDisjoint(off)) {
     bytes_received_.AddInter(off);
     CopyStreamData(starting_offset, data, bytes_buffered, error_details);
-    QUICHE_DCHECK(*bytes_buffered == size);
     QUICHE_DCHECK(starting_offset >= total_bytes_read_);
-    num_bytes_buffered_ += size;
     return QUIC_NO_ERROR;
-  } else if (bytes_received_.Contains(off)) {
+  }
+
+  num_bytes_buffered_ -= size;
+  if (bytes_received_.Contains(off)) {
     return QUIC_NO_ERROR;
   }
 
@@ -348,12 +348,12 @@ QuicErrorCode QuicStreamSequencerBuffer::Readv(const iovec* dest_iov,
 }
 
 int QuicStreamSequencerBuffer::GetReadableRegions(struct iovec* iov,
-                                                  int iov_len) const {
+                                                  int iov_size) const {
   //QUICHE_DCHECK(iov != nullptr);
-  //QUICHE_DCHECK_GT(iov_len, 0);
-  QUICHE_DCHECK_GT(ReadableBytes(), 0);
+  //QUICHE_DCHECK_GT(iov_size, 0);
+  QUICHE_DCHECK(ReadableBytes()> 0);
 
-  if (false && ReadableBytes() == 0) {
+  if (ReadableBytes() == 0) {
     iov[0].iov_base = nullptr;
     iov[0].iov_len = 0;
     return 0;
@@ -389,7 +389,7 @@ int QuicStreamSequencerBuffer::GetReadableRegions(struct iovec* iov,
   // a region.
   int iov_used = 1;
   size_t block_idx = (start_block_idx + iov_used) & (current_blocks_count_ - 1);
-  while (block_idx != end_block_idx && iov_used < iov_len) {
+  while (block_idx != end_block_idx && iov_used < iov_size) {
     QUICHE_DCHECK(nullptr != blocks_[block_idx]);
     iov[iov_used].iov_base = blocks_[block_idx]->buffer;
     iov[iov_used].iov_len = GetBlockCapacity(block_idx);
@@ -399,7 +399,7 @@ int QuicStreamSequencerBuffer::GetReadableRegions(struct iovec* iov,
   }
 
   // Deal with last block if |iov| can hold more.
-  if (iov_used < iov_len) {
+  if (iov_used < iov_size) {
     QUICHE_DCHECK(nullptr != blocks_[block_idx]);
     iov[iov_used].iov_base = blocks_[end_block_idx]->buffer;
     iov[iov_used].iov_len = end_block_offset + 1;
@@ -488,7 +488,7 @@ size_t QuicStreamSequencerBuffer::ReadableBytes() const {
 }
 
 bool QuicStreamSequencerBuffer::HasBytesToRead() const {
-  return ReadableBytes() > 0;
+  return bytes_received_.begin()->max() > total_bytes_read_;
 }
 
 QuicStreamOffset QuicStreamSequencerBuffer::BytesConsumed() const {
@@ -504,12 +504,12 @@ size_t QuicStreamSequencerBuffer::GetBlockIndex(QuicStreamOffset offset) const {
 }
 
 size_t QuicStreamSequencerBuffer::GetInBlockOffset(
-    QuicStreamOffset offset) const {
+    QuicStreamOffset offset) {
   return offset % kBlockSizeBytes;
 }
 
 size_t QuicStreamSequencerBuffer::ReadOffset() const {
-  return GetInBlockOffset(total_bytes_read_);
+  return total_bytes_read_ % kBlockSizeBytes;
 }
 
 size_t QuicStreamSequencerBuffer::NextBlockToRead() const {
@@ -563,19 +563,11 @@ bool QuicStreamSequencerBuffer::Empty() const {
   return bytes_received_.begin()->max() == total_bytes_read_;
 }
 
-size_t QuicStreamSequencerBuffer::GetBlockCapacity(size_t block_index) const {
-  return kBlockSizeBytes;
-}
-
 std::string QuicStreamSequencerBuffer::ReceivedFramesDebugString() const {
   return bytes_received_.ToString();
 }
 
 QuicStreamOffset QuicStreamSequencerBuffer::FirstMissingByte() const {
-  if (false && (bytes_received_.Empty() || bytes_received_.begin()->min() > 0)) {
-    // Offset 0 is not received yet.
-    return 0;
-  }
   return bytes_received_.begin()->max();
 }
 

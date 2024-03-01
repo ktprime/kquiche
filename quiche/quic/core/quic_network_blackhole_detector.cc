@@ -90,12 +90,13 @@ void QuicNetworkBlackholeDetector::RestartDetection(
 }
 
 QuicTime QuicNetworkBlackholeDetector::GetEarliestDeadline() const {
-  QuicTime result = std::min(path_degrading_deadline_, blackhole_deadline_);
-  if (!result.IsInitialized()) {
-    result = std::max(path_degrading_deadline_, blackhole_deadline_);
-  }
-  if (path_mtu_reduction_deadline_.IsInitialized()) {
-    if (QuicTime t = path_mtu_reduction_deadline_; !result.IsInitialized() || t < result) {
+  QuicTime result = path_mtu_reduction_deadline_;
+  for (QuicTime t : {path_degrading_deadline_, blackhole_deadline_}) {
+    if (!t.IsInitialized()) {
+      continue;
+    }
+
+    if (!result.IsInitialized() || t < result) {
       result = t;
     }
   }

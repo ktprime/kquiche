@@ -59,6 +59,11 @@ QuicStreamSendBuffer::QuicStreamSendBuffer(
 }
 
 QuicStreamSendBuffer::~QuicStreamSendBuffer() {
+  ReleaseBuffer();
+}
+
+void QuicStreamSendBuffer::ReleaseBuffer()
+{
   for (size_t i = 0; i < blocks_.size(); ++i) {
     if (blocks_[i] != nullptr) {
       delete (blocks_[i]);
@@ -174,38 +179,38 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
   const size_t ending_offset = offset + data_length;
   QuicInterval<QuicStreamOffset> off(offset, ending_offset);
   const auto& lmax = bytes_acked_.rbegin()->max();
+
+  *newly_acked_length = data_length;
+  stream_bytes_outstanding_ -= data_length;
+  if (!pending_retransmissions_.Empty())
+    pending_retransmissions_.Difference(off);
+
   if (offset == lmax) {
     // Optimization for the normal case.
     const_cast<size_t&>(lmax) = ending_offset;
-    *newly_acked_length = data_length;
-    stream_bytes_outstanding_ -= data_length;
-    if (!pending_retransmissions_.Empty()) pending_retransmissions_.Difference(off);
     if (ending_offset >= stream_bytes_start_ + kBlockSizeBytes)
       FreeMemSlices(offset, ending_offset);
     return true;
   }
   else if (offset > lmax) {
-    // Optimization for the typical case, hole happend.
+    // Optimization for the typical case, hole happend at the end.
     if (bytes_acked_.Size() >= kMaxPacketGap) {
       // This frame is going to create more intervals than allowed. Stop processing.
       return false;
     }
     bytes_acked_.AppendBack(off);
-    if (!pending_retransmissions_.Empty()) pending_retransmissions_.Difference(off);
-    *newly_acked_length = data_length;
-    stream_bytes_outstanding_ -= data_length;
     return true;
   }
   else if (bytes_acked_.IsDisjoint(off)) {
     // Optimization for the typical case, maybe update pending.
     bytes_acked_.AddInter(off);
-    *newly_acked_length = data_length;
-    stream_bytes_outstanding_ -= data_length;
-    if (!pending_retransmissions_.Empty()) pending_retransmissions_.Difference(off);
     return FreeMemSlices(offset, ending_offset);
   }
+
+  *newly_acked_length = 0;
+  stream_bytes_outstanding_ += data_length;
   // Exit if dupliacted
-  else if (bytes_acked_.Contains(off)) {
+  if (bytes_acked_.Contains(off)) {
     return true;
   }
 
@@ -220,11 +225,7 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
   }
   stream_bytes_outstanding_ -= *newly_acked_length;
   bytes_acked_.AddInter(off);
-  if (!pending_retransmissions_.Empty()) pending_retransmissions_.Difference(off);
   QUICHE_DCHECK(!newly_acked.Empty());
-  //if (newly_acked.Empty()) {
-    //return true;
-  //}
   return true;// FreeMemSlices(newly_acked.begin()->min(), newly_acked.rbegin()->max());
 }
 
@@ -235,13 +236,19 @@ void QuicStreamSendBuffer::OnStreamDataLost(QuicStreamOffset offset,
     return;
   }
 
-  QuicIntervalSet<QuicStreamOffset> bytes_lost(offset, offset + data_length);
-  bytes_lost.Difference(bytes_acked_);
-  if (false && pending_retransmissions_.Empty()) {
-    pending_retransmissions_ = std::move(bytes_lost);
+  //static int i1 = 0, i2 = 0, i3 = 0;
+  QuicInterval<QuicStreamOffset> off(offset, offset + data_length);
+  const auto lmax = bytes_acked_.rbegin()->max();
+  if (offset >= lmax || bytes_acked_.IsDisjoint(off)) {
+    pending_retransmissions_.AddOptimizedForAppend(off);
+    return;
+  }
+  else if (bytes_acked_.Contains(off)) {
     return;
   }
 
+  QuicIntervalSet<QuicStreamOffset> bytes_lost(off);
+  bytes_lost.Difference(bytes_acked_);
   for (const auto& lost : bytes_lost) {
     pending_retransmissions_.AddOptimizedForAppend(lost.min(), lost.max());
   }
@@ -249,7 +256,7 @@ void QuicStreamSendBuffer::OnStreamDataLost(QuicStreamOffset offset,
 
 void QuicStreamSendBuffer::OnStreamDataRetransmitted(
     QuicStreamOffset offset, QuicByteCount data_length) {
-  if (data_length == 0 || pending_retransmissions_.Empty()) {
+  if (data_length == 0) {
     //printf("\trertans %d == %ld ======================\n", (int)data_length, offset);
     return;
   }

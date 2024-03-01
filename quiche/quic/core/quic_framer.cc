@@ -149,19 +149,17 @@ constexpr uint8_t kDestinationConnectionIdLengthMask = 0xF0;
 constexpr uint8_t kSourceConnectionIdLengthMask = 0x0F;
 
 // Returns the absolute value of the difference between |a| and |b|.
-uint64_t Delta(uint64_t a, uint64_t b) {
+static uint64_t Delta(uint64_t a, uint64_t b) {
   // Since these are unsigned numbers, we can't just return abs(a - b)
-  if (a < b) {
-    return b - a;
-  }
-  return a - b;
+  return a <= b ? b - a : a - b;
 }
 
-uint64_t ClosestTo(uint64_t target, uint64_t a, uint64_t b) {
+static uint64_t ClosestTo(uint64_t target, uint64_t a, uint64_t b) {
   return (Delta(target, a) < Delta(target, b)) ? a : b;
 }
 
-QuicPacketNumberLength ReadSequenceNumberLength(uint8_t flags) {
+static constexpr QuicPacketNumberLength ReadSequenceNumberLength(uint8_t flags) {
+#if 0
   switch (flags & PACKET_FLAGS_8BYTE_PACKET) {
     case PACKET_FLAGS_8BYTE_PACKET:
       return PACKET_6BYTE_PACKET_NUMBER;
@@ -175,9 +173,21 @@ QuicPacketNumberLength ReadSequenceNumberLength(uint8_t flags) {
       QUIC_BUG(quic_bug_10850_1) << "Unreachable case statement.";
       return PACKET_6BYTE_PACKET_NUMBER;
   }
+#else
+  const auto mask = flags & PACKET_FLAGS_8BYTE_PACKET;
+  switch (mask) {
+  case PACKET_FLAGS_1BYTE_PACKET:
+  case PACKET_FLAGS_2BYTE_PACKET:
+  case PACKET_FLAGS_4BYTE_PACKET:
+    return QuicPacketNumberLength(1 << mask);
+  default:
+    return PACKET_6BYTE_PACKET_NUMBER;
+  }
+#endif
 }
 
-QuicPacketNumberLength ReadAckPacketNumberLength(uint8_t flags) {
+static constexpr QuicPacketNumberLength ReadAckPacketNumberLength(uint8_t flags) {
+#if 0
   switch (flags & PACKET_FLAGS_8BYTE_PACKET) {
     case PACKET_FLAGS_8BYTE_PACKET:
       return PACKET_6BYTE_PACKET_NUMBER;
@@ -191,19 +201,31 @@ QuicPacketNumberLength ReadAckPacketNumberLength(uint8_t flags) {
       QUIC_BUG(quic_bug_10850_2) << "Unreachable case statement.";
       return PACKET_6BYTE_PACKET_NUMBER;
   }
+#else
+  const auto mask = flags & PACKET_FLAGS_8BYTE_PACKET;
+  switch (mask) {
+    case PACKET_FLAGS_1BYTE_PACKET:
+    case PACKET_FLAGS_2BYTE_PACKET:
+    case PACKET_FLAGS_4BYTE_PACKET:
+      return QuicPacketNumberLength(1 << mask);
+    default:
+//    case PACKET_FLAGS_8BYTE_PACKET:
+      return PACKET_6BYTE_PACKET_NUMBER;
+  }
+#endif
 }
 
-uint8_t PacketNumberLengthToOnWireValue(
+static uint8_t PacketNumberLengthToOnWireValue(
     QuicPacketNumberLength packet_number_length) {
   return packet_number_length - 1;
 }
 
-QuicPacketNumberLength GetShortHeaderPacketNumberLength(uint8_t type) {
+static QuicPacketNumberLength GetShortHeaderPacketNumberLength(uint8_t type) {
   QUICHE_DCHECK(!(type & FLAGS_LONG_HEADER));
   return static_cast<QuicPacketNumberLength>((type & 0x03) + 1);
 }
 
-uint8_t LongHeaderTypeToOnWireValue(QuicLongHeaderType type,
+static uint8_t LongHeaderTypeToOnWireValue(QuicLongHeaderType type,
                                     const ParsedQuicVersion& version) {
   switch (type) {
     case INITIAL:
@@ -222,7 +244,7 @@ uint8_t LongHeaderTypeToOnWireValue(QuicLongHeaderType type,
   }
 }
 
-QuicLongHeaderType GetLongHeaderType(uint8_t type,
+static QuicLongHeaderType GetLongHeaderType(uint8_t type,
                                      const ParsedQuicVersion& version) {
   QUICHE_DCHECK((type & FLAGS_LONG_HEADER));
   switch ((type & 0x30) >> 4) {
@@ -240,12 +262,12 @@ QuicLongHeaderType GetLongHeaderType(uint8_t type,
   }
 }
 
-QuicPacketNumberLength GetLongHeaderPacketNumberLength(uint8_t type) {
+static QuicPacketNumberLength GetLongHeaderPacketNumberLength(uint8_t type) {
   return static_cast<QuicPacketNumberLength>((type & 0x03) + 1);
 }
 
 // Used to get packet number space before packet gets decrypted.
-PacketNumberSpace GetPacketNumberSpace(const QuicPacketHeader& header) {
+static PacketNumberSpace GetPacketNumberSpace(const QuicPacketHeader& header) {
   switch (header.form) {
     case GOOGLE_QUIC_PACKET:
       QUIC_BUG(quic_bug_10850_5)
@@ -274,7 +296,7 @@ PacketNumberSpace GetPacketNumberSpace(const QuicPacketHeader& header) {
   return NUM_PACKET_NUMBER_SPACES;
 }
 
-EncryptionLevel GetEncryptionLevel(const QuicPacketHeader& header) {
+static EncryptionLevel GetEncryptionLevel(const QuicPacketHeader& header) {
   switch (header.form) {
     case IETF_QUIC_SHORT_HEADER_PACKET:
       return ENCRYPTION_FORWARD_SECURE;
@@ -301,40 +323,40 @@ EncryptionLevel GetEncryptionLevel(const QuicPacketHeader& header) {
   return NUM_ENCRYPTION_LEVELS;
 }
 
-absl::string_view TruncateErrorString(absl::string_view error) {
+static absl::string_view TruncateErrorString(absl::string_view error) {
   if (error.length() <= kMaxErrorStringLength) {
     return error;
   }
   return absl::string_view(error.data(), kMaxErrorStringLength);
 }
 
-size_t TruncatedErrorStringSize(const absl::string_view& error) {
+static size_t TruncatedErrorStringSize(const absl::string_view& error) {
   if (error.length() < kMaxErrorStringLength) {
     return error.length();
   }
   return kMaxErrorStringLength;
 }
 
-uint8_t GetConnectionIdLengthValue(uint8_t length) {
+static uint8_t GetConnectionIdLengthValue(uint8_t length) {
   if (length == 0) {
     return 0;
   }
   return static_cast<uint8_t>(length - kConnectionIdLengthAdjustment);
 }
 
-bool IsValidPacketNumberLength(QuicPacketNumberLength packet_number_length) {
+static bool IsValidPacketNumberLength(QuicPacketNumberLength packet_number_length) {
   size_t length = packet_number_length;
   QUICHE_DCHECK(packet_number_length <= 8);
   constexpr uint32_t bmask = 0b101010110;
   return bmask & (1 << length);
 }
 
-bool IsValidFullPacketNumber(uint64_t full_packet_number,
+static bool IsValidFullPacketNumber(uint64_t full_packet_number,
                              ParsedQuicVersion version) {
   return full_packet_number > 0 || version.HasIetfQuicFrames();
 }
 
-bool AppendIetfConnectionIds(bool version_flag, bool use_length_prefix,
+static bool AppendIetfConnectionIds(bool version_flag, bool use_length_prefix,
                              QuicConnectionId destination_connection_id,
                              QuicConnectionId source_connection_id,
                              QuicDataWriter* writer) {
@@ -380,12 +402,12 @@ void RecordDroppedPacketReason(DroppedPacketReason reason) {
                              "each time such a packet is dropped");
 }
 
-PacketHeaderFormat GetIetfPacketHeaderFormat(uint8_t type_byte) {
+static PacketHeaderFormat GetIetfPacketHeaderFormat(uint8_t type_byte) {
   return type_byte & FLAGS_LONG_HEADER ? IETF_QUIC_LONG_HEADER_PACKET
                                        : IETF_QUIC_SHORT_HEADER_PACKET;
 }
 
-std::string GenerateErrorString(std::string initial_error_string,
+static std::string GenerateErrorString(std::string initial_error_string,
                                 QuicErrorCode quic_error_code) {
   if (quic_error_code == QUIC_IETF_GQUIC_ERROR_MISSING) {
     // QUIC_IETF_GQUIC_ERROR_MISSING is special -- it means not to encode
@@ -3489,17 +3511,17 @@ bool QuicFramer::ProcessIetfFrameData(QuicDataReader* reader,
 
 namespace {
 // Create a mask that sets the last |num_bits| to 1 and the rest to 0.
-inline uint8_t GetMaskFromNumBits(uint8_t num_bits) {
+inline constexpr uint8_t GetMaskFromNumBits(uint8_t num_bits) {
   return (1u << num_bits) - 1;
 }
 
 // Extract |num_bits| from |flags| offset by |offset|.
-uint8_t ExtractBits(uint8_t flags, uint8_t num_bits, uint8_t offset) {
+uint8_t constexpr ExtractBits(uint8_t flags, uint8_t num_bits, uint8_t offset) {
   return (flags >> offset) & GetMaskFromNumBits(num_bits);
 }
 
 // Extract the bit at position |offset| from |flags| as a bool.
-bool ExtractBit(uint8_t flags, uint8_t offset) {
+bool constexpr ExtractBit(uint8_t flags, uint8_t offset) {
   return ((flags >> offset) & GetMaskFromNumBits(1)) != 0;
 }
 
@@ -3538,7 +3560,7 @@ bool QuicFramer::ProcessStreamFrame(QuicDataReader* reader, uint8_t frame_type,
 
   frame->fin = (stream_flags & kQuicStreamFinMask) == kQuicStreamFinShift;
 
-  uint64_t stream_id = -1;
+  uint64_t stream_id;
   //if (!
   reader->ReadBytesToUInt64(stream_id_length, &stream_id);// {
     //set_detailed_error("Unable to read stream_id.");
@@ -3683,6 +3705,44 @@ bool QuicFramer::ProcessAckFrequencyFrame(QuicDataReader* reader,
   return true;
 }
 
+bool QuicFramer::ProcessAckFrameBlocks(QuicDataReader * reader,
+  size_t num_ack_blocks, uint64_t first_received, uint64_t ack_block_length)
+{
+  for (size_t i = 0; i < num_ack_blocks; ++i) {
+    uint8_t gap = 0;
+    reader->ReadUInt8(&gap);
+    uint64_t current_block_length;
+    if (!reader->ReadBytesToUInt64(ack_block_length, &current_block_length)) {
+      set_detailed_error("Unable to ack block length.");
+      return false;
+    }
+    //      bool ack_block_underflow = first_received < gap + current_block_length; //TODO hybchanged
+    if (first_received < gap + current_block_length + first_sending_packet_number_.ToUint64()) {
+      set_detailed_error(absl::StrCat("Underflow with ack block length ",
+        current_block_length,
+        ", end of block is ",
+        first_received - gap, ".")
+        .c_str());
+      return false;
+    }
+
+    first_received -= (gap + current_block_length);
+
+    if (!visitor_->OnAckRange(
+      QuicPacketNumber(first_received),
+      QuicPacketNumber(first_received) + current_block_length)) {
+      // The visitor suppresses further processing of the packet. Although
+      // this is not a parsing error, returns false as this is in middle
+      // of processing an ack frame,
+      set_detailed_error(
+        "Visitor suppresses further processing of ack frame.");
+      return false;
+    }
+  }
+
+  return true;
+}
+
 bool QuicFramer::ProcessAckFrame(QuicDataReader* reader, uint8_t frame_type) {
   const bool has_ack_blocks =
       ExtractBit(frame_type, kQuicHasMultipleAckBlocksOffset);
@@ -3736,7 +3796,7 @@ bool QuicFramer::ProcessAckFrame(QuicDataReader* reader, uint8_t frame_type) {
     return false;
   }
 //  bool first_ack_block_underflow = first_block_length > largest_acked + 1;
-  if (first_block_length /* + first_sending_packet_number_.ToUint64() */ >
+  else if (first_block_length /* + first_sending_packet_number_.ToUint64() */ >
       largest_acked) {
     set_detailed_error(absl::StrCat("Underflow with first ack block length ",
                                     first_block_length, " largest acked is ",
@@ -3756,40 +3816,10 @@ bool QuicFramer::ProcessAckFrame(QuicDataReader* reader, uint8_t frame_type) {
     //return false;
   //}
 
-  if (num_ack_blocks > 0) {
-    for (size_t i = 0; i < num_ack_blocks; ++i) {
-      uint8_t gap = 0;
-      reader->ReadUInt8(&gap);
-      uint64_t current_block_length;
-      if (!reader->ReadBytesToUInt64(ack_block_length, &current_block_length)) {
-        set_detailed_error("Unable to ack block length.");
-        return false;
-      }
-//      bool ack_block_underflow = first_received < gap + current_block_length; //TODO hybchanged
-      if (first_received < gap + current_block_length +
-                               first_sending_packet_number_.ToUint64()) {
-        set_detailed_error(absl::StrCat("Underflow with ack block length ",
-                                        current_block_length,
-                                        ", end of block is ",
-                                        first_received - gap, ".")
-                               .c_str());
-        return false;
-      }
-
-      first_received -= (gap + current_block_length);
-      if (true || current_block_length > 0) {
-        if (!visitor_->OnAckRange(
-                QuicPacketNumber(first_received),
-                QuicPacketNumber(first_received) + current_block_length)) {
-          // The visitor suppresses further processing of the packet. Although
-          // this is not a parsing error, returns false as this is in middle
-          // of processing an ack frame,
-          set_detailed_error(
-              "Visitor suppresses further processing of ack frame.");
-          return false;
-        }
-      }
-    }
+  if (num_ack_blocks > 0 &&
+    !ProcessAckFrameBlocks(reader, num_ack_blocks, first_received,
+      ack_block_length)) {
+    return false;
   }
 
   reader->ReadUInt8(&num_received_packets);

@@ -931,8 +931,8 @@ bool QuicSentPacketManager::MaybeUpdateRTT(QuicPacketNumber largest_acked,
   if (DCHECK_FLAG && transmission_info.state == NOT_CONTRIBUTING_RTT) {
     return false;
   }
-  if (false && transmission_info.sent_time > ack_receive_time) {
-    QUIC_CODE_COUNT(quic_receive_acked_before_sending);
+  if (DCHECK_FLAG && transmission_info.sent_time >= ack_receive_time) {
+    return false;
   }
 
   QuicTime::Delta send_delta = ack_receive_time - transmission_info.sent_time;

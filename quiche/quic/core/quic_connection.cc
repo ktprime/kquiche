@@ -1389,9 +1389,10 @@ bool QuicConnection::OnStreamFrame(const QuicStreamFrame& frame) {
 
   // Since a stream frame was received, this is not a connectivity probe.
   // A probe only contains a PING and full padding.
+  current_packet_content_ = NOT_PADDED_PING;
   if (
  #if QUIC_TLS_SESSION == 0
-    current_packet_content_ != NOT_PADDED_PING &&
+    current_effective_peer_migration_type_ != NO_CHANGE &&
 #endif
     !UpdatePacketContent(STREAM_FRAME)) {
     return false;
@@ -1425,6 +1426,7 @@ bool QuicConnection::OnStreamFrame(const QuicStreamFrame& frame) {
   MaybeUpdateAckTimeout();
   visitor_->OnStreamFrame(frame);
   stats_.stream_bytes_received += frame.data_length;
+  stats_.stream_packets_recv += 1;
   ping_manager_.reset_consecutive_retransmittable_on_wire_count();
   return connected_;
 }
@@ -1507,6 +1509,7 @@ bool QuicConnection::OnAckRange(QuicPacketNumber start, QuicPacketNumber end) {
          "packet info: "
       << last_received_packet_info_;
   QUIC_DVLOG(1) << ENDPOINT << "OnAckRange: [" << start << ", " << end << ")";
+
   QuicPacketNumber least_unacked = GetLeastUnacked();
   if (end <= least_unacked) {//no need ack or dups
     return true; //TODO hybchanged opt
@@ -1518,6 +1521,8 @@ bool QuicConnection::OnAckRange(QuicPacketNumber start, QuicPacketNumber end) {
     QUIC_DLOG(INFO) << ENDPOINT << "Received an old ack frame: ignoring";
     return true;
   }
+
+
   sent_packet_manager_.OnAckRange(start, end);
   return true;
 }
@@ -1649,7 +1654,7 @@ bool QuicConnection::OnStopWaitingFrame(const QuicStopWaitingFrame& frame) {
 }
 
 bool QuicConnection::OnPaddingFrame(const QuicPaddingFrame& frame) {
-  QUIC_BUG_IF(quic_bug_12714_9, !connected_)
+  QUIC_BUG_IF(quic_bug_12714_9, false)
       << "Processing PADDING frame when connection is closed. Received packet "
          "info: "
       << last_received_packet_info_;
@@ -1869,7 +1874,7 @@ bool QuicConnection::OnPathResponseFrame(const QuicPathResponseFrame& frame) {
 
 bool QuicConnection::OnConnectionCloseFrame(
     const QuicConnectionCloseFrame& frame) {
-  QUIC_BUG_IF(quic_bug_10511_10, !connected_)
+  QUIC_BUG_IF(quic_bug_10511_10, false)
       << "Processing CONNECTION_CLOSE frame when connection is closed. "
          "Received packet info: "
       << last_received_packet_info_;
@@ -4006,6 +4011,7 @@ void QuicConnection::MaybeSendConnectionIdToClient() {
 
 void QuicConnection::OnHandshakeComplete() {
   sent_packet_manager_.SetHandshakeConfirmed();
+#if QUIC_TLS_SESSION //TODO3 more fast on server.
   if (connection_migration_use_new_cid_ &&
       perspective_ == Perspective::IS_SERVER &&
       self_issued_cid_manager_ != nullptr) {
@@ -4055,6 +4061,7 @@ void QuicConnection::OnHandshakeComplete() {
         std::make_unique<ServerPreferredAddressResultDelegate>(this);
     ValidatePath(std::move(context), std::move(result_delegate));
   }
+#endif
 }
 
 void QuicConnection::MaybeCreateMultiPortPath() {
@@ -5585,16 +5592,13 @@ bool QuicConnection::UpdatePacketContent(QuicFrameType type) {
   }
 
   current_packet_content_ = NOT_PADDED_PING;
-  if (//GetLargestReceivedPacket().IsInitialized() &&
-      last_received_packet_info_.header.packet_number ==
-          GetLargestReceivedPacket()) {
-    //UpdatePeerAddress(last_received_packet_info_.source_address);//TODO hybchanged move to follow
-    if (current_effective_peer_migration_type_ != NO_CHANGE) {
-      UpdatePeerAddress(last_received_packet_info_.source_address); //TODO2
-      // Start effective peer migration immediately when the current packet is
-      // confirmed not a connectivity probing packet.
-      StartEffectivePeerMigration(current_effective_peer_migration_type_);
-    }
+  if (current_effective_peer_migration_type_ != NO_CHANGE &&
+    last_received_packet_info_.header.packet_number ==
+        GetLargestReceivedPacket()) {
+    UpdatePeerAddress(last_received_packet_info_.source_address); //TODO2
+    // Start effective peer migration immediately when the current packet is
+    // confirmed not a connectivity probing packet.
+    StartEffectivePeerMigration(current_effective_peer_migration_type_);
   }
   current_effective_peer_migration_type_ = NO_CHANGE;
   return connected_;

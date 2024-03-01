@@ -230,7 +230,7 @@ void QuicCryptoStream::NeuterStreamDataOfEncryptionLevel(
       &substreams_[QuicUtils::GetPacketNumberSpace(level)].send_buffer;
   // TODO(nharper): Consider adding a Clear() method to QuicStreamSendBuffer
   // to replace the following code.
-  QuicIntervalSet<QuicStreamOffset> to_ack = send_buffer->bytes_acked();
+  auto to_ack = send_buffer->bytes_acked();
   if (send_buffer->stream_offset())
     to_ack.Complement(0, send_buffer->stream_offset()); //hybchanged
   for (const auto& interval : to_ack) {
@@ -333,7 +333,11 @@ bool QuicCryptoStream::RetransmitStreamData(QuicStreamOffset offset,
       break;
     }
   }
-  retransmission.Difference(bytes_acked());
+
+  if (offset < bytes_acked().rbegin()->max()) {
+    for (const auto& v: bytes_acked())
+      retransmission.Difference(v);
+  }
   for (const auto& interval : retransmission) {
     QuicStreamOffset retransmission_offset = interval.min();
     QuicByteCount retransmission_length = interval.max() - interval.min();
@@ -421,10 +425,11 @@ bool QuicCryptoStream::RetransmitData(QuicCryptoFrame* crypto_frame,
   QuicStreamSendBuffer* send_buffer =
       &substreams_[QuicUtils::GetPacketNumberSpace(crypto_frame->level)]
            .send_buffer;
-  retransmission.Difference(send_buffer->bytes_acked());
-  if (retransmission.Empty()) {
-    return true;
+  if (crypto_frame->offset < send_buffer->bytes_acked().rbegin()->max()) {
+    for (const auto& v : send_buffer->bytes_acked())
+        retransmission.Difference(v);
   }
+
   for (const auto& interval : retransmission) {
     size_t retransmission_offset = interval.min();
     size_t retransmission_length = interval.max() - interval.min();

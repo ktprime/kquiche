@@ -65,8 +65,11 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
   // Size of blocks used by this buffer.
   // Choose 8K to make block large enough to hold multiple frames, each of
   // which could be up to 1.5 KB.
-  inline static constexpr size_t kBlockSizeBytes = 16 * 1024;  // 8KB
-  inline static constexpr size_t kSmallBlocks = 64 * 1024 / kBlockSizeBytes;
+  inline static constexpr uint32_t kBlockSizeBytes = 16 * 1024;  // 8KB
+  inline static constexpr uint32_t kSmallBlocks = 64 * 1024 / kBlockSizeBytes;
+public:
+  inline static constexpr int32_t kInterSetSize = 6;
+
   //static_assert(kBlockSizeBytes > kMaxIncomingPacketSize);
 
   // The basic storage block used by this buffer.
@@ -112,6 +115,9 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
   // Returns true if there is pending retransmissions.
   bool HasPendingRetransmission() const;
 
+  // Free the memory of buffered data.
+  void ReleaseBuffer();
+
   // Returns next pending retransmissions.
   StreamPendingRetransmission NextPendingRetransmission() const;
 
@@ -134,10 +140,11 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
   const QuicIntervalSet<QuicStreamOffset>& bytes_acked() const {
     return bytes_acked_;
   }
-
+#if 0
   const QuicIntervalSet<QuicStreamOffset>& pending_retransmissions() const {
     return pending_retransmissions_;
   }
+#endif
 
   size_t GetBlockIndex(QuicStreamOffset offset) const {
     return (offset - stream_bytes_start_) / kBlockSizeBytes;
@@ -164,23 +171,19 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
   // Offset of first block byte
   QuicStreamOffset stream_bytes_start_;
 
-  absl::InlinedVector<BufferBlock*, kSmallBlocks> blocks_;
-
   // Bytes that have been consumed by the stream.
   uint64_t stream_bytes_written_;
 
   // Bytes that have been consumed and are waiting to be acked.
   uint64_t stream_bytes_outstanding_;
 
+  absl::InlinedVector<BufferBlock*, kSmallBlocks> blocks_;
+
   // Offsets of data that has been acked.
   QuicIntervalSet<QuicStreamOffset> bytes_acked_;
 
   // Data considered as lost and needs to be retransmitted.
   QuicIntervalSet<QuicStreamOffset> pending_retransmissions_;
-
-  // Index of slice which contains data waiting to be written for the first
-  // time. -1 if send buffer is empty or all data has been written.
-  //int32_t write_index_;
 };
 
 }  // namespace quic

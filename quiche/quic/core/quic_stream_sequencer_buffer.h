@@ -82,9 +82,9 @@ class QUIC_EXPORT_PRIVATE QuicStreamSequencerBuffer {
   // Size of blocks used by this buffer.
   // Choose 8K to make block large enough to hold multiple frames, each of
   // which could be up to 1.5 KB.
-  inline static constexpr size_t kBlockSizeBytes = 16 * 1024;  // 8KB
-  inline static constexpr size_t kSmallBlocks = 16;
-  inline static constexpr size_t kEmptyBlocks = 64 * 1024 / kBlockSizeBytes;
+  inline static constexpr uint32_t kBlockSizeBytes = 16 * 1024;  // 8KB
+  inline static constexpr uint32_t kSmallBlocks = 16;
+  inline static constexpr uint32_t kEmptyBlocks = 64 * 1024 / kBlockSizeBytes;
 
   // The basic storage block used by this buffer.
   struct QUIC_EXPORT_PRIVATE BufferBlock {
@@ -194,14 +194,14 @@ class QUIC_EXPORT_PRIVATE QuicStreamSequencerBuffer {
   // Calculate the capacity of block at specified index.
   // Return value should be either kBlockSizeBytes for non-trailing blocks and
   // max_buffer_capacity % kBlockSizeBytes for trailing block.
-  size_t GetBlockCapacity(size_t index) const;
+  constexpr static size_t GetBlockCapacity(size_t index) { return kBlockSizeBytes; }
 
   // Does not check if offset is within reasonable range.
   size_t GetBlockIndex(QuicStreamOffset offset) const;
 
   // Given an offset in the stream, return the offset from the beginning of the
   // block which contains this data.
-  size_t GetInBlockOffset(QuicStreamOffset offset) const;
+  static size_t GetInBlockOffset(QuicStreamOffset offset);
 
   // Get offset relative to index 0 in logical 1st block to start next read.
   size_t ReadOffset() const;
@@ -214,31 +214,30 @@ class QUIC_EXPORT_PRIVATE QuicStreamSequencerBuffer {
   void MaybeAddMoreBlocks(QuicStreamOffset next_expected_byte);
 
   // The maximum total capacity of this buffer in byte, as constructed.
-  size_t max_buffer_capacity_bytes_;
+  uint32_t max_buffer_capacity_bytes_;
 
   // Number of blocks this buffer would have when it reaches full capacity,
   // i.e., maximal number of blocks in blocks_.
   //const size_t max_blocks_count_;
 
   // Number of blocks this buffer currently has.
-  size_t current_blocks_count_;
-  size_t current_capacity_bytes_;
-  size_t empty_blocks_count_ = 0;
-  BufferBlock* empty_blocks[kEmptyBlocks];
-
+  uint32_t current_blocks_count_;
+  uint32_t current_capacity_bytes_;
+  uint32_t empty_blocks_count_ = 0;
+  // Number of bytes in buffer.
+  QuicStreamOffset num_bytes_buffered_;
   // Number of bytes read out of buffer.
   QuicStreamOffset total_bytes_read_;
 
+  // Currently received data.
+  QuicIntervalSet<QuicStreamOffset> bytes_received_;
+
+  //empty buffer for reuse
+  BufferBlock* empty_blocks[kEmptyBlocks];
   // An ordered, variable-length list of blocks, with the length limited
   // such that the number of blocks never exceeds max_blocks_count_.
   // Each list entry can hold up to kBlockSizeBytes bytes.
   absl::InlinedVector<BufferBlock*, kSmallBlocks> blocks_;
-
-  // Number of bytes in buffer.
-  size_t num_bytes_buffered_;
-
-  // Currently received data.
-  QuicIntervalSet<QuicStreamOffset> bytes_received_;
 };
 
 }  // namespace quic

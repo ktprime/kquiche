@@ -721,7 +721,7 @@ void QuicStream::OnCanWrite() {
     // any.
     return;
   }
-  if (false && HasDeadlinePassed()) {
+  if (DCHECK_FLAG && HasDeadlinePassed()) {
     OnDeadlinePassed();
     return;
   }
@@ -869,7 +869,8 @@ void QuicStream::CloseReadSide() {
   QUIC_DVLOG(1) << ENDPOINT << "Done reading from stream " << id();
 
   read_side_closed_ = true;
-  sequencer_.ReleaseBuffer();
+
+  sequencer_.ReleaseBufferIfEmpty();
 
   if (write_side_closed_) {
     QUIC_DVLOG(1) << ENDPOINT << "Closing stream " << id();
@@ -885,6 +886,7 @@ void QuicStream::CloseWriteSide() {
   QUIC_DVLOG(1) << ENDPOINT << "Done writing to stream " << id();
 
   write_side_closed_ = true;
+  send_buffer_.ReleaseBuffer();
   if (read_side_closed_) {
     QUIC_DVLOG(1) << ENDPOINT << "Closing stream " << id();
     session_->OnStreamClosed(id());
@@ -1162,6 +1164,7 @@ bool QuicStream::OnStreamFrameAcked(QuicStreamOffset offset,
 void QuicStream::OnStreamFrameRetransmitted(QuicStreamOffset offset,
                                             QuicByteCount data_length,
                                             bool fin_retransmitted) {
+  if (send_buffer_.HasPendingRetransmission())
   send_buffer_.OnStreamDataRetransmitted(offset, data_length);
   if (fin_retransmitted) {
     fin_lost_ = false;
@@ -1185,13 +1188,19 @@ bool QuicStream::RetransmitStreamData(QuicStreamOffset offset,
                                       QuicByteCount data_length, bool fin,
                                       TransmissionType type) {
   QUICHE_DCHECK(type == PTO_RETRANSMISSION);
-  if (HasDeadlinePassed()) {
+  if (deadline_.IsInitialized() && HasDeadlinePassed()) {
     OnDeadlinePassed();
     return true;
   }
-  QuicIntervalSet<QuicStreamOffset> retransmission(offset,
-                                                   offset + data_length);
-  retransmission.Difference(bytes_acked());
+
+  QuicInterval<QuicStreamOffset> off(offset, offset + data_length);
+  QuicIntervalSet<QuicStreamOffset> retransmission(off);
+#if 1
+  const auto lmax = bytes_acked().rbegin()->max();
+  if (offset < lmax && !bytes_acked().IsDisjoint(off))
+#endif
+    retransmission.Difference(bytes_acked());
+
   bool retransmit_fin = fin && fin_outstanding_;
   if (retransmission.Empty() && !retransmit_fin) {
     return true;
@@ -1214,8 +1223,7 @@ bool QuicStream::RetransmitStreamData(QuicStreamOffset offset,
                   << ") and fin: " << can_bundle_fin
                   << ", consumed: " << consumed;
 
-    if (send_buffer_.HasPendingRetransmission())
-      OnStreamFrameRetransmitted(retransmission_offset, consumed.bytes_consumed,
+    OnStreamFrameRetransmitted(retransmission_offset, consumed.bytes_consumed,
                                consumed.fin_consumed);
     if (consumed.fin_consumed) {
       fin_lost_ = false;
@@ -1408,6 +1416,7 @@ void QuicStream::WritePendingRetransmission() {
                     << ", " << pending.offset + pending.length
                     << ") and fin: " << can_bundle_fin
                     << ", consumed: " << consumed;
+
       OnStreamFrameRetransmitted(pending.offset, consumed.bytes_consumed,
                                  consumed.fin_consumed);
       if (consumed.bytes_consumed < pending.length ||

@@ -411,7 +411,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   //        : QuicPathValidationContext(self_address, peer_address),
   //          alternative_writer_(std::move(writer)) {}
   //
-  //    QuicPacketWriter* WriterToUse() final {
+  //    QuicPacketWriter* WriterToUse() override {
   //         return alternative_writer_.get();
   //    }
   //
@@ -430,7 +430,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   //        : QuicPathValidator::ResultDelegate(), connection_(connection) {}
   //
   //    void OnPathValidationSuccess(
-  //        std::unique_ptr<QuicPathValidationContext> context) final {
+  //        std::unique_ptr<QuicPathValidationContext> context) override {
   //    // Do some work to prepare for migration.
   //    // ...
   //
@@ -447,7 +447,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   //  }
   //
   //    void OnPathValidationFailure(
-  //        std::unique_ptr<QuicPathValidationContext> /*context*/) final {
+  //        std::unique_ptr<QuicPathValidationContext> /*context*/) override {
   //    // Handle validation failure.
   //  }
   //
@@ -749,7 +749,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   // Close connection when receive a frame for a locally-created nonexistent
   // stream.
   // Prerequisite: IsClosedStream(stream_id) == false
-  // Server session might need to final this method to allow server push
+  // Server session might need to override this method to allow server push
   // stream to be promised before creating an active stream.
   _virtua void HandleFrameOnNonexistentOutgoingStream(QuicStreamId stream_id);
 
@@ -917,7 +917,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
 
   // Keep track of highest received byte offset of locally closed streams, while
   // waiting for a definitive final highest offset from the peer.
-  std::map<QuicStreamId, QuicStreamOffset>
+  sfl::small_unordered_flat_map<QuicStreamId, QuicStreamOffset>
       locally_closed_streams_highest_offset_;
 
   QuicConnection* connection_;

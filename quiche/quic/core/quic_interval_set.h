@@ -90,11 +90,10 @@ class QUIC_NO_EXPORT QuicIntervalSet {
   };
 
 //  using Set = absl::btree_set<value_type, IntervalLess>;
-  using Set = sfl::small_flat_set<value_type, 32, IntervalLess>;
-//  using Set = std::set<value_type, IntervalLess, stm::allocator<value_type>>;
-
+  using Set = sfl::small_flat_set<value_type, 16, IntervalLess>;
  public:
   using const_iterator = typename Set::const_iterator;
+  using iterator = typename Set::iterator;
   using const_reverse_iterator = typename Set::const_reverse_iterator;
 
   // Instantiates an empty QuicIntervalSet.
@@ -103,11 +102,23 @@ class QUIC_NO_EXPORT QuicIntervalSet {
   // Instantiates a QuicIntervalSet containing exactly one initial half-open
   // interval [min, max), unless the given interval is empty, in which case the
   // QuicIntervalSet will be empty.
-  explicit QuicIntervalSet(const value_type& interval): intervals_(interval){ }
+
 
   // Instantiates a QuicIntervalSet containing the half-open interval [min,
   // max).
+#if 1
+  explicit QuicIntervalSet(const value_type& interval) : intervals_(interval) { }
   QuicIntervalSet(const T& min, const T& max) : intervals_(value_type(min, max)){ }
+  void AppendBack(const value_type& interval) {
+    intervals_.append(interval);//no check overflow.
+  }
+#else
+  explicit QuicIntervalSet(const value_type& interval) { AppendBack(interval); }
+  QuicIntervalSet(const T& min, const T& max) { AppendBack(value_type(min, max)); }
+  void AppendBack(const value_type& interval) {
+    intervals_.insert(intervals_.end(), interval);
+  }
+#endif
 
   QuicIntervalSet(std::initializer_list<value_type> il) { assign(il); }
 
@@ -121,19 +132,15 @@ class QUIC_NO_EXPORT QuicIntervalSet {
   // QuicIntervalSet, or the empty interval if the set is empty.
   value_type SpanningInterval() const;
 
-  // Adds "interval" to this QuicIntervalSet. Adding the empty interval has no
-  // effect.
-  void Add(const value_type& interval);
-  void AppendBack(const value_type& interval);
   void AddInter(const value_type& interval);
 
   // Adds the interval [min, max) to this QuicIntervalSet. Adding the empty
   // interval has no effect.
   //void Add(const T& min, const T& max) { Add(value_type(min, max)); }
   void AddEmpty(const T& min) {
-      QUICHE_DCHECK(intervals_.empty());
-      intervals_.append(value_type(min, min));
-      //intervals_.insert(intervals_.end(), value_type(min, min));
+    QUICHE_DCHECK(intervals_.empty());
+    intervals_.append(value_type(min, min));
+    //intervals_.insert(intervals_.end(), value_type(min, min));
   }
 
   // Same semantics as Add(const value_type&), but optimized for the case where
@@ -141,19 +148,18 @@ class QUIC_NO_EXPORT QuicIntervalSet {
   void AddOptimizedForAppend(const value_type& interval) {
     if (intervals_.empty()) {// || !GetQuicFlag(quic_interval_set_enable_add_optimization)) {
       intervals_.append(interval);
-      //intervals_.insert(intervals_.end(), interval);
       return;
     }
 
-    auto last_interval = intervals_.rbegin();
+    const auto& l_max = intervals_.rbegin()->max();
 
     // If interval.min() is outside of [last_interval->min, last_interval->max],
     // we can not simply extend last_interval->max.
-    if (interval.min() == last_interval->max()) {
-      const_cast<value_type*>(&(*last_interval))->SetMax(interval.max());
+    if (interval.min() == l_max) {
+      const_cast<T&>(l_max) = interval.max();
     }
-    else if (interval.min() > last_interval->max()) {
-      intervals_.insert(intervals_.end(), interval);
+    else if (interval.min() > l_max) {
+      intervals_.append(interval);
     }
     else {
       AddInter(interval);
@@ -184,8 +190,8 @@ class QUIC_NO_EXPORT QuicIntervalSet {
   // Returns true if some intervals are trimmed.
   bool TrimLessThan(const T& value) {
     // Number of intervals that are fully or partially trimmed.
-    if (intervals_.empty())
-      return false;
+//    if (intervals_.empty())
+//      return false;
 
     if (intervals_.rbegin()->max() <= value) {
       intervals_.clear();
@@ -204,8 +210,7 @@ class QUIC_NO_EXPORT QuicIntervalSet {
       if (first_interval->max() <= value) {
         // a) Trim the entire interval.
         intervals_.erase(first_interval);
-        if (intervals_.empty())
-          break;
+        QUICHE_DCHECK(!intervals_.empty());
         continue;
       }
 
@@ -506,46 +511,20 @@ void QuicIntervalSet<T>::AddInter(const value_type& interval) {
   // be erased, and call erase only once.
   const_iterator start = it;
   while (it != intervals_.end() && !it->Separated(the_union)) {
-    the_union.SpanningUnion(*it);
-    ++it;
-  }
-  intervals_.erase(start, it);
-  intervals_.insert(the_union);
-  QUICHE_DCHECK(Valid());
-}
-
-template <typename T>
-void QuicIntervalSet<T>::AppendBack(const value_type& interval) {
-//  intervals_.append(interval);
-  intervals_.insert(intervals_.end(), interval);
-}
-
-template <typename T>
-void QuicIntervalSet<T>::Add(const value_type& interval) {
-
-  QUICHE_DCHECK(!intervals_.empty() && !interval.Empty());
-#if 1
-  //update last
-  const T& lmax = intervals_.rbegin()->max();
-  if (lmax == interval.min()) {
-    const_cast<T&>(lmax) = interval.max();
-    return;
+    the_union.SpanningUnion(*it++);
   }
 
-  //add to last
-  else if (lmax < interval.min()) {
-    intervals_.insert(intervals_.end(), interval);
-    //intervals_.append(interval);
-    return;
+  if (start + 1 == it) {
+    intervals_.replace(start, the_union);
+  } else if (the_union.max() >= intervals_.rbegin()->max() &&
+             the_union.min() <= intervals_.begin()->min()) {
+    intervals_.clear();
+    intervals_.append(the_union);
+  } else {
+    intervals_.erase(start, it);
+    intervals_.insert(start, the_union);
   }
-
-  //update first empty interval
-  if (intervals_.begin()->Empty() && interval.min() == intervals_.begin()->max())
-    PopFront();
-
-#endif
-
-  AddInter(interval);
+  assert(Valid());
 }
 
 template <typename T>
@@ -905,13 +884,13 @@ void QuicIntervalSet<T>::Difference(const QuicIntervalSet& other) {
     //    -> reduce myinterval
     if (theirs == other.intervals_.end() || myinterval.max() <= theirs->min()) {
       // Keep all of my_interval.
-      result.insert(result.end(), myinterval);
+      result.append(myinterval);
       myinterval.Clear();
     } else if (theirs->max() <= myinterval.min()) {
       ++theirs;
     } else if (myinterval.min() < theirs->min()) {
       // Keep a nonempty prefix of my interval.
-      result.insert(result.end(), value_type(myinterval.min(), theirs->min()));
+      result.append(value_type(myinterval.min(), theirs->min()));
       myinterval.SetMin(theirs->max());
     } else {
       // myinterval starts at or after *theirs, chop down myinterval.

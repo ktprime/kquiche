@@ -75,8 +75,24 @@ void PacketNumberQueue::Add(QuicPacketNumber packet_number) {
   if (false && !packet_number.IsInitialized()) {
     return;
   }
-  packet_number_intervals_.AddOptimizedForAppend(packet_number,
-                                                 packet_number + 1);
+
+  auto& interval_set = packet_number_intervals_;
+  const auto interval = QuicInterval<QuicPacketNumber>(packet_number, packet_number + 1);
+  if (interval_set.Empty()) {
+    interval_set.AppendBack(interval);
+    return;
+  }
+
+  const auto& lmax = interval_set.rbegin()->max();
+  if (packet_number == lmax) {
+    const_cast<QuicPacketNumber&>(lmax) = packet_number + 1;
+  } else if (packet_number > lmax) {
+    interval_set.AppendBack(interval);
+  } else {
+    interval_set.AddInter(interval);
+  }
+
+//  packet_number_intervals_.AddOptimizedForAppend(interval);
 }
 
 void PacketNumberQueue::AddRange(QuicPacketNumber lower,
@@ -89,7 +105,7 @@ void PacketNumberQueue::AddRange(QuicPacketNumber lower,
 }
 
 bool PacketNumberQueue::RemoveUpTo(QuicPacketNumber higher) {
-  if (false && (!higher.IsInitialized() || Empty())) {
+  if (Empty()) {
     return false;
   }
   return packet_number_intervals_.TrimLessThan(higher);

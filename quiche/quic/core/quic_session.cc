@@ -32,7 +32,8 @@
 #include "quiche/common/quiche_text_utils.h"
 
 namespace quic {
-
+constexpr static bool enable_stream_erase_alarm = false;
+constexpr static bool enable_stream_erase_queue = false;
 namespace {
 
 class ClosedStreamsCleanUpDelegate : public QuicAlarm::Delegate {
@@ -235,7 +236,7 @@ void QuicSession::PendingStreamOnStopSendingFrame(
 
 void QuicSession::OnStreamFrame(const QuicStreamFrame& frame) {
   QuicStreamId stream_id = frame.stream_id;
-  if (false && ShouldProcessFrameByPendingStream(STREAM_FRAME, stream_id)) { //TODO hybchanged disable pendingstream
+  if (false && ShouldProcessFrameByPendingStream(STREAM_FRAME, stream_id)) { //TODO2 hybchanged disable pendingstream
     PendingStream* pending = PendingStreamOnStreamFrame(frame);
     if (pending != nullptr && ShouldProcessPendingStreamImmediately()) {
       MaybeProcessPendingStream(pending);
@@ -245,16 +246,24 @@ void QuicSession::OnStreamFrame(const QuicStreamFrame& frame) {
 
   QuicStream* stream = stream_map_.at(stream_id);//TODO2 hybchanged.
   if (!stream) {
+#if 0
     if (stream_id == QuicUtils::GetInvalidStreamId(transport_version())) {
       connection_->CloseConnection(
         QUIC_INVALID_STREAM_ID, "Received data for an invalid stream",
         ConnectionCloseBehavior::SEND_CONNECTION_CLOSE_PACKET);
       return;
     }
+#endif
 
     stream = GetOrCreateStream(stream_id);
-    if (!stream)
+    if (!stream) {
+      if (!IsClosedStream(stream_id)) {
+        connection_->CloseConnection(
+          QUIC_INVALID_STREAM_ID, "Received data for an invalid streamid",
+          ConnectionCloseBehavior::SEND_CONNECTION_CLOSE_PACKET);
+      }
       return;
+    }
     // The stream no longer exists, but we may still be interested in the
     // final stream byte offset sent by the peer. A frame with a FIN can give
     // us this offset.
@@ -474,7 +483,7 @@ void QuicSession::OnConnectionClosed(const QuicConnectionCloseFrame& frame,
     }
     return true;
   });
-
+  if constexpr (enable_stream_erase_alarm)
   closed_streams_clean_up_alarm_->Cancel();
 
   if (visitor_) {
@@ -1015,7 +1024,7 @@ void QuicSession::SendMaxStreams(QuicStreamCount stream_count,
 
 void QuicSession::InsertLocallyClosedStreamsHighestOffset(
     const QuicStreamId id, QuicStreamOffset offset) {
-  locally_closed_streams_highest_offset_[id] = offset;
+  locally_closed_streams_highest_offset_.insert_or_assign(id, offset);
 }
 
 void QuicSession::OnStreamClosed(QuicStreamId stream_id) {
@@ -1034,11 +1043,12 @@ void QuicSession::OnStreamClosed(QuicStreamId stream_id) {
     // The stream needs to be kept alive because it's waiting for acks.
     ++num_zombie_streams_;
   } else {
+    if constexpr (enable_stream_erase_queue)
     closed_streams_.push_back(it->second);
     stream_map_.erase(it);
     // Do not retransmit data of a closed stream.
     streams_with_pending_retransmission_.erase(stream_id);
-    if (!closed_streams_clean_up_alarm_->IsSet()) {
+    if (enable_stream_erase_alarm && !closed_streams_clean_up_alarm_->IsSet()) {
       closed_streams_clean_up_alarm_->Set(
           connection_->clock()->ApproximateNow());
     }
@@ -1845,7 +1855,7 @@ void QuicSession::ActivateStream(QuicStream* stream) {
   QUIC_DVLOG(1) << ENDPOINT << "num_streams: " << stream_map_.size()
                 << ". activating stream " << stream_id;
   QUICHE_DCHECK(!stream_map_.contains(stream_id));
-  stream_map_[stream_id] = stream;
+  stream_map_.insert_or_assign(stream_id, stream);
   if (is_static) {
     ++num_static_streams_;
     return;
@@ -1937,7 +1947,7 @@ QuicStream* QuicSession::GetOrCreateStream(const QuicStreamId stream_id) {
   QUICHE_DCHECK(!pending_stream_map_.count(stream_id));
   auto it = stream_map_.at(stream_id);
   if (it) {
-    return it; /*->IsZombie() ? nullptr : it**/;
+    return it; /*->IsZombie() ? nullptr : it**/; //TODO2
   }
 
   if (QuicUtils::IsCryptoStreamId(transport_version(), stream_id)) {
@@ -2218,10 +2228,11 @@ void QuicSession::MaybeCloseZombieStream(QuicStreamId id) {
     return;
   }
   --num_zombie_streams_;
+  if constexpr (enable_stream_erase_queue)
   closed_streams_.push_back(std::move(it->second));
   stream_map_.erase(it);
 
-  if (!closed_streams_clean_up_alarm_->IsSet()) {
+  if (enable_stream_erase_alarm && !closed_streams_clean_up_alarm_->IsSet()) {
     closed_streams_clean_up_alarm_->Set(connection_->clock()->ApproximateNow());
   }
   // Do not retransmit data of a closed stream.
@@ -2318,7 +2329,7 @@ void QuicSession::OnFrameLost(const QuicFrame& frame) {
                             frame.stream_frame.data_length,
                             frame.stream_frame.fin);
   if (stream->HasPendingRetransmission()) {
-    streams_with_pending_retransmission_.emplace(
+    streams_with_pending_retransmission_.insert_or_assign(
        frame.stream_frame.stream_id, true);
   }
 }

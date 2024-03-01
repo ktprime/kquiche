@@ -108,10 +108,9 @@ void QuicStreamSequencer::OnFrameData(QuicStreamOffset byte_offset,
     return;
   }
 
-
   if (ignore_read_data_) {
     FlushBufferedFrames();
-  } else if (previous_readable_bytes == 0 || level_triggered_) {
+  } else if (previous_readable_bytes == 0 /* || level_triggered_*/) {
     stream_->OnDataAvailable();
   }
 }
@@ -163,8 +162,8 @@ void QuicStreamSequencer::MaybeCloseStream() {
     // receipt of a FIN because the consumer won't.
     stream_->OnFinRead();
   } else {
-    if (buffered_frames_.ReadableBytes())
-    stream_->OnDataAvailable();
+    //if (buffered_frames_.ReadableBytes())
+    //  stream_->OnDataAvailable();
   }
   buffered_frames_.Clear();
 }
@@ -284,21 +283,22 @@ size_t QuicStreamSequencer::NumBytesBuffered() const {
 QuicStreamOffset QuicStreamSequencer::NumBytesConsumed() const {
   return buffered_frames_.BytesConsumed();
 }
-
+#if 0
 bool QuicStreamSequencer::IsAllDataAvailable() const {
   QUICHE_DCHECK_LE(NumBytesConsumed() + NumBytesBuffered(), close_offset_);
-  return NumBytesConsumed() + NumBytesBuffered() >= close_offset_;
+  return buffered_frames_.BytesConsumed() + buffered_frames_.BytesBuffered() >= close_offset_;
 }
+#endif
 
 std::string QuicStreamSequencer::DebugString() const {
   // clang-format off
   return absl::StrCat(
-      "QuicStreamSequencer:  bytes buffered: ", NumBytesBuffered(),
-      "\n  bytes consumed: ", NumBytesConsumed(),
+      "QuicStreamSequencer:  bytes buffered: ", buffered_frames_.BytesBuffered(),
+      "\n  bytes consumed: ", buffered_frames_.BytesConsumed(),
       "\n  first missing byte: ", buffered_frames_.FirstMissingByte(),
       "\n  next expected byte: ", buffered_frames_.NextExpectedByte(),
       "\n  received frames: ", buffered_frames_.ReceivedFramesDebugString(),
-      "\n  has bytes to read: ", HasBytesToRead() ? "true" : "false",
+      "\n  has bytes to read: ", buffered_frames_.HasBytesToRead() ? "true" : "false",
       "\n  frames received: ", num_frames_received(),
       "\n  close offset bytes: ", close_offset_,
       "\n  is closed: ", IsClosed() ? "true" : "false");

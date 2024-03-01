@@ -872,6 +872,9 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
   bool ProcessStreamFrame(QuicDataReader* reader, uint8_t frame_type,
                           QuicStreamFrame* frame);
   bool ProcessAckFrame(QuicDataReader* reader, uint8_t frame_type);
+  bool ProcessAckFrameBlocks(QuicDataReader* reader,
+    size_t num_ack_blocks, uint64_t first_received,
+    uint64_t ack_block_length);
   bool ProcessTimestampsInAckFrame(uint8_t num_received_packets,
                                    QuicPacketNumber largest_acked,
                                    QuicDataReader* reader);

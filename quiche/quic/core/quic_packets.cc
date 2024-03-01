@@ -415,10 +415,11 @@ SerializedPacket::SerializedPacket(QuicPacketNumber packet_number,
       packet_number(packet_number),
       packet_number_length(packet_number_length),
       encryption_level(ENCRYPTION_INITIAL),
-//      has_ack(false),
       transmission_type(NOT_RETRANSMISSION),
-      frame_types(0),
-      fate(SEND_TO_WRITER) {}
+//      has_ack(false),
+      fate(SEND_TO_WRITER),
+      frame_types(0)
+{}
 
 SerializedPacket::SerializedPacket(SerializedPacket&& other) noexcept
      : retransmittable_frames(std::move(other.retransmittable_frames)),
@@ -428,9 +429,9 @@ SerializedPacket::SerializedPacket(SerializedPacket&& other) noexcept
       encryption_level(other.encryption_level),
 //      has_ack(other.has_ack),
       transmission_type(other.transmission_type),
+      fate(other.fate),
       largest_acked(other.largest_acked),
       frame_types(other.frame_types),
-      fate(other.fate),
       peer_address(other.peer_address),
       bytes_not_retransmitted(other.bytes_not_retransmitted) {
     if (!other.nonretransmittable_frames.empty())
