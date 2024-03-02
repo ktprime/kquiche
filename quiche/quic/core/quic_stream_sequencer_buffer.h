@@ -82,7 +82,7 @@ class QUIC_EXPORT_PRIVATE QuicStreamSequencerBuffer {
   // Size of blocks used by this buffer.
   // Choose 8K to make block large enough to hold multiple frames, each of
   // which could be up to 1.5 KB.
-  inline static constexpr uint32_t kBlockSizeBytes = 16 * 1024;  // 8KB
+  inline static constexpr uint32_t kBlockSizeBytes = 8 * 1024;  // 8KB
   inline static constexpr uint32_t kSmallBlocks = 16;
   inline static constexpr uint32_t kEmptyBlocks = 64 * 1024 / kBlockSizeBytes;
 

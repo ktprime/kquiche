@@ -151,15 +151,15 @@ class QUIC_NO_EXPORT QuicIntervalSet {
       return;
     }
 
-    const auto& l_max = intervals_.rbegin()->max();
+    const auto& rmax = intervals_.rbegin()->max();
 
     // If interval.min() is outside of [last_interval->min, last_interval->max],
     // we can not simply extend last_interval->max.
-    if (interval.min() == l_max) {
-      const_cast<T&>(l_max) = interval.max();
+    if (interval.min() == rmax) {
+      const_cast<T&>(rmax) = interval.max();
     }
-    else if (interval.min() > l_max) {
-      intervals_.append(interval);
+    else if (interval.min() > rmax) {
+      AppendBack(interval);
     }
     else {
       AddInter(interval);
@@ -495,8 +495,23 @@ typename QuicIntervalSet<T>::value_type QuicIntervalSet<T>::SpanningInterval()
 
 template <typename T>
 void QuicIntervalSet<T>::AddInter(const value_type& interval) {
+
+  if (intervals_.rbegin()->min() <= interval.max() &&
+      intervals_.begin()->max() >= interval.min()) {
+    //QUICHE_DCHECK(interval.min() >= intervals_.begin()->min());
+    //QUICHE_DCHECK(interval.max() <= intervals_.rbegin()->max());
+    value_type the_union = {
+        std::min(interval.min(), intervals_.begin()->min()),
+        std::max(interval.max(), intervals_.rbegin()->max())
+    };
+    intervals_.clear();
+    intervals_.append(the_union);
+    return ;
+  }
+
   if (intervals_.begin()->Empty() && interval.min() == intervals_.begin()->max())
     PopFront();
+
   const_iterator it = intervals_.lower_bound(interval.min());
   value_type the_union = interval;
   if (it != intervals_.begin()) {
@@ -516,10 +531,6 @@ void QuicIntervalSet<T>::AddInter(const value_type& interval) {
 
   if (start + 1 == it) {
     intervals_.replace(start, the_union);
-  } else if (the_union.max() >= intervals_.rbegin()->max() &&
-             the_union.min() <= intervals_.begin()->min()) {
-    intervals_.clear();
-    intervals_.append(the_union);
   } else {
     intervals_.erase(start, it);
     intervals_.insert(start, the_union);
@@ -821,6 +832,10 @@ bool QuicIntervalSet<T>::Intersects(const QuicIntervalSet& other) const {
 
 template <typename T>
 void QuicIntervalSet<T>::Difference(const value_type& interval) {
+  if (interval == *intervals_.begin()) {
+    intervals_.erase(intervals_.begin());
+    return;
+  }
   if (!SpanningInterval().Intersects(interval)) {
     return;
   }

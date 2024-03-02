@@ -178,21 +178,21 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
 
   const size_t ending_offset = offset + data_length;
   QuicInterval<QuicStreamOffset> off(offset, ending_offset);
-  const auto& lmax = bytes_acked_.rbegin()->max();
+  const auto& rmax = bytes_acked_.rbegin()->max();
 
   *newly_acked_length = data_length;
   stream_bytes_outstanding_ -= data_length;
   if (!pending_retransmissions_.Empty())
     pending_retransmissions_.Difference(off);
 
-  if (offset == lmax) {
+  if (offset == rmax) {
     // Optimization for the normal case.
-    const_cast<size_t&>(lmax) = ending_offset;
+    const_cast<size_t&>(rmax) = ending_offset;
     if (ending_offset >= stream_bytes_start_ + kBlockSizeBytes)
       FreeMemSlices(offset, ending_offset);
     return true;
   }
-  else if (offset > lmax) {
+  else if (offset > rmax) {
     // Optimization for the typical case, hole happend at the end.
     if (bytes_acked_.Size() >= kMaxPacketGap) {
       // This frame is going to create more intervals than allowed. Stop processing.
@@ -238,8 +238,8 @@ void QuicStreamSendBuffer::OnStreamDataLost(QuicStreamOffset offset,
 
   //static int i1 = 0, i2 = 0, i3 = 0;
   QuicInterval<QuicStreamOffset> off(offset, offset + data_length);
-  const auto lmax = bytes_acked_.rbegin()->max();
-  if (offset >= lmax || bytes_acked_.IsDisjoint(off)) {
+  const auto rmax = bytes_acked_.rbegin()->max();
+  if (offset >= rmax || bytes_acked_.IsDisjoint(off)) {
     pending_retransmissions_.AddOptimizedForAppend(off);
     return;
   }
@@ -256,11 +256,13 @@ void QuicStreamSendBuffer::OnStreamDataLost(QuicStreamOffset offset,
 
 void QuicStreamSendBuffer::OnStreamDataRetransmitted(
     QuicStreamOffset offset, QuicByteCount data_length) {
-  if (data_length == 0) {
-    //printf("\trertans %d == %ld ======================\n", (int)data_length, offset);
+  if (pending_retransmissions_.Empty() || data_length == 0)
     return;
-  }
-  pending_retransmissions_.Difference(offset, offset + data_length);
+
+  QuicInterval<QuicStreamOffset> off(offset, offset + data_length);
+  QUICHE_DCHECK (!bytes_acked_.Contains(off));
+
+  pending_retransmissions_.Difference(off);
 }
 
 bool QuicStreamSendBuffer::HasPendingRetransmission() const {

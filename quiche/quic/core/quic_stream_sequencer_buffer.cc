@@ -164,16 +164,16 @@ QuicErrorCode QuicStreamSequencerBuffer::OnStreamData(
 #endif
 
   QuicInterval<QuicStreamOffset> off(starting_offset, ending_offset);
-  const auto& lmax = bytes_received_.rbegin()->max();
+  const auto& rmax = bytes_received_.rbegin()->max();
   num_bytes_buffered_ += size;
 
-  if (starting_offset == lmax) {
+  if (starting_offset == rmax) {
     // Optimization for the normal case, when all data is newly received.
-    const_cast<size_t&>(lmax) = ending_offset;
+    const_cast<size_t&>(rmax) = ending_offset;
     CopyStreamData(starting_offset, data, bytes_buffered, error_details);
     return QUIC_NO_ERROR;
   }
-  else if (starting_offset > lmax) {
+  else if (starting_offset > rmax) {
     // Optimization for the normal case, when all data is newly received.
     bytes_received_.AppendBack(off);
     if (bytes_received_.Size() >= kMaxNumDataIntervalsAllowed) {

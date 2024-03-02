@@ -83,10 +83,10 @@ void PacketNumberQueue::Add(QuicPacketNumber packet_number) {
     return;
   }
 
-  const auto& lmax = interval_set.rbegin()->max();
-  if (packet_number == lmax) {
-    const_cast<QuicPacketNumber&>(lmax) = packet_number + 1;
-  } else if (packet_number > lmax) {
+  const auto& rmax = interval_set.rbegin()->max();
+  if (packet_number == rmax) {
+    const_cast<QuicPacketNumber&>(rmax) = packet_number + 1;
+  } else if (packet_number > rmax) {
     interval_set.AppendBack(interval);
   } else {
     interval_set.AddInter(interval);

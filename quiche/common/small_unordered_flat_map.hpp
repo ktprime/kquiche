@@ -492,7 +492,7 @@ private:
             , end_(first_ + N)
             , zero_(first_ + N)
         {
-            memset((char*)zero_, 0, sizeof(value_type));
+            memset(zero_, 0, sizeof(value_type));
         }
 
         pointer internal_storage() noexcept

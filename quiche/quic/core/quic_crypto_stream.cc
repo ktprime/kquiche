@@ -427,7 +427,7 @@ bool QuicCryptoStream::RetransmitData(QuicCryptoFrame* crypto_frame,
            .send_buffer;
   if (crypto_frame->offset < send_buffer->bytes_acked().rbegin()->max()) {
     for (const auto& v : send_buffer->bytes_acked())
-        retransmission.Difference(v);
+      retransmission.Difference(v);
   }
 
   for (const auto& interval : retransmission) {
