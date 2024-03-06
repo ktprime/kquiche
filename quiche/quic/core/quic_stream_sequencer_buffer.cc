@@ -197,7 +197,7 @@ QuicErrorCode QuicStreamSequencerBuffer::OnStreamData(
   }
 
   // Slow path, received data overlaps with received data.
-  QuicIntervalSet<QuicStreamOffset> newly_received(off);
+  decltype(bytes_received_) newly_received(off);
   newly_received.Difference(bytes_received_);
   QUICHE_DCHECK(!newly_received.Empty());
 

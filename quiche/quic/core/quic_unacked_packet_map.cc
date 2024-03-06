@@ -274,8 +274,8 @@ bool QuicUnackedPacketMap::IsPacketUsefulForRetransmittableData(
 bool QuicUnackedPacketMap::IsPacketUseless(
     QuicPacketNumber packet_number, const QuicTransmissionInfo& info) const {
   return info.in_flight || //IsPacketUsefulForCongestionControl(info) ||
-         IsPacketUsefulForMeasuringRtt(packet_number, info) ||
-         IsPacketUsefulForRetransmittableData(info);
+        IsPacketUsefulForMeasuringRtt(packet_number, info) ||
+        largest_acked_ < info.first_sent_after_loss;//    IsPacketUsefulForRetransmittableData(info);
 }
 
 bool QuicUnackedPacketMap::IsUnacked(QuicPacketNumber packet_number) const {

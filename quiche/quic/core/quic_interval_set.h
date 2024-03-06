@@ -90,7 +90,7 @@ class QUIC_NO_EXPORT QuicIntervalSet {
   };
 
 //  using Set = absl::btree_set<value_type, IntervalLess>;
-  using Set = sfl::small_flat_set<value_type, 16, IntervalLess>;
+  using Set = sfl::small_flat_set<value_type, 6, IntervalLess>;
  public:
   using const_iterator = typename Set::const_iterator;
   using iterator = typename Set::iterator;
@@ -681,7 +681,7 @@ typename QuicIntervalSet<T>::const_iterator QuicIntervalSet<T>::UpperBound(
 template <typename T>
 bool QuicIntervalSet<T>::IsDisjoint(const value_type& interval) const {
 //  if (interval.Empty())    return true;
-#if 1
+#if 0
   auto first = intervals_.begin();
   if (first->Contains(interval) || intervals_.size() == 1)
    return false;

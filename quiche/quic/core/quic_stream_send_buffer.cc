@@ -182,7 +182,8 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
 
   *newly_acked_length = data_length;
   stream_bytes_outstanding_ -= data_length;
-  if (!pending_retransmissions_.Empty())
+  if (!pending_retransmissions_.Empty() &&
+      pending_retransmissions_.SpanningInterval().Intersects(off))
     pending_retransmissions_.Difference(off);
 
   if (offset == rmax) {
@@ -215,7 +216,7 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
   }
 
   // Execute the slow path if newly acked data fill in existing holes.
-  QuicIntervalSet<QuicStreamOffset> newly_acked(off);
+  decltype(bytes_acked_) newly_acked(off);
   newly_acked.Difference(bytes_acked_);
   for (const auto& interval : newly_acked) {
     *newly_acked_length += (interval.max() - interval.min());
@@ -247,7 +248,7 @@ void QuicStreamSendBuffer::OnStreamDataLost(QuicStreamOffset offset,
     return;
   }
 
-  QuicIntervalSet<QuicStreamOffset> bytes_lost(off);
+  decltype(bytes_acked_) bytes_lost(off);
   bytes_lost.Difference(bytes_acked_);
   for (const auto& lost : bytes_lost) {
     pending_retransmissions_.AddOptimizedForAppend(lost.min(), lost.max());
@@ -261,6 +262,11 @@ void QuicStreamSendBuffer::OnStreamDataRetransmitted(
 
   QuicInterval<QuicStreamOffset> off(offset, offset + data_length);
   QUICHE_DCHECK (!bytes_acked_.Contains(off));
+
+  if (*pending_retransmissions_.begin() == off) {
+    pending_retransmissions_.PopFront();
+    return;
+  }
 
   pending_retransmissions_.Difference(off);
 }
@@ -287,7 +293,8 @@ bool QuicStreamSendBuffer::FreeMemSlices(QuicStreamOffset start, QuicStreamOffse
 //  if (end < stream_bytes_start_ + kBlockSizeBytes) return true;
 
   for (int i = 0; i < (int)blocks_.size(); i++) {
-    if (bytes_acked_.Contains(stream_bytes_start_, stream_bytes_start_ + kBlockSizeBytes)) {
+    if (bytes_acked_.begin()->Contains(
+        QuicInterval<QuicStreamOffset>(stream_bytes_start_, stream_bytes_start_ + kBlockSizeBytes))) {
       stream_bytes_start_ += kBlockSizeBytes;
       if (blocks_.size() > kSmallBlocks) {
         delete blocks_[0];

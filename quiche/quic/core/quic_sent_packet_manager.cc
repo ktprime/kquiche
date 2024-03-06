@@ -938,10 +938,11 @@ bool QuicSentPacketManager::MaybeUpdateRTT(QuicPacketNumber largest_acked,
   QuicTime::Delta send_delta = ack_receive_time - transmission_info.sent_time;
   const bool min_rtt_available = !rtt_stats_.min_rtt().IsZero();
   rtt_stats_.UpdateRtt(send_delta, ack_delay_time, ack_receive_time);
-
+#if DCHECK_FLAG
   if (!min_rtt_available && !rtt_stats_.min_rtt().IsZero()) {
     loss_algorithm_->OnMinRttAvailable();
   }
+#endif
 
   return true;
 }
@@ -986,16 +987,20 @@ const QuicTime QuicSentPacketManager::GetRetransmissionTime() const {
       // Arm 1st PTO with earliest in flight sent time, and make sure at
       // least kFirstPtoSrttMultiplier * RTT has been passed since last
       // in flight packet.
-      return //std::max(clock_->ApproximateNow(),
-          std::max(unacked_packets_.GetFirstInFlightTransmissionInfo()->sent_time +
-                        GetProbeTimeoutDelay(NUM_PACKET_NUMBER_SPACES),
-                    unacked_packets_.GetLastInFlightPacketSentTime() +
-                        rtt_stats_.smoothed_rtt() * kFirstPtoSrttMultiplier);
+      if (unacked_packets_.packets_in_flight() <= 2) {
+        return unacked_packets_.GetLastInFlightPacketSentTime()
+            + rtt_stats_.smoothed_rtt() * kFirstPtoSrttMultiplier / 2
+            + rtt_stats_.mean_deviation() * kPtoRttvarMultiplier;
+      }
+
+      QuicTime delay_first = unacked_packets_.GetFirstInFlightTransmissionInfo()->sent_time +
+                    GetProbeTimeoutDelay(NUM_PACKET_NUMBER_SPACES);
+      QuicTime delay_last  = unacked_packets_.GetLastInFlightPacketSentTime() +
+                    rtt_stats_.smoothed_rtt() * kFirstPtoSrttMultiplier / 2;
+      return std::max(delay_first, delay_last);
     }
     // Ensure PTO never gets set to a time in the past.
-    return //std::max(clock_->ApproximateNow(),
-                    unacked_packets_.GetLastInFlightPacketSentTime() +
-                        GetProbeTimeoutDelay(NUM_PACKET_NUMBER_SPACES);
+    return unacked_packets_.GetLastInFlightPacketSentTime() + GetProbeTimeoutDelay(NUM_PACKET_NUMBER_SPACES);
   }
 
   PacketNumberSpace packet_number_space = NUM_PACKET_NUMBER_SPACES;

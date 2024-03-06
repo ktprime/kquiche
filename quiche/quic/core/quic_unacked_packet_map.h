@@ -104,7 +104,7 @@ class QUIC_EXPORT_PRIVATE QuicUnackedPacketMap {
 
   // Returns the sum of bytes from all packets in flight.
   QuicByteCount bytes_in_flight() const { return bytes_in_flight_; }
-  //QuicPacketCount packets_in_flight() const { return packets_in_flight_; }
+  QuicPacketCount packets_in_flight() const { return packets_in_flight_; }
 
   // Returns the smallest packet number of a serialized packet which has not
   // been acked by the peer.  If there are no unacked packets, returns 0.

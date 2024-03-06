@@ -360,12 +360,12 @@ struct QUIC_EXPORT_PRIVATE SerializedPacket {
   // Not owned if |release_encrypted_buffer| is nullptr. Otherwise it is
   // released by |release_encrypted_buffer| on destruction.
   const char* encrypted_buffer;
-  QuicPacketLength encrypted_length;
   std::function<void(const char*)> release_encrypted_buffer;
 
   QuicFrames retransmittable_frames;
   QuicFramesN nonretransmittable_frames;
   //IsHandshake has_crypto_handshake;
+  QuicPacketLength encrypted_length;
   QuicPacketNumber packet_number;
   QuicPacketNumberLength packet_number_length;
   EncryptionLevel encryption_level;
@@ -376,8 +376,8 @@ struct QUIC_EXPORT_PRIVATE SerializedPacket {
   // The largest acked of the AckFrame in this packet if has_ack is true,
   // 0 otherwise.
   SerializedPacketFate fate;
+  uint32_t frame_types;
   QuicPacketNumber largest_acked;
-  size_t frame_types;
   // Indicates whether this packet has a copy of ack frame in
   // nonretransmittable_frames.
 //  bool has_ack_frame_copy;

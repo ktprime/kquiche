@@ -472,7 +472,7 @@ class QUIC_EXPORT_PRIVATE QuicStream
   const QuicStreamSequencer* sequencer() const { return &sequencer_; }
   QuicStreamSequencer* sequencer() { return &sequencer_; }
 
-  const QuicIntervalSet<QuicStreamOffset>& bytes_acked() const;
+  const auto& bytes_acked() const { return send_buffer_.bytes_acked(); }
 
   const QuicStreamSendBuffer& send_buffer() const { return send_buffer_; }
 

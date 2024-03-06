@@ -137,7 +137,7 @@ public:
     return stream_bytes_outstanding_;
   }
 
-  const QuicIntervalSet<QuicStreamOffset>& bytes_acked() const {
+  const auto& bytes_acked() const {
     return bytes_acked_;
   }
 #if 0

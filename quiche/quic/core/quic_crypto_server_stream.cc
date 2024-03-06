@@ -343,7 +343,8 @@ void QuicCryptoServerStream::SetPreviousCachedNetworkParams(
 }
 
 void QuicCryptoServerStream::OnPacketDecrypted(EncryptionLevel level) {
-  if (level == ENCRYPTION_FORWARD_SECURE) {
+  //TODO3
+  if (!one_rtt_packet_decrypted_ && level == ENCRYPTION_FORWARD_SECURE) {
     one_rtt_packet_decrypted_ = true;
     delegate_->NeuterHandshakeData();
   }

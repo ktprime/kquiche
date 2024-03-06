@@ -390,7 +390,7 @@ QuicConnection::QuicConnection(
       last_control_frame_id_(kInvalidControlFrameId),
       is_path_degrading_(false),
       processing_ack_frame_(false),
-      supports_release_time_(false),
+      //supports_release_time_(false),
       release_time_into_future_(QuicTime::Delta::Zero()),
       blackhole_detector_(this, &arena_, alarm_factory_, &context_),
       idle_network_detector_(this, clock_->ApproximateNow(), &arena_,
@@ -722,10 +722,11 @@ void QuicConnection::SetFromConfig(const QuicConfig& config) {
     packet_creator_.SetMaxDatagramFrameSize(
         config.ReceivedMaxDatagramFrameSize());
   }
-
+#if 0 
   supports_release_time_ =
       writer_ != nullptr && writer_->SupportsReleaseTime() &&
       !config.HasClientSentConnectionOption(kNPCO, perspective_);
+#endif
 
   if (supports_release_time_) {
     UpdateReleaseTimeIntoFuture();
@@ -3660,7 +3661,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
   if (in_flight || !retransmission_alarm_->IsSet()) {
     SetRetransmissionAlarm();
   } else if (DCHECK_FLAG)
-    SetPingAlarm(); //TODO2
+    SetPingAlarm(); //TODO3
 #if QUIC_TLS_SESSION
   if (connection_migration_use_new_cid_)
   RetirePeerIssuedConnectionIdsNoLongerOnPath();
@@ -4031,6 +4032,7 @@ void QuicConnection::OnHandshakeComplete() {
       return;
     }
   }
+#endif
   // This may have changed the retransmission timer, so re-arm it.
   SetRetransmissionAlarm();
   if (default_enable_5rto_blackhole_detection_) {
@@ -4061,7 +4063,6 @@ void QuicConnection::OnHandshakeComplete() {
         std::make_unique<ServerPreferredAddressResultDelegate>(this);
     ValidatePath(std::move(context), std::move(result_delegate));
   }
-#endif
 }
 
 void QuicConnection::MaybeCreateMultiPortPath() {
@@ -4783,7 +4784,7 @@ QuicConnection::ScopedPacketFlusher::~ScopedPacketFlusher() {
       if (ack_timeout < ack_alarm->deadline())
         ack_alarm->Update(ack_timeout, kAlarmGranularity);
     }
-#elif 0 //TODO2
+#elif 0 //TODO3
     if (ack_timeout.IsInitialized()) {
       const auto now_time = connection_->clock_->ApproximateNow();
       if (false && ack_timeout <= now_time && !connection_->CanWrite(NO_RETRANSMITTABLE_DATA)) {

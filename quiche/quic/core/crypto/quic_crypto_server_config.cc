@@ -760,7 +760,7 @@ void QuicCryptoServerConfig::ProcessClientHello(
 
   // No need to get a new proof if one was already generated.
   if (!context->signed_config()->chain) {
-    //hybchanged. TODO2 only for gquic ? reduce one more sign
+    //hybchanged. TODO2 only for gquic ? reduce one more signature
     const std::string chlo_hash = version.handshake_protocol == PROTOCOL_QUIC_CRYPTO ? "" :
         CryptoUtils::HashHandshakeMessage(
         context->client_hello(), Perspective::IS_SERVER);

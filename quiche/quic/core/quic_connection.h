@@ -1282,7 +1282,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
       QuicTime::Delta blackhole_delay, QuicTime::Delta path_degrading_delay,
       QuicTime::Delta pto_delay);
 
-  void DisableLivenessTesting() { liveness_testing_disabled_ = true; }
+  //void DisableLivenessTesting() { liveness_testing_disabled_ = true; }
 
   void AddKnownServerAddress(const QuicSocketAddress& address);
 
@@ -2167,7 +2167,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   bool processing_ack_frame_;
 
   // True if the writer supports release timestamp.
-  bool supports_release_time_;
+  constexpr static bool supports_release_time_ = false;
 
   std::unique_ptr<QuicPeerIssuedConnectionIdManager> peer_issued_cid_manager_;
   std::unique_ptr<QuicSelfIssuedConnectionIdManager> self_issued_cid_manager_;
@@ -2284,7 +2284,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   bool send_connection_close_for_invalid_version_ = false;
 
   // If true, disable liveness testing.
-  bool liveness_testing_disabled_ = false;
+  static constexpr bool liveness_testing_disabled_ = false;
 
   QuicPingManager ping_manager_;
 

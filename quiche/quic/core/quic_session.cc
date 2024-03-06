@@ -401,10 +401,9 @@ void QuicSession::OnRstStream(const QuicRstStreamFrame& frame) {
     return;
   }
 
-  //TODO2 hybchanged no need add
   if (stream_map_.count(stream_id) == 0) {
     HandleRstOnValidNonexistentStream(frame);
-    return;  //TODO2 hybchanged no need create rst stream and then close it.
+    return;  //TODO3 hybchanged no need create rst stream and then close it.
   }
 
   QuicStream* stream = GetStream(stream_id);

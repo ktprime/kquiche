@@ -26,8 +26,8 @@ class QUIC_EXPORT_PRIVATE RttStats {
   // Calculates running standard-deviation using Welford's algorithm:
   // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#
   // Welford's_Online_algorithm.
-  struct QUIC_EXPORT_PRIVATE StandardDeviationCaculator {
-    StandardDeviationCaculator() {}
+  struct QUIC_EXPORT_PRIVATE StandardDeviationCalculator {
+    StandardDeviationCalculator() {}
 
     // Called when a new RTT sample is available.
     void OnNewRttSample(QuicTime::Delta rtt_sample,
@@ -102,7 +102,7 @@ class QUIC_EXPORT_PRIVATE RttStats {
   QuicTime last_update_time() const { return last_update_time_; }
 
   void EnableStandardDeviationCalculation() {
-    calculate_standard_deviation_ = true;
+    //calculate_standard_deviation_ = true;
   }
 
   void CloneFrom(const RttStats& stats);
@@ -120,8 +120,8 @@ class QUIC_EXPORT_PRIVATE RttStats {
   QuicTime::Delta mean_deviation_;
   // Standard deviation calculator. Only used calculate_standard_deviation_ is
   // true.
-  StandardDeviationCaculator standard_deviation_calculator_;
-  bool calculate_standard_deviation_;
+  StandardDeviationCalculator standard_deviation_calculator_;
+  constexpr static bool calculate_standard_deviation_ = false;
   QuicTime::Delta initial_rtt_;
   QuicTime last_update_time_;
 };

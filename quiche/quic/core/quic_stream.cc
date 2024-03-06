@@ -869,7 +869,6 @@ void QuicStream::CloseReadSide() {
   QUIC_DVLOG(1) << ENDPOINT << "Done reading from stream " << id();
 
   read_side_closed_ = true;
-
   sequencer_.ReleaseBufferIfEmpty();
 
   if (write_side_closed_) {
@@ -981,13 +980,14 @@ void QuicStream::OnClose() {
 }
 
 void QuicStream::OnWindowUpdateFrame(const QuicWindowUpdateFrame& frame) {
+#if HYB_OPT
   if (type_ == READ_UNIDIRECTIONAL) {
     OnUnrecoverableError(
         QUIC_WINDOW_UPDATE_RECEIVED_ON_READ_UNIDIRECTIONAL_STREAM,
         "WindowUpdateFrame received on READ_UNIDIRECTIONAL stream.");
     return;
   }
-#if HYB_OPT
+
   if (!flow_controller_.has_value()) {
     QUIC_BUG(quic_bug_10586_9)
         << ENDPOINT
@@ -1013,11 +1013,11 @@ bool QuicStream::MaybeIncreaseHighestReceivedOffset(
     return false;
   }
 #endif
+  uint64_t increment =
+      new_offset - flow_controller_->highest_received_byte_offset();
   if (!flow_controller_->UpdateHighestReceivedOffset(new_offset)) {
     return false;
   }
-  uint64_t increment =
-    new_offset - flow_controller_->highest_received_byte_offset();
 
   // If |new_offset| increased the stream flow controller's highest received
   // offset, increase the connection flow controller's value by the incremental
@@ -1193,7 +1193,8 @@ bool QuicStream::RetransmitStreamData(QuicStreamOffset offset,
   }
 
   QuicInterval<QuicStreamOffset> off(offset, offset + data_length);
-  QuicIntervalSet<QuicStreamOffset> retransmission(off);
+  decltype(std::decay_t<decltype(bytes_acked())>()) retransmission(off);
+
 #if 1
   const auto rmax = bytes_acked().rbegin()->max();
   if (offset < rmax && !bytes_acked().IsDisjoint(off))
@@ -1224,9 +1225,6 @@ bool QuicStream::RetransmitStreamData(QuicStreamOffset offset,
 
     OnStreamFrameRetransmitted(retransmission_offset, consumed.bytes_consumed,
                                consumed.fin_consumed);
-    if (consumed.fin_consumed) {
-      fin_lost_ = false;
-    }
     if (can_bundle_fin) {
       retransmit_fin = !consumed.fin_consumed;
     }
@@ -1377,10 +1375,6 @@ uint64_t QuicStream::stream_bytes_written() const {
   return send_buffer_.stream_bytes_written();
 }
 
-const QuicIntervalSet<QuicStreamOffset>& QuicStream::bytes_acked() const {
-  return send_buffer_.bytes_acked();
-}
-
 void QuicStream::OnStreamDataConsumed(QuicByteCount bytes_consumed) {
   send_buffer_.OnStreamDataConsumed(bytes_consumed);
 }
@@ -1415,7 +1409,6 @@ void QuicStream::WritePendingRetransmission() {
                     << ", " << pending.offset + pending.length
                     << ") and fin: " << can_bundle_fin
                     << ", consumed: " << consumed;
-
       OnStreamFrameRetransmitted(pending.offset, consumed.bytes_consumed,
                                  consumed.fin_consumed);
       if (consumed.bytes_consumed < pending.length ||
