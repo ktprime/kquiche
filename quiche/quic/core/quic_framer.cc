@@ -1027,7 +1027,7 @@ size_t QuicFramer::BuildDataPacket(const QuicPacketHeader& header,
         QUIC_BUG(quic_bug_10850_29) << "QUIC_INVALID_FRAME_DATA";
         return 0;
     }
-    if (!add_frame) {
+    if (DCHECK_FLAG && !add_frame) {
       set_detailed_error("add_frame frame failed");
       QUIC_BUG(quic_bug_10850_36)
         << "Append Frame failed: " << frame.type;
@@ -1261,13 +1261,9 @@ std::unique_ptr<QuicEncryptedPacket> QuicFramer::BuildPublicResetPacket(
                                        PACKET_PUBLIC_FLAGS_8BYTE_CONNECTION_ID);
   // This hack makes post-v33 public reset packet look like pre-v33 packets.
   flags |= static_cast<uint8_t>(PACKET_PUBLIC_FLAGS_8BYTE_CONNECTION_ID_OLD);
-  if (!writer.WriteUInt8(flags)) {
-    return nullptr;
-  }
+  writer.WriteUInt8(flags);
 
-  if (!writer.WriteConnectionId(packet.connection_id)) {
-    return nullptr;
-  }
+  writer.WriteConnectionId(packet.connection_id);
 
   if (!writer.WriteBytes(reset_serialized.data(), reset_serialized.length())) {
     return nullptr;
@@ -4043,7 +4039,7 @@ bool QuicFramer::ProcessIetfAckFrame(QuicDataReader* reader,
     // Another one done.
     ack_block_count--;
   }
-
+#if 0
   if (frame_type == IETF_ACK_RECEIVE_TIMESTAMPS) {
     QUICHE_DCHECK(process_timestamps_);
     if (!ProcessIetfTimestampsInAckFrame(ack_frame->largest_acked, reader)) {
@@ -4075,6 +4071,7 @@ bool QuicFramer::ProcessIetfAckFrame(QuicDataReader* reader,
         "Error occurs when visitor finishes processing the ACK frame.");
     return false;
   }
+#endif
 
   return true;
 }

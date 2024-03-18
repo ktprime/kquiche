@@ -36,7 +36,7 @@ const ClientProofSource::CertAndKey* DefaultClientProofSource::GetCertAndKey(
   if (hostname.size() > 1 && !absl::StartsWith(hostname, "*.")) {
     auto dot_pos = hostname.find('.');
     if (dot_pos != std::string::npos) {
-      std::string wildcard = absl::StrCat("*", hostname.substr(dot_pos));
+      std::string wildcard = std::string("*").append(hostname.substr(dot_pos));
       const CertAndKey* const result = LookupExact(wildcard);
       if (result != nullptr) {
         return result;

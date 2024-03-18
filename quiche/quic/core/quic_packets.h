@@ -119,8 +119,8 @@ struct QUIC_EXPORT_PRIVATE QuicPacketHeader {
   // Universal header. All QuicPacket headers will have a connection_id and
   // public flags.
   QuicConnectionId destination_connection_id;
-  QuicConnectionIdIncluded destination_connection_id_included;
   QuicConnectionId source_connection_id;
+  QuicConnectionIdIncluded destination_connection_id_included;
   QuicConnectionIdIncluded source_connection_id_included;
   // This is only used for Google QUIC.
   bool reset_flag;
@@ -133,14 +133,14 @@ struct QUIC_EXPORT_PRIVATE QuicPacketHeader {
   QuicPacketNumberLength packet_number_length;
   uint8_t type_byte;
   ParsedQuicVersion version;
-  // nonce contains an optional, 32-byte nonce value. If not included in the
-  // packet, |nonce| will be empty.
-  DiversificationNonce* nonce;
   QuicPacketNumber packet_number;
   // Format of this header.
   PacketHeaderFormat form;
   // Short packet type is reflected in packet_number_length.
   QuicLongHeaderType long_packet_type;
+  // Length of the length variable length integer field,
+  // carried only by v99 IETF Initial, 0-RTT and Handshake packets.
+  quiche::QuicheVariableLengthIntegerLength length_length;
   // Only valid if |has_possible_stateless_reset_token| is true.
   // Stores last 16 bytes of a this packet, used to check whether this packet is
   // a stateless reset packet on decryption failure.
@@ -150,13 +150,13 @@ struct QUIC_EXPORT_PRIVATE QuicPacketHeader {
   quiche::QuicheVariableLengthIntegerLength retry_token_length_length;
   // Retry token, carried only by v99 IETF Initial packets.
   absl::string_view retry_token;
-  // Length of the length variable length integer field,
-  // carried only by v99 IETF Initial, 0-RTT and Handshake packets.
-  quiche::QuicheVariableLengthIntegerLength length_length;
   // Length of the packet number and payload, carried only by v99 IETF Initial,
   // 0-RTT and Handshake packets. Also includes the length of the
   // diversification nonce in server to client 0-RTT packets.
   QuicByteCount remaining_packet_length;
+  // nonce contains an optional, 32-byte nonce value. If not included in the
+  // packet, |nonce| will be empty.
+  DiversificationNonce* nonce;
 
   bool operator==(const QuicPacketHeader& other) const;
   bool operator!=(const QuicPacketHeader& other) const;

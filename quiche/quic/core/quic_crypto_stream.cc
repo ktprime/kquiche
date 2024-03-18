@@ -204,6 +204,14 @@ bool QuicCryptoStream::OnCryptoFrameAcked(const QuicCryptoFrame& frame,
                          "Trying to ack unsent crypto data.");
     return false;
   }
+
+  //TODO3: hybchanged release send_buffer.
+  QuicStreamSendBuffer* send_buffer =
+      &substreams_[QuicUtils::GetPacketNumberSpace(frame.level)].send_buffer;
+  if (send_buffer->stream_bytes_outstanding() == 0) {
+    send_buffer->ReleaseBuffer();
+  }
+
   return newly_acked_length > 0;
 }
 

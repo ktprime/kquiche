@@ -722,7 +722,7 @@ void QuicConnection::SetFromConfig(const QuicConfig& config) {
     packet_creator_.SetMaxDatagramFrameSize(
         config.ReceivedMaxDatagramFrameSize());
   }
-#if 0 
+#if 0
   supports_release_time_ =
       writer_ != nullptr && writer_->SupportsReleaseTime() &&
       !config.HasClientSentConnectionOption(kNPCO, perspective_);
@@ -4665,7 +4665,7 @@ QuicByteCount QuicConnection::max_packet_length() const {
 
 void QuicConnection::SetMaxPacketLength(QuicByteCount length) {
   long_term_mtu_ = length;
-  stats_.max_egress_mtu = std::max(stats_.max_egress_mtu, long_term_mtu_);
+  stats_.max_egress_mtu = std::max(stats_.max_egress_mtu, (uint32_t)long_term_mtu_);
   packet_creator_.SetMaxPacketLength(GetLimitedMaxPacketSize(length));
 }
 

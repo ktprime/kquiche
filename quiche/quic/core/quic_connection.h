@@ -1945,13 +1945,12 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   QuicAlarmFactory* alarm_factory_;        // Not owned.
   PerPacketOptions* per_packet_options_;   // Not owned.
   QuicPacketWriter* writer_;  // Owned or not depending on |owns_writer_|.
+  const QuicClock* clock_;
+  QuicRandom* random_generator_;
   bool owns_writer_;
   // Encryption level for new packets. Should only be changed via
   // SetDefaultEncryptionLevel().
   EncryptionLevel encryption_level_;
-  const QuicClock* clock_;
-  QuicRandom* random_generator_;
-
   // On the server, the connection ID is set when receiving the first packet.
   // This variable ensures we only set it this way once.
   bool client_connection_id_is_set_;
@@ -1978,9 +1977,6 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // started.
   QuicPacketNumber highest_packet_sent_before_effective_peer_migration_;
 
-  // True if Key Update is supported on this connection.
-  bool support_key_update_for_connection_;
-
   // Tracks the lowest packet sent in the current key phase. Will be
   // uninitialized before the first one-RTT packet has been sent or after a
   // key update but before the first packet has been sent.
@@ -1990,6 +1986,9 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   const char* current_packet_data_;  // UDP payload of packet currently being
                                      // parsed or nullptr.
   bool should_last_packet_instigate_acks_;
+
+  // True if Key Update is supported on this connection.
+  bool support_key_update_for_connection_;
 
   // Track some peer state so we can do less bookkeeping
   // Largest sequence sent by the peer which had an ack frame (latest ack info).
@@ -2031,7 +2030,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   ConnectionCloseBehavior idle_timeout_connection_close_behavior_;
 
   // When > 0, close the QUIC connection after this number of RTOs.
-  size_t num_rtos_for_blackhole_detection_;
+  uint8_t num_rtos_for_blackhole_detection_;
 
   // Statistics for this session.
   QuicConnectionStats stats_;
@@ -2089,10 +2088,6 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // to send packets.
   QuicSentPacketManager sent_packet_manager_;
 
-  // Indicates whether connection version has been negotiated.
-  // Always true for server connections.
-  bool version_negotiated_;
-
   // Tracks if the connection was created by the server or the client.
 #if QUIC_SERVER_SESSION == 0
   static constexpr Perspective perspective_ = Perspective::IS_CLIENT;
@@ -2101,6 +2096,10 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
 #else
   const Perspective perspective_;
 #endif
+
+  // Indicates whether connection version has been negotiated.
+  // Always true for server connections.
+  bool version_negotiated_;
 
   // True by default.  False if we've received or sent an explicit connection
   // close.
@@ -2138,10 +2137,6 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // The size of the largest packet received from peer.
   QuicByteCount largest_received_packet_size_;
 
-  // Indicates whether a write error is encountered currently. This is used to
-  // avoid infinite write errors.
-  bool write_error_occurred_;
-
   // Indicates not to send or process stop waiting frames.
   static constexpr bool no_stop_waiting_frames_ = true;
 
@@ -2153,18 +2148,22 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // from the peer. Default to kMaxConsecutiveNonRetransmittablePackets.
   size_t max_consecutive_num_packets_with_no_retransmittable_frames_;
 
-  // If true, bundle an ack-eliciting frame with an ACK if the PTO alarm have
-  // previously fired.
-  bool bundle_retransmittable_with_pto_ack_;
-
   // Id of latest sent control frame. 0 if no control frame has been sent.
   QuicControlFrameId last_control_frame_id_;
+
+  // If true, bundle an ack-eliciting frame with an ACK if the PTO alarm have
+ // previously fired.
+  bool bundle_retransmittable_with_pto_ack_;
 
   // True if the peer is unreachable on the current path.
   bool is_path_degrading_;
 
   // True if an ack frame is being processed.
   bool processing_ack_frame_;
+
+  // Indicates whether a write error is encountered currently. This is used to
+  // avoid infinite write errors.
+  bool write_error_occurred_;
 
   // True if the writer supports release timestamp.
   constexpr static bool supports_release_time_ = false;
@@ -2223,7 +2222,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // coalescer.
   bool fill_coalesced_packet_ = false;
 
-  size_t anti_amplification_factor_ =
+  uint8_t anti_amplification_factor_ =
       GetQuicFlag(quic_anti_amplification_factor);
 
   // True if AckFrequencyFrame is supported.
@@ -2286,6 +2285,11 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // If true, disable liveness testing.
   static constexpr bool liveness_testing_disabled_ = false;
 
+  // If true, throttle sending if next created packet will exceed amplification
+  // limit.
+  const bool enforce_strict_amplification_factor_ =
+      GetQuicFlag(quic_enforce_strict_amplification_factor);
+
   QuicPingManager ping_manager_;
 
   // Records first serialized 1-RTT packet.
@@ -2300,16 +2304,11 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   RetransmittableOnWireBehavior retransmittable_on_wire_behavior_ = DEFAULT;
 
   // Server addresses that are known to the client.
-  std::vector<QuicSocketAddress> known_server_addresses_;
+  absl::InlinedVector<QuicSocketAddress, 1> known_server_addresses_;
 
   // Stores received server preferred address in transport param. Client side
   // only.
   QuicSocketAddress server_preferred_address_;
-
-  // If true, throttle sending if next created packet will exceed amplification
-  // limit.
-  const bool enforce_strict_amplification_factor_ =
-      GetQuicFlag(quic_enforce_strict_amplification_factor);
 
   ConnectionIdGeneratorInterface& connection_id_generator_;
 };

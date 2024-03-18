@@ -121,7 +121,7 @@ inline constexpr size_t kRetryIntegrityTagLength = 16;
 
 // By default, UnackedPacketsMap allocates buffer of 64 after the first packet
 // is added.
-inline constexpr int kDefaultUnackedPacketsInitialCapacity = 64;
+inline constexpr int kDefaultUnackedPacketsInitialCapacity = 32;
 
 // Signifies that the QuicPacket will contain version of the protocol.
 inline constexpr bool kIncludeVersion = true;

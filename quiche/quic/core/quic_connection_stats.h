@@ -66,8 +66,7 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
 
   // Number of times this connection went through the slow start phase.
   QuicPacketCount slowstart_count = 0;
-  // Number of round trips spent in slow start.
-  uint32_t slowstart_num_rtts = 0;
+
   // Number of packets sent in slow start.
   QuicPacketCount slowstart_packets_sent = 0;
   // Number of bytes sent in slow start.
@@ -79,13 +78,13 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   // Time spent in slow start. Populated for BBRv1 and BBRv2.
   QuicTimeAccumulator slowstart_duration;
 
+  // Number of round trips spent in slow start.
+  uint32_t slowstart_num_rtts = 0;
+
   // Number of PROBE_BW cycles. Populated for BBRv1 and BBRv2.
   uint32_t bbr_num_cycles = 0;
   // Number of PROBE_BW cycles shortened for reno coexistence. BBRv2 only.
   uint32_t bbr_num_short_cycles_for_reno_coexistence = 0;
-  // Whether BBR exited STARTUP due to excessive loss. Populated for BBRv1 and
-  // BBRv2.
-  bool bbr_exit_startup_due_to_loss = false;
 
   uint32_t packets_dropped = 0;  // Duplicate or less than least unacked.
 
@@ -105,19 +104,19 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   int32_t cwnd_bootstrapping_rtt_us = 0;  // RTT used in cwnd_bootstrapping.
   // The connection's |long_term_mtu_| used for sending packets, populated by
   // QuicConnection::GetStats().
-  QuicByteCount egress_mtu = 0;
+  uint32_t egress_mtu = 0;
   // The maximum |long_term_mtu_| the connection ever used.
-  QuicByteCount max_egress_mtu = 0;
+  uint32_t max_egress_mtu = 0;
   // Size of the largest packet received from the peer, populated by
   // QuicConnection::GetStats().
-  QuicByteCount ingress_mtu = 0;
+  uint32_t ingress_mtu = 0;
   QuicBandwidth estimated_bandwidth = QuicBandwidth::Zero();
 
   // Reordering stats for received packets.
   // Number of packets received out of packet number order.
-  uint32_t packets_reordered = 0;
+  uint64_t packets_reordered = 0;
   // Maximum reordering observed in packet number space.
-  QuicByteCount max_sequence_reordering = 0;
+  uint64_t max_sequence_reordering = 0;
   // Maximum reordering observed in microseconds
   int64_t max_time_reordering_us = 0;
 
@@ -149,6 +148,23 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
 
   // Whether a RETRY packet was successfully processed.
   bool retry_packet_processed = false;
+  // Whether BBR exited STARTUP due to excessive loss. Populated for BBRv1 and
+// BBRv2.
+  bool bbr_exit_startup_due_to_loss = false;
+
+  // Whether overshooting is detected (and pacing rate decreases) during start
+// up with network parameters adjusted.
+  bool overshooting_detected_with_network_parameters_adjusted = false;
+
+  // Whether there is any non app-limited bandwidth sample.
+  bool has_non_app_limited_sample = false;
+
+  // True if address is validated via decrypting HANDSHAKE or 1-RTT packet.
+  bool address_validated_via_decrypting_packet = false;
+
+  // True if address is validated via validating token received in INITIAL
+  // packet.
+  bool address_validated_via_token = false;
 
   // Number of received coalesced packets.
   uint32_t num_coalesced_packets_received = 0;
@@ -158,13 +174,6 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   // smaller this value, the more ack aggregation is going on.
   uint32_t num_ack_aggregation_epochs = 0;
 
-  // Whether overshooting is detected (and pacing rate decreases) during start
-  // up with network parameters adjusted.
-  bool overshooting_detected_with_network_parameters_adjusted = false;
-
-  // Whether there is any non app-limited bandwidth sample.
-  bool has_non_app_limited_sample = false;
-
   // Packet number of first decrypted packet.
   QuicPacketNumber first_decrypted_packet;
 
@@ -173,28 +182,22 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
 
   // Number of times when the connection tries to send data but gets throttled
   // by amplification factor.
-  uint32_t num_amplification_throttling = 0;
+  uint16_t num_amplification_throttling = 0;
 
   // Number of key phase updates that have occurred. In the case of a locally
   // initiated key update, this is incremented when the keys are updated, before
   // the peer has acknowledged the key update.
-  uint32_t key_update_count = 0;
+  uint16_t key_update_count = 0;
 
   // Counts the number of undecryptable packets received across all keys. Does
   // not include packets where a decryption key for that level was absent.
-  uint32_t num_failed_authentication_packets_received = 0;
+  uint16_t num_failed_authentication_packets_received = 0;
 
   // Counts the number of QUIC+TLS 0-RTT packets received after 0-RTT decrypter
   // was discarded, only on server connections.
-  uint32_t
+  uint16_t
       num_tls_server_zero_rtt_packets_received_after_discarding_decrypter = 0;
 
-  // True if address is validated via decrypting HANDSHAKE or 1-RTT packet.
-  bool address_validated_via_decrypting_packet = false;
-
-  // True if address is validated via validating token received in INITIAL
-  // packet.
-  bool address_validated_via_token = false;
 
   uint32_t ping_frames_sent = 0;
 

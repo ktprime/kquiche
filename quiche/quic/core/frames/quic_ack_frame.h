@@ -118,9 +118,9 @@ struct QUIC_EXPORT_PRIVATE QuicAckFrame {
   // ECN counters, used only in version 99's ACK frame and valid only when
   // |ecn_counters_populated| is true.
   bool ecn_counters_populated = false;
-  QuicPacketCount ect_0_count = 0;
-  QuicPacketCount ect_1_count = 0;
-  QuicPacketCount ecn_ce_count = 0;
+  uint16_t ect_0_count = 0;
+  uint16_t ect_1_count = 0;
+  uint16_t ecn_ce_count = 0;
 };
 
 // The highest acked packet number we've observed from the peer. If no packets

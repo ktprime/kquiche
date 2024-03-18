@@ -112,6 +112,7 @@ QuicSession::QuicSession(
       is_configured_(false),
       was_zero_rtt_rejected_(false),
       liveness_testing_in_progress_(false) {
+  if constexpr (enable_stream_erase_alarm)
   closed_streams_clean_up_alarm_ =
       absl::WrapUnique<QuicAlarm>(connection_->alarm_factory()->CreateAlarm(
           new ClosedStreamsCleanUpDelegate(this)));

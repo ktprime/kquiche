@@ -96,7 +96,7 @@ void UberLossAlgorithm::SetLossDetectionTuner(
 }
 
 void UberLossAlgorithm::MaybeStartTuning() {
-  if (tuner_started_ || !tuning_configured_ || !min_rtt_available_ ||
+  if (!tuning_configured_ || !min_rtt_available_ || tuner_started_ ||
       !user_agent_known_ || !reorder_happened_) {
     return;
   }

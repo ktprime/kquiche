@@ -161,7 +161,7 @@ public:
   // Called when data within offset [start, end) gets acked. Frees fully
   // acked buffered slices if any. Returns false if the corresponding data does
   // not exist or has been acked.
-  bool FreeMemSlices(QuicStreamOffset start, QuicStreamOffset end);
+  bool FreeMemSlices();
 
   // |current_end_offset_| stores the end offset of the current slice to ensure
   // data isn't being written out of order when using the |interval_deque_|.

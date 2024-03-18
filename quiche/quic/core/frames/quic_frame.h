@@ -133,7 +133,8 @@ static_assert(offsetof(QuicStreamFrame, type) == offsetof(QuicFrame, type),
 #ifndef _DEBUG
 using QuicFrames = absl::InlinedVector<QuicFrame, 2>;
 using QuicFramesN = absl::InlinedVector<QuicFrame, 1>;
-//using QuicFrames = sfl::small_vector<QuicFrame, 3>;
+//using QuicFramesN = std::vector<QuicFrame>;
+//using QuicFrames  = absl::small_vector<QuicFrame, 2>;
 #else
 using QuicFrames  = std::vector<QuicFrame>;
 using QuicFramesN = absl::InlinedVector<QuicFrame, 1>;

@@ -73,7 +73,7 @@ bool QuicDataWriter::WriteConnectionId(QuicConnectionId connection_id) {
     return true;
   }
 
-  //TODO2:only support 64bit connection_id
+  //TODO3:only support 64bit connection_id
   QUICHE_DCHECK(connection_id.length() == sizeof(uint64_t));
   *(uint64_t*)(BeginWrite(connection_id.length())) = *(uint64_t*)(connection_id.data());
   IncreaseLength(connection_id.length());

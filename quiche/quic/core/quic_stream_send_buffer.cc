@@ -190,7 +190,7 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
     // Optimization for the normal case.
     const_cast<size_t&>(rmax) = ending_offset;
     if (ending_offset >= stream_bytes_start_ + kBlockSizeBytes)
-      FreeMemSlices(offset, ending_offset);
+      FreeMemSlices();
     return true;
   }
   else if (offset > rmax) {
@@ -205,7 +205,7 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
   else if (bytes_acked_.IsDisjoint(off)) {
     // Optimization for the typical case, maybe update pending.
     bytes_acked_.AddInter(off);
-    return FreeMemSlices(offset, ending_offset);
+    return FreeMemSlices();
   }
 
   *newly_acked_length = 0;
@@ -289,7 +289,7 @@ StreamPendingRetransmission QuicStreamSendBuffer::NextPendingRetransmission()
   return {0, 0};
 }
 
-bool QuicStreamSendBuffer::FreeMemSlices(QuicStreamOffset start, QuicStreamOffset end) {
+bool QuicStreamSendBuffer::FreeMemSlices() {
 //  if (end < stream_bytes_start_ + kBlockSizeBytes) return true;
 
   for (int i = 0; i < (int)blocks_.size(); i++) {

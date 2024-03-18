@@ -36,9 +36,9 @@ class QUIC_EXPORT_PRIVATE QuicOneBlockArena {
   QuicArenaScopedPtr<T> New(Args&&... args) {
     QUICHE_DCHECK_LT(AlignedSize<T>(), ArenaSize)
         ;//<< "Object is too large for the arena.";
-    static_assert(alignof(T) > 1,
+    static_assert(sizeof(T) >= 16 && sizeof(T) <= 256,
                   "Objects added to the arena must be at least 2B aligned.");
-    if (ABSL_PREDICT_FALSE(offset_ > ArenaSize - AlignedSize<T>())) {
+    if (offset_ > ArenaSize - AlignedSize<T>()) {
       QUIC_BUG(quic_bug_10593_1)
           << "Ran out of space in QuicOneBlockArena at " << this
           << ", max size was " << ArenaSize << ", failing request was "
@@ -70,7 +70,7 @@ class QUIC_EXPORT_PRIVATE QuicOneBlockArena {
 
 // QuicConnections currently use around 1KB of polymorphic types which would
 // ordinarily be on the heap. Instead, store them inline in an arena.
-using QuicConnectionArena = QuicOneBlockArena<1380>;
+using QuicConnectionArena = QuicOneBlockArena<1180>;
 
 }  // namespace quic
 

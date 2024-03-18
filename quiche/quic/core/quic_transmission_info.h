@@ -45,14 +45,14 @@ struct QUIC_EXPORT_PRIVATE QuicTransmissionInfo {
   SentPacketState state;
   // True if the packet contains stream data from the crypto stream.
   bool has_crypto_handshake;
+  // The largest_acked in the ack frame, if the packet contains an ack.
+  QuicPacketNumber largest_acked;
   // True if the packet contains ack frequency frame.
   //bool has_ack_frequency;
   // Records the first sent packet after this packet was detected lost. Zero if
   // this packet has not been detected lost. This is used to keep lost packet
   // for another RTT (for potential spurious loss detection)
   QuicPacketNumber first_sent_after_loss;
-  // The largest_acked in the ack frame, if the packet contains an ack.
-  QuicPacketNumber largest_acked;
 };
 // TODO(ianswett): Add static_assert when size of this struct is reduced below
 // 64 bytes.

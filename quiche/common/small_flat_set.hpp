@@ -1233,8 +1233,8 @@ public:
         SFL_ASSERT(cbegin() <= pos && pos < cend());
 
         if (pos + 1 == data_.last_) {
-            SFL_DTL::destroy_at(data_.ref_to_alloc(), data_.last_ - 1);
-            return --data_.last_;
+            SFL_DTL::destroy_at(data_.ref_to_alloc(), --data_.last_);
+            return data_.last_;
         }
 
         const difference_type offset = std::distance(cbegin(), pos);

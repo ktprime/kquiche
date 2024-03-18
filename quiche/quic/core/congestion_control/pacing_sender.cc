@@ -23,8 +23,8 @@ PacingSender::PacingSender()
       max_pacing_rate_(QuicBandwidth::Zero()),
       burst_tokens_(kInitialUnpacedBurst),
       lumpy_tokens_(0),
-      ideal_next_packet_send_time_(QuicTime::Zero()),
       initial_burst_size_(kInitialUnpacedBurst),
+      ideal_next_packet_send_time_(QuicTime::Zero()),
       alarm_granularity_(kAlarmGranularity),
       pacing_limited_(false) {}
 
@@ -151,7 +151,7 @@ QuicTime::Delta PacingSender::TimeUntilSend(
     }
   }
 
-  //TODO2: move form line 136 to here
+  //TODO3: move form line 136 to here
   if (!sender_->CanSend(bytes_in_flight)) {
     // The underlying sender prevents sending.
     //return QuicTime::Delta::FromSeconds(1);

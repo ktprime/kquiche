@@ -430,8 +430,8 @@ SerializedPacket::SerializedPacket(SerializedPacket&& other) noexcept
 //      has_ack(other.has_ack),
       transmission_type(other.transmission_type),
       fate(other.fate),
-      largest_acked(other.largest_acked),
       frame_types(other.frame_types),
+      largest_acked(other.largest_acked),
       peer_address(other.peer_address),
       bytes_not_retransmitted(other.bytes_not_retransmitted) {
     if (!other.nonretransmittable_frames.empty())
@@ -488,7 +488,7 @@ SerializedPacket* CopySerializedPacket(const SerializedPacket& serialized,
   QUICHE_DCHECK(copy->nonretransmittable_frames.empty());
   for (const auto& frame : serialized.nonretransmittable_frames) {
     if (frame.type == ACK_FRAME) {
-      copy->frame_types |= (1 << ACK_FRAME); //TODO2  (1 << ACK_FRAME_COPY)
+      copy->frame_types |= (1 << ACK_FRAME); //TODO3  (1 << ACK_FRAME_COPY)
     }
     copy->nonretransmittable_frames.push_back(CopyQuicFrame(allocator, frame));
   }

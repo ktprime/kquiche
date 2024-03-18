@@ -33,6 +33,7 @@
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
+#include <cstring>
 
 #define SFL_DTL_BEGIN  namespace dtl { namespace small_unordered_flat_map_dtl {
 #define SFL_DTL_END    } }
@@ -492,7 +493,7 @@ private:
             , end_(first_ + N)
             , zero_(first_ + N)
         {
-            memset(zero_, 0, sizeof(value_type));
+            memset((void*)zero_, 0, sizeof(value_type));
         }
 
         pointer internal_storage() noexcept

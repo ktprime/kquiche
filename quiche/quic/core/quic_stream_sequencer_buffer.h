@@ -232,12 +232,13 @@ class QUIC_EXPORT_PRIVATE QuicStreamSequencerBuffer {
   // Currently received data.
   QuicIntervalSet<QuicStreamOffset> bytes_received_;
 
-  //empty buffer for reuse
-  BufferBlock* empty_blocks[kEmptyBlocks];
   // An ordered, variable-length list of blocks, with the length limited
   // such that the number of blocks never exceeds max_blocks_count_.
   // Each list entry can hold up to kBlockSizeBytes bytes.
   absl::InlinedVector<BufferBlock*, kSmallBlocks> blocks_;
+
+  //empty buffer cache for reuse
+  BufferBlock* empty_blocks[kEmptyBlocks];
 };
 
 }  // namespace quic
