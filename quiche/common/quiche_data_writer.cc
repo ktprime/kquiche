@@ -79,9 +79,7 @@ bool QuicheDataWriter::WriteStringPiece16(absl::string_view val) {
   if (val.size() > std::numeric_limits<uint16_t>::max()) {
     return false;
   }
-  if (!WriteUInt16(static_cast<uint16_t>(val.size()))) {
-    return false;
-  }
+  WriteUInt16(static_cast<uint16_t>(val.size()));
   return WriteBytes(val.data(), val.size());
 }
 
@@ -95,7 +93,7 @@ char* QuicheDataWriter::BeginWrite(size_t length) {
     return nullptr;
   }
 
-  if (false && capacity_ < length + length_) {
+  if (DCHECK_FLAG && capacity_ < length + length_) {
     return nullptr;
   }
 
@@ -120,7 +118,7 @@ bool QuicheDataWriter::WriteBytes(const void* data, size_t data_len) {
 
 bool QuicheDataWriter::WriteRepeatedByte(uint8_t byte, size_t count) {
   char* dest = BeginWrite(count);
-  if (false && !dest) {
+  if (DCHECK_FLAG && !dest) {
     return false;
   }
 

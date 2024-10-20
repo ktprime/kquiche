@@ -21,9 +21,9 @@
 //#include "quiche_platform_impl/quiche_stack_trace_impl.h"
 
 #ifdef _DEBUG
-#define DCHECK_FLAG 1
+  #define DCHECK_FLAG 1
 #else
-#define DCHECK_FLAG 0
+  #define DCHECK_FLAG 0
 #endif // DEBUG
 
 namespace quiche {

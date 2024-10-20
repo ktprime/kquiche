@@ -113,7 +113,9 @@ std::string QuicheIpAddress::ToString() const {
   }
 
   char buffer[INET6_ADDRSTRLEN] = {0};
+#if DCHECK_FLAG
   const char* result =
+#endif
       inet_ntop(AddressFamilyToInt(), address_.bytes, buffer, sizeof(buffer));
   QUICHE_BUG_IF(quiche_bug_10126_4, result == nullptr)
       << "Failed to convert an IP address to string";

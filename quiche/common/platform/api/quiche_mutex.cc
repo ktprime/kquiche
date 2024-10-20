@@ -16,13 +16,13 @@ void QuicheMutex::ReaderUnlock() { /*impl_.ReaderUnlock()*/; }
 
 void QuicheMutex::AssertReaderHeld() const { /*impl_.AssertReaderHeld()*/; }
 
-QuicheReaderMutexLock::QuicheReaderMutexLock(QuicheMutex* lock) : lock_(lock) {
+QuicheReaderMutexLock::QuicheReaderMutexLock(QuicheMutex* lock)/* : lock_(lock) */ {
 //  lock->ReaderLock();
 }
 
 QuicheReaderMutexLock::~QuicheReaderMutexLock() { /*lock_->ReaderUnlock()*/; }
 
-QuicheWriterMutexLock::QuicheWriterMutexLock(QuicheMutex* lock) : lock_(lock) {
+QuicheWriterMutexLock::QuicheWriterMutexLock(QuicheMutex* lock) /* : lock_(lock)**/ {
 //  lock->WriterLock();
 }
 

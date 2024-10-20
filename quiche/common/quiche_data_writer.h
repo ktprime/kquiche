@@ -133,15 +133,15 @@ class QUICHE_EXPORT QuicheDataWriter {
   void IncreaseLength(size_t delta) {
     QUICHE_DCHECK_LE(length_, std::numeric_limits<size_t>::max() - delta);
     QUICHE_DCHECK_LE(length_, capacity_ - delta);
-    length_ += delta;
+    length_ += (uint32_t)delta;
   }
 
  private:
   // TODO(fkastenholz, b/73004262) change buffer_, et al, to be uint8_t, not
   // char.
   char* buffer_;
-  size_t capacity_;  // Allocation size of payload (or -1 if buffer is const).
-  size_t length_;    // Current length of the buffer.
+  uint32_t capacity_;  // Allocation size of payload (or -1 if buffer is const).
+  uint32_t length_;    // Current length of the buffer.
 
   // The endianness to write integers and floating numbers.
   quiche::Endianness endianness_;

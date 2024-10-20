@@ -179,7 +179,7 @@ class QUICHE_EXPORT QuicheDataReader {
   void AdvancePos(size_t amount) {
     QUICHE_DCHECK_LE(pos_, std::numeric_limits<size_t>::max() - amount);
     QUICHE_DCHECK_LE(pos_, len_ - amount);
-    pos_ += amount;
+    pos_ += (uint32_t)amount;
   }
 
   const char* data() const { return data_; }
@@ -203,10 +203,10 @@ class QUICHE_EXPORT QuicheDataReader {
   const char* data_;
 
   // The length of the data buffer that we're reading from.
-  size_t len_;
+  uint32_t len_;
 
   // The location of the next read from our data buffer.
-  size_t pos_;
+  uint32_t pos_;
 
   // The endianness to read integers and floating numbers.
   quiche::Endianness endianness_;

@@ -247,7 +247,6 @@ class StructuredHeaderParser {
   // Parses an Item or Inner List ([RFC8941] 4.2.1.1).
   absl::optional<ParameterizedMember> ReadItemOrInnerList() {
     QUICHE_CHECK_EQ(version_, kFinal);
-    std::vector<Item> member;
     bool member_is_inner_list = (!input_.empty() && input_.front() == '(');
     if (member_is_inner_list) {
       return ReadInnerList();
@@ -833,7 +832,7 @@ const ParameterizedMember& Dictionary::at(absl::string_view key) const {
 bool Dictionary::empty() const { return members_.empty(); }
 std::size_t Dictionary::size() const { return members_.size(); }
 bool Dictionary::contains(absl::string_view key) const {
-  for (auto& member : members_) {
+  for (const auto& member : members_) {
     if (member.first == key) return true;
   }
   return false;

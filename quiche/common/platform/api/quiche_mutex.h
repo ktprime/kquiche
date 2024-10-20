@@ -45,7 +45,7 @@ class QUICHE_LOCKABLE QUICHE_EXPORT QuicheMutex {
   void AssertReaderHeld() const QUICHE_ASSERT_SHARED_LOCK();
 
  private:
-  QuicheLockImpl impl_;
+//  QuicheLockImpl impl_;
 };
 
 // A helper class that acquires the given QuicheMutex shared lock while the
@@ -60,7 +60,7 @@ class QUICHE_SCOPED_LOCKABLE QUICHE_EXPORT QuicheReaderMutexLock {
   ~QuicheReaderMutexLock() QUICHE_UNLOCK_FUNCTION();
 
  private:
-  QuicheMutex* const lock_;
+//  QuicheMutex* const lock_;
 };
 
 // A helper class that acquires the given QuicheMutex exclusive lock while the
@@ -75,7 +75,7 @@ class QUICHE_SCOPED_LOCKABLE QUICHE_EXPORT QuicheWriterMutexLock {
   ~QuicheWriterMutexLock() QUICHE_UNLOCK_FUNCTION();
 
  private:
-  QuicheMutex* const lock_;
+//  QuicheMutex* const lock_;
 };
 
 // A Notification allows threads to receive notification of a single occurrence
