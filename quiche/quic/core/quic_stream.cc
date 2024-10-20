@@ -353,16 +353,16 @@ QuicStream::QuicStream(QuicStreamId id, QuicSession* session,
       rst_sent_(false),
       rst_received_(false),
       stop_sending_sent_(false),
+      stream_contributes_to_connection_flow_control_(true),
+      add_random_padding_after_fin_(false),
       flow_controller_(std::move(flow_controller)),
       connection_flow_controller_(connection_flow_controller),
-      stream_contributes_to_connection_flow_control_(true),
       busy_counter_(0),
-      add_random_padding_after_fin_(false),
       send_buffer_(
           session->connection()->helper()->GetStreamSendBufferAllocator()),
       buffered_data_threshold_(GetQuicFlag(quic_buffered_data_threshold)),
-      is_static_(is_static),
       deadline_(QuicTime::Zero()),
+      is_static_(is_static),
       was_draining_(false),
       type_(VersionHasIetfQuicFrames(session->transport_version()) &&
                     type != CRYPTO
@@ -370,10 +370,10 @@ QuicStream::QuicStream(QuicStreamId id, QuicSession* session,
                                            session->IsIncomingStream(id_),
                                            session->version())
                 : type),
-      creation_time_(session->connection()->clock()->ApproximateNow())
 #if QUIC_SERVER_SESSION == 1
-      ,perspective_(session->perspective())
+      perspective_(session->perspective()),
 #endif
+      creation_time_(session->connection()->clock()->ApproximateNow())
 {
   if (type_ == WRITE_UNIDIRECTIONAL) {
     fin_received_ = true;
@@ -407,7 +407,7 @@ void QuicStream::OnStreamFrame(const QuicStreamFrame& frame) {
 
   QUICHE_DCHECK(!(read_side_closed_ && write_side_closed_));
 
-  if (frame.fin && is_static_) {
+  if (DCHECK_FLAG && frame.fin && is_static_) {
     OnUnrecoverableError(QUIC_INVALID_STREAM_ID,
                          "Attempt to close a static stream");
     return;
@@ -447,7 +447,7 @@ void QuicStream::OnStreamFrame(const QuicStreamFrame& frame) {
   }
 #endif
 
-  if (frame.fin && !fin_received_) {
+  if (DCHECK_FLAG && frame.fin && !fin_received_) {
     fin_received_ = true;
     if (fin_sent_) {
       QUICHE_DCHECK(!was_draining_);
@@ -588,7 +588,7 @@ void QuicStream::OnFinRead() {
   CloseReadSide();
 }
 
-void QuicStream::SetFinSent() {
+void QuicStream::SetFinSent() const {
   QUICHE_DCHECK(!VersionUsesHttp3(transport_version()));
 #ifndef STREAM_NO_FIN
   fin_sent_ = true;
@@ -1138,7 +1138,7 @@ bool QuicStream::OnStreamFrameAcked(QuicStreamOffset offset,
     OnUnrecoverableError(QUIC_INTERNAL_ERROR, "Trying to ack unsent data.");
     return false;
   }
-  if (!fin_sent_ && fin_acked) {
+  if (fin_acked && !fin_sent_) {
     OnUnrecoverableError(QUIC_INTERNAL_ERROR, "Trying to ack unsent fin.");
     return false;
   }
@@ -1195,16 +1195,17 @@ bool QuicStream::RetransmitStreamData(QuicStreamOffset offset,
   QuicInterval<QuicStreamOffset> off(offset, offset + data_length);
   decltype(std::decay_t<decltype(bytes_acked())>()) retransmission(off);
 
+  bool retransmit_fin = fin && fin_outstanding_;
 #if 1
   const auto rmax = bytes_acked().rbegin()->max();
-  if (offset < rmax && !bytes_acked().IsDisjoint(off))
-#endif
+  if (offset < rmax && !bytes_acked().IsDisjoint(off)) {
     retransmission.Difference(bytes_acked());
-
-  bool retransmit_fin = fin && fin_outstanding_;
-  if (retransmission.Empty() && !retransmit_fin) {
-    return true;
+    if (retransmission.Empty() && !retransmit_fin) {
+      return true;
+    }
   }
+#endif
+
   QuicConsumedData consumed(0, false);
   for (const auto& interval : retransmission) {
     QuicStreamOffset retransmission_offset = interval.min();
@@ -1353,8 +1354,8 @@ void QuicStream::WriteBufferedData(EncryptionLevel level) {
   }
   else {
     session_->MarkConnectionLevelWriteBlocked(id());
-    if (consumed_data.bytes_consumed > 0)
-      busy_counter_ = 0;
+    if (busy_counter_)
+      busy_counter_ = consumed_data.bytes_consumed == 0;
   }
 }
 

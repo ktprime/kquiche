@@ -108,7 +108,7 @@ class QUIC_EXPORT_PRIVATE QuicFlowController
   // Should only be called before any data is received.
   void UpdateReceiveWindowSize(QuicStreamOffset size);
 
-  bool auto_tune_receive_window() { return auto_tune_receive_window_; }
+  bool auto_tune_receive_window() const { return auto_tune_receive_window_; }
 
  private:
   friend class test::QuicFlowControllerPeer;
@@ -128,7 +128,7 @@ class QUIC_EXPORT_PRIVATE QuicFlowController
 
   // Returns "stream $ID" (where $ID is set to |id_|) or "connection" based on
   // |is_connection_flow_controller_|.
-  std::string LogLabel();
+  std::string LogLabel() const;
 
   // The parent session/connection, used to send connection close on flow
   // control violation, and WINDOW_UPDATE and BLOCKED frames when appropriate.
@@ -146,6 +146,9 @@ class QUIC_EXPORT_PRIVATE QuicFlowController
 
   // Tracks if this is owned by a server or a client.
   const Perspective perspective_;
+
+  // Used to dynamically enable receive window auto-tuning.
+  bool auto_tune_receive_window_;
 
   // Tracks number of bytes sent to the peer.
   QuicByteCount bytes_sent_;
@@ -192,15 +195,12 @@ class QUIC_EXPORT_PRIVATE QuicFlowController
   // Upper limit on receive_window_size_;
   QuicByteCount receive_window_size_limit_;
 
-  // Used to dynamically enable receive window auto-tuning.
-  bool auto_tune_receive_window_;
-
   // The session's flow controller. Null if this is the session flow controller.
   // Not owned.
   QuicFlowControllerInterface* session_flow_controller_;
 
   // Send window update when receive window size drops below this.
-  QuicByteCount WindowUpdateThreshold();
+  QuicByteCount WindowUpdateThreshold() const;
 
   // Keep track of the last time we sent a BLOCKED frame. We should only send
   // another when the number of bytes we have sent has changed.

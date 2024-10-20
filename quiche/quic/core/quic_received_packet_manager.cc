@@ -45,7 +45,7 @@ QuicReceivedPacketManager::QuicReceivedPacketManager(QuicConnectionStats* stats)
       num_retransmittable_packets_received_since_last_ack_sent_(0),
       min_received_before_ack_decimation_(kMinReceivedBeforeAckDecimation),
       ack_frequency_(kDefaultRetransmittablePacketsBeforeAck),
-      ack_decimation_delay_(1 / kAckDecimationDelay),
+      ack_decimation_delay_(uint8_t(1 / kAckDecimationDelay)),
       unlimited_ack_decimation_(false),
       one_immediate_ack_(false),
       ignore_order_(false),
@@ -61,7 +61,7 @@ QuicReceivedPacketManager::~QuicReceivedPacketManager() {}
 void QuicReceivedPacketManager::SetFromConfig(const QuicConfig& config,
                                               Perspective perspective) {
   if (config.HasClientSentConnectionOption(kAKD3, perspective)) {
-    ack_decimation_delay_ = 1 / kShortAckDecimationDelay;
+    ack_decimation_delay_ = uint8_t(1 / kShortAckDecimationDelay);
   }
   if (config.HasClientSentConnectionOption(kAKDU, perspective)) {
     unlimited_ack_decimation_ = true;
@@ -95,7 +95,7 @@ void QuicReceivedPacketManager::RecordPacketReceived(
     packet_reordered = true;
     ++stats_->packets_reordered;
     stats_->max_sequence_reordering =
-        std::max(stats_->max_sequence_reordering,
+        std::max((uint64_t)stats_->max_sequence_reordering,
                  LargestAcked(ack_frame_) - packet_number);
     int64_t reordering_time_us =
         (receipt_time - time_largest_observed_).ToMicroseconds();
@@ -126,16 +126,20 @@ void QuicReceivedPacketManager::RecordPacketReceived(
 }
 
 bool QuicReceivedPacketManager::IsMissing(QuicPacketNumber packet_number) {
-  return //LargestAcked(ack_frame_).IsInitialized() &&
+  return //LargestAcked(ack_frame_).IsInitialized() && TDODO3.  opt for one check
          packet_number < LargestAcked(ack_frame_) &&
          !ack_frame_.packets.Contains(packet_number);
 }
 
 bool QuicReceivedPacketManager::IsAwaitingPacket(
     QuicPacketNumber packet_number) const {
+#if 0
   return !peer_least_packet_awaiting_ack_.IsInitialized() ||
          !ack_frame_.packets.Contains(packet_number) &&
          packet_number >= peer_least_packet_awaiting_ack_;
+#endif
+  return packet_number >= peer_least_packet_awaiting_ack_ &&
+         !ack_frame_.packets.Contains(packet_number);
 //  quic::IsAwaitingPacket(ack_frame_, packet_number,peer_least_packet_awaiting_ack_);
 }
 
@@ -227,7 +231,7 @@ void QuicReceivedPacketManager::MaybeUpdateAckFrequency(
 #endif
 
   const auto max_decimation_packet_number = PeerFirstSendingPacketNumber() + min_received_before_ack_decimation_;
-  if (last_received_packet_number <= max_decimation_packet_number + 5) {
+  if (last_received_packet_number <= max_decimation_packet_number + 15) {
     if (last_received_packet_number >= max_decimation_packet_number)
     ack_frequency_ = unlimited_ack_decimation_ ?
       std::numeric_limits<size_t>::max(): kMaxRetransmittablePacketsBeforeAck;

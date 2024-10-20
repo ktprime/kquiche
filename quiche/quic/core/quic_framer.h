@@ -311,7 +311,9 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
   // TODO(ianswett): Remove the const once timestamps are negotiated via
   // transport params.
   void set_process_timestamps(bool process_timestamps) const {
+#if QUIC_TLS_SESSION
     process_timestamps_ = process_timestamps;
+#endif
   }
 
   // Sets the max number of receive timestamps to send per ACK frame.
@@ -526,7 +528,7 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
   bool AppendPacketHeader(const QuicPacketHeader& header,
                           QuicDataWriter* writer, size_t* length_field_offset);
   bool AppendIetfHeaderTypeByte(const QuicPacketHeader& header,
-                                QuicDataWriter* writer);
+                                QuicDataWriter* writer) const;
   bool AppendIetfPacketHeader(const QuicPacketHeader& header,
                               QuicDataWriter* writer,
                               size_t* length_field_offset);
@@ -1147,7 +1149,11 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
   // If true, send and process timestamps in the ACK frame.
   // TODO(ianswett): Remove the mutables once set_process_timestamps and
   // set_receive_timestamp_exponent_ aren't const.
+#if QUIC_TLS_SESSION
   mutable bool process_timestamps_;
+#else
+  constexpr static bool process_timestamps_ = false;
+#endif
   // The max number of receive timestamps to send per ACK frame.
   mutable uint32_t max_receive_timestamps_per_ack_;
   // The exponent to use when writing/reading ACK receive timestamps.

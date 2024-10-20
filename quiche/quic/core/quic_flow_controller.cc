@@ -21,7 +21,7 @@ namespace quic {
 #define ENDPOINT \
   (perspective_ == Perspective::IS_SERVER ? "Server: " : "Client: ")
 
-std::string QuicFlowController::LogLabel() {
+std::string QuicFlowController::LogLabel() const {
   if (is_connection_flow_controller_) {
     return "connection";
   }
@@ -39,6 +39,7 @@ QuicFlowController::QuicFlowController(
       id_(id),
       is_connection_flow_controller_(is_connection_flow_controller),
       perspective_(session->perspective()),
+      auto_tune_receive_window_(should_auto_tune_receive_window),
       bytes_sent_(0),
       send_window_offset_(send_window_offset),
       bytes_consumed_(0),
@@ -46,7 +47,6 @@ QuicFlowController::QuicFlowController(
       receive_window_offset_(receive_window_offset),
       receive_window_size_(receive_window_offset),
       receive_window_size_limit_(receive_window_size_limit),
-      auto_tune_receive_window_(should_auto_tune_receive_window),
       session_flow_controller_(session_flow_controller),
       last_blocked_send_window_offset_(0),
       prev_window_update_time_(QuicTime::Zero()) {
@@ -87,7 +87,7 @@ bool QuicFlowController::UpdateHighestReceivedOffset(
 }
 
 void QuicFlowController::AddBytesSent(QuicByteCount bytes_sent) {
-  if (DCHECK_FLAG && bytes_sent_ + bytes_sent > send_window_offset_) {
+  if (bytes_sent_ + bytes_sent > send_window_offset_) {
     QUIC_BUG(quic_bug_10836_1)
         << ENDPOINT << LogLabel() << " Trying to send an extra " << bytes_sent
         << " bytes, when bytes_sent = " << bytes_sent_
@@ -109,6 +109,8 @@ void QuicFlowController::AddBytesSent(QuicByteCount bytes_sent) {
 }
 
 bool QuicFlowController::FlowControlViolation() {
+  return highest_received_byte_offset_ > receive_window_offset_;
+#if 0
   if (highest_received_byte_offset_ > receive_window_offset_) {
     QUIC_DLOG(INFO) << ENDPOINT << "Flow control violation on " << LogLabel()
                     << ", receive window offset: " << receive_window_offset_
@@ -117,6 +119,7 @@ bool QuicFlowController::FlowControlViolation() {
     return true;
   }
   return false;
+#endif
 }
 
 void QuicFlowController::MaybeIncreaseMaxWindowSize() {
@@ -182,8 +185,8 @@ void QuicFlowController::IncreaseWindowSize() {
       std::min(receive_window_size_, receive_window_size_limit_);
 }
 
-QuicByteCount QuicFlowController::WindowUpdateThreshold() {
-  return receive_window_size_ * 3 / 4;
+QuicByteCount QuicFlowController::WindowUpdateThreshold() const {
+  return receive_window_size_ * 2 / 4;
 }
 
 void QuicFlowController::MaybeSendWindowUpdate() {
@@ -232,7 +235,7 @@ void QuicFlowController::UpdateReceiveWindowOffsetAndSendWindowUpdate(
 }
 
 void QuicFlowController::MaybeSendBlocked() {
-  if (SendWindowSize() != 0 ||
+  if (bytes_sent_ <= send_window_offset_ ||
       last_blocked_send_window_offset_ >= send_window_offset_) {
     return;
   }
@@ -279,13 +282,11 @@ void QuicFlowController::EnsureWindowAtLeast(QuicByteCount window_size) {
   UpdateReceiveWindowOffsetAndSendWindowUpdate(available_window);
 }
 
-bool QuicFlowController::IsBlocked() const { return bytes_sent_ >= send_window_offset_; }
+bool QuicFlowController::IsBlocked() const { return bytes_sent_ > send_window_offset_; }
 
 uint64_t QuicFlowController::SendWindowSize() const {
-  if (bytes_sent_ > send_window_offset_) {
-    return 0;
-  }
-  return send_window_offset_ - bytes_sent_;
+  return (bytes_sent_ > send_window_offset_) ?
+          0 : send_window_offset_ - bytes_sent_;
 }
 
 void QuicFlowController::UpdateReceiveWindowSize(QuicStreamOffset size) {

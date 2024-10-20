@@ -105,11 +105,11 @@ class QUIC_EXPORT_PRIVATE QuicSession
 
   // Does not take ownership of |connection| or |visitor|.
   QuicSession(QuicConnection* connection, Visitor* owner,
-              const QuicConfig& config,
+              QuicConfig& config,
               const ParsedQuicVersionVector& supported_versions,
               QuicStreamCount num_expected_unidirectional_static_streams);
   QuicSession(QuicConnection* connection, Visitor* owner,
-              const QuicConfig& config,
+              QuicConfig& config,
               const ParsedQuicVersionVector& supported_versions,
               QuicStreamCount num_expected_unidirectional_static_streams,
               std::unique_ptr<QuicDatagramQueue::Observer> datagram_observer);
@@ -199,6 +199,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   bool IsFrameOutstanding(const QuicFrame& frame) const final;
   bool HasUnackedCryptoData() const final;
   bool HasUnackedStreamData() const final;
+  bool HasLostStreamData() const final;
 
   void SendMaxStreams(QuicStreamCount stream_count,
                       bool unidirectional) final;
@@ -318,10 +319,10 @@ class QUIC_EXPORT_PRIVATE QuicSession
 
   // Implement StreamDelegateInterface.
   void OnStreamError(QuicErrorCode error_code,
-                     std::string error_details) final;
+                     const std::string& error_details) final;
   void OnStreamError(QuicErrorCode error_code,
                      QuicIetfTransportErrorCodes ietf_error,
-                     std::string error_details) final;
+                     const std::string& error_details) final;
   // Sets priority in the write blocked list.
   void RegisterStreamPriority(QuicStreamId id, bool is_static,
                               const QuicStreamPriority& priority) final;
@@ -571,7 +572,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
 
   // Called when the ALPN of the connection is established for a connection that
   // uses TLS handshake.
-  _virtua void OnAlpnSelected(absl::string_view alpn);
+  _virtua void OnAlpnSelected(absl::string_view alpn) const;
 
   // Called on clients by the crypto handshaker to provide application state
   // necessary for sending application data in 0-RTT. The state provided here is
@@ -884,6 +885,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   // Let streams and control frame managers retransmit lost data, returns true
   // if all lost data is retransmitted. Returns false otherwise.
   bool RetransmitLostData();
+  bool RetransmitCryptoData();
 
   // Returns true if stream data should be written.
   bool CanWriteStreamData() const;
@@ -922,6 +924,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
 
   QuicConnection* connection_;
 
+  QuicConfig& config_;
   // Store perspective on QuicSession during the constructor as it may be needed
   // during our destructor when connection_ may have already been destroyed.
 #if QUIC_SERVER_SESSION == 0
@@ -941,8 +944,6 @@ class QUIC_EXPORT_PRIVATE QuicSession
   QuicWriteBlockedList write_blocked_streams_;
 
   ClosedStreams closed_streams_;
-
-  QuicConfig config_;
 
   // Map from StreamId to pointers to streams. Owns the streams.
   StreamMap stream_map_;

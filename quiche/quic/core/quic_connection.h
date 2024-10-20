@@ -1033,9 +1033,9 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // Returns the id of the cipher last used for decrypting packets.
   uint32_t cipher_id() const;
 
-  std::vector<std::unique_ptr<QuicEncryptedPacket>>* termination_packets() {
-    return termination_packets_.get();
-  }
+//  std::vector<std::unique_ptr<QuicEncryptedPacket>>* termination_packets() {
+//    return termination_packets_.get();
+//  }
 
   bool ack_frame_updated() const;
 
@@ -1712,7 +1712,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   bool ValidateReceivedPacketNumber(QuicPacketNumber packet_number);
 
   // Consider receiving crypto frame on non crypto stream as memory corruption.
-  bool MaybeConsiderAsMemoryCorruption(const QuicStreamFrame& frame);
+  bool MaybeConsiderAsMemoryCorruption(const QuicStreamFrame& frame) const;
 
   // Check if the connection has no outstanding data to send and notify
   // congestion controller if it is the case.
@@ -1969,10 +1969,6 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // |sent_packet_manager_| instead of in this object.
   PathState default_path_;
 
-  // Records change type when the effective peer initiates migration to a new
-  // address. Reset to NO_CHANGE after effective peer migration is validated.
-  AddressChangeType active_effective_peer_migration_type_;
-
   // Records highest sent packet number when effective peer migration is
   // started.
   QuicPacketNumber highest_packet_sent_before_effective_peer_migration_;
@@ -1985,6 +1981,11 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // TODO(rch): remove this when b/27221014 is fixed.
   const char* current_packet_data_;  // UDP payload of packet currently being
                                      // parsed or nullptr.
+
+  // Records change type when the effective peer initiates migration to a new
+  // address. Reset to NO_CHANGE after effective peer migration is validated.
+  AddressChangeType active_effective_peer_migration_type_;
+
   bool should_last_packet_instigate_acks_;
 
   // True if Key Update is supported on this connection.
@@ -2021,8 +2022,8 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   QuicPacketCount max_tracked_packets_;
 
   // Contains the connection close packets if the connection has been closed.
-  std::unique_ptr<std::vector<std::unique_ptr<QuicEncryptedPacket>>>
-      termination_packets_;
+  //std::unique_ptr<std::vector<std::unique_ptr<QuicEncryptedPacket>>>
+  //    termination_packets_;
 
   // Determines whether or not a connection close packet is sent to the peer
   // after idle timeout due to lack of network activity. During the handshake,
@@ -2088,6 +2089,10 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // to send packets.
   QuicSentPacketManager sent_packet_manager_;
 
+  // Indicates whether connection version has been negotiated.
+  // Always true for server connections.
+  bool version_negotiated_;
+
   // Tracks if the connection was created by the server or the client.
 #if QUIC_SERVER_SESSION == 0
   static constexpr Perspective perspective_ = Perspective::IS_CLIENT;
@@ -2097,10 +2102,6 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   const Perspective perspective_;
 #endif
 
-  // Indicates whether connection version has been negotiated.
-  // Always true for server connections.
-  bool version_negotiated_;
-
   // True by default.  False if we've received or sent an explicit connection
   // close.
   bool connected_;
@@ -2109,12 +2110,8 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // the peer, even if the peer supports it.
   bool can_truncate_connection_ids_;
 
-  // If non-empty this contains the set of versions received in a
-  // version negotiation packet.
-  ParsedQuicVersionVector server_supported_versions_;
-
   // The number of MTU probes already sent.
-  size_t mtu_probe_count_;
+  uint32_t mtu_probe_count_;
 
   // The value of |long_term_mtu_| prior to the last successful MTU increase.
   // 0 means either
@@ -2136,6 +2133,10 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
 
   // The size of the largest packet received from peer.
   QuicByteCount largest_received_packet_size_;
+
+  // If non-empty this contains the set of versions received in a
+  // version negotiation packet.
+  ParsedQuicVersionVector server_supported_versions_;
 
   // Indicates not to send or process stop waiting frames.
   static constexpr bool no_stop_waiting_frames_ = true;
@@ -2205,8 +2206,9 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // Used to coalesce packets of different encryption level into the same UDP
   // datagram. Connection stops trying to coalesce packets if a forward secure
   // packet gets acknowledged.
+#if QUIC_TLS_SESSION
   QuicCoalescedPacket coalesced_packet_;
-
+#endif
   QuicConnectionMtuDiscoverer mtu_discoverer_;
 
   QuicNetworkBlackholeDetector blackhole_detector_;
@@ -2287,8 +2289,8 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
 
   // If true, throttle sending if next created packet will exceed amplification
   // limit.
-  const bool enforce_strict_amplification_factor_ =
-      GetQuicFlag(quic_enforce_strict_amplification_factor);
+  static constexpr bool enforce_strict_amplification_factor_ = true;
+//      GetQuicFlag(quic_enforce_strict_amplification_factor);
 
   QuicPingManager ping_manager_;
 

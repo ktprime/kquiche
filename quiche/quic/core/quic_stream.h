@@ -98,7 +98,7 @@ class QUIC_EXPORT_PRIVATE PendingStream
   }
 
   // Returns the number of bytes read on this stream.
-  uint64_t stream_bytes_read() { return stream_bytes_read_; }
+  uint64_t stream_bytes_read() const { return stream_bytes_read_; }
 
   const QuicStreamSequencer* sequencer() const { return &sequencer_; }
 
@@ -440,7 +440,7 @@ class QUIC_EXPORT_PRIVATE QuicStream
 
   // Called to set fin_sent_. This is only used by Google QUIC while body is
   // empty.
-  void SetFinSent();
+  void SetFinSent() const;
 
   // Send STOP_SENDING if it hasn't been sent yet.
   void MaybeSendStopSending(QuicResetStreamError error);
@@ -574,23 +574,23 @@ class QUIC_EXPORT_PRIVATE QuicStream
   // True if the stream has sent STOP_SENDING to the session.
   bool stop_sending_sent_;
 
-  absl::optional<QuicFlowController> flow_controller_;
-
-  // The connection level flow controller. Not owned.
-  QuicFlowController* connection_flow_controller_;
-
   // Special streams, such as the crypto and headers streams, do not respect
   // connection level flow control limits (but are stream level flow control
   // limited).
   bool stream_contributes_to_connection_flow_control_;
 
-  // A counter incremented when OnCanWrite() is called and no progress is made.
-  // For debugging only.
-  size_t busy_counter_;
-
   // Indicates whether paddings will be added after the fin is consumed for this
   // stream.
   bool add_random_padding_after_fin_;
+
+  absl::optional<QuicFlowController> flow_controller_;
+
+  // The connection level flow controller. Not owned.
+  QuicFlowController* connection_flow_controller_;
+
+  // A counter incremented when OnCanWrite() is called and no progress is made.
+  // For debugging only.
+  size_t busy_counter_;
 
   // Send buffer of this stream. Send buffer is cleaned up when data gets acked
   // or discarded.
@@ -599,22 +599,18 @@ class QUIC_EXPORT_PRIVATE QuicStream
   // Latched value of quic_buffered_data_threshold.
   const QuicByteCount buffered_data_threshold_;
 
-  // If true, then this stream has precedence over other streams for write
-  // scheduling.
-  const bool is_static_;
-
   // If initialized, reset this stream at this deadline.
   QuicTime deadline_;
 
+  // If true, then this stream has precedence over other streams for write
+// scheduling.
+  const bool is_static_;
+
   // True if this stream has entered draining state.
   bool was_draining_;
-
   // Indicates whether this stream is bidirectional, read unidirectional or
-  // write unidirectional.
+// write unidirectional.
   const StreamType type_;
-
-  // Creation time of this stream, as reported by the QuicClock.
-  const QuicTime creation_time_;
 
 #if QUIC_SERVER_SESSION == 0
   static constexpr Perspective perspective_ = Perspective::IS_CLIENT;
@@ -623,6 +619,9 @@ class QUIC_EXPORT_PRIVATE QuicStream
 #else
   const Perspective perspective_;
 #endif
+
+  // Creation time of this stream, as reported by the QuicClock.
+  const QuicTime creation_time_;
 };
 
 }  // namespace quic

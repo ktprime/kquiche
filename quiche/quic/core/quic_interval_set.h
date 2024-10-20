@@ -90,7 +90,7 @@ class QUIC_NO_EXPORT QuicIntervalSet {
   };
 
 //  using Set = absl::btree_set<value_type, IntervalLess>;
-  using Set = sfl::small_flat_set<value_type, 6, IntervalLess>;
+  using Set = sfl::small_flat_set<value_type, 4, IntervalLess>;
  public:
   using const_iterator = typename Set::const_iterator;
   using iterator = typename Set::iterator;
@@ -495,7 +495,7 @@ typename QuicIntervalSet<T>::value_type QuicIntervalSet<T>::SpanningInterval()
 
 template <typename T>
 void QuicIntervalSet<T>::AddInter(const value_type& interval) {
-
+  //fill the medium hole as whole
   if (intervals_.rbegin()->min() <= interval.max() &&
       intervals_.begin()->max() >= interval.min()) {
     //QUICHE_DCHECK(interval.min() >= intervals_.begin()->min());
@@ -681,7 +681,7 @@ typename QuicIntervalSet<T>::const_iterator QuicIntervalSet<T>::UpperBound(
 template <typename T>
 bool QuicIntervalSet<T>::IsDisjoint(const value_type& interval) const {
 //  if (interval.Empty())    return true;
-#if 0
+#if 1
   auto first = intervals_.begin();
   if (first->Contains(interval) || intervals_.size() == 1)
    return false;
@@ -690,7 +690,8 @@ bool QuicIntervalSet<T>::IsDisjoint(const value_type& interval) const {
   if (interval.max() <= next->min() && first->max() <= interval.min())
     return true;
 
-  if (intervals_.size() > 2) {
+  //if (intervals_.size() > 2)
+  {
     auto prev = ++intervals_.rbegin();
     if (prev->max() <= interval.min() && interval.max() <= intervals_.rbegin()->min())
       return true;

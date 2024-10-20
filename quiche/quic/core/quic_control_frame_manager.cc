@@ -91,25 +91,31 @@ void QuicControlFrameManager::WriteOrBufferBlocked(
 
 void QuicControlFrameManager::WriteOrBufferStreamsBlocked(QuicStreamCount count,
                                                           bool unidirectional) {
+#if QUIC_TLS_SESSION
   QUIC_DVLOG(1) << "Writing STREAMS_BLOCKED Frame";
   QUIC_CODE_COUNT(quic_streams_blocked_transmits);
   WriteOrBufferQuicFrame(QuicFrame(QuicStreamsBlockedFrame(
       ++last_control_frame_id_, count, unidirectional)));
+#endif
 }
 
 void QuicControlFrameManager::WriteOrBufferMaxStreams(QuicStreamCount count,
                                                       bool unidirectional) {
+#if QUIC_TLS_SESSION
   QUIC_DVLOG(1) << "Writing MAX_STREAMS Frame";
   QUIC_CODE_COUNT(quic_max_streams_transmits);
   WriteOrBufferQuicFrame(QuicFrame(
       QuicMaxStreamsFrame(++last_control_frame_id_, count, unidirectional)));
+#endif
 }
 
 void QuicControlFrameManager::WriteOrBufferStopSending(
     QuicResetStreamError error, QuicStreamId stream_id) {
+#if QUIC_TLS_SESSION
   QUIC_DVLOG(1) << "Writing STOP_SENDING_FRAME";
   WriteOrBufferQuicFrame(QuicFrame(
       QuicStopSendingFrame(++last_control_frame_id_, stream_id, error)));
+#endif
 }
 
 void QuicControlFrameManager::WriteOrBufferHandshakeDone() {
@@ -120,6 +126,7 @@ void QuicControlFrameManager::WriteOrBufferHandshakeDone() {
 
 void QuicControlFrameManager::WriteOrBufferAckFrequency(
     const QuicAckFrequencyFrame& ack_frequency_frame) {
+#if QUIC_TLS_SESSION
   QUIC_DVLOG(1) << "Writing ACK_FREQUENCY frame";
   QuicControlFrameId control_frame_id = ++last_control_frame_id_;
   // Using the control_frame_id for sequence_number here leaves gaps in
@@ -129,34 +136,41 @@ void QuicControlFrameManager::WriteOrBufferAckFrequency(
                                           /*sequence_number=*/control_frame_id,
                                           ack_frequency_frame.packet_tolerance,
                                           ack_frequency_frame.max_ack_delay)));
+#endif
 }
 
 void QuicControlFrameManager::WriteOrBufferNewConnectionId(
     const QuicConnectionId& connection_id, uint64_t sequence_number,
     uint64_t retire_prior_to,
     const StatelessResetToken& stateless_reset_token) {
+#if QUIC_TLS_SESSION
   QUIC_DVLOG(1) << "Writing NEW_CONNECTION_ID frame";
   WriteOrBufferQuicFrame(QuicFrame(new QuicNewConnectionIdFrame(
       ++last_control_frame_id_, connection_id, sequence_number,
       stateless_reset_token, retire_prior_to)));
+#endif
 }
 
 void QuicControlFrameManager::WriteOrBufferRetireConnectionId(
     uint64_t sequence_number) {
+#if QUIC_TLS_SESSION
   QUIC_DVLOG(1) << "Writing RETIRE_CONNECTION_ID frame";
   WriteOrBufferQuicFrame(QuicFrame(new QuicRetireConnectionIdFrame(
       ++last_control_frame_id_, sequence_number)));
+#endif
 }
 
 void QuicControlFrameManager::WriteOrBufferNewToken(absl::string_view token) {
+#if QUIC_TLS_SESSION
   QUIC_DVLOG(1) << "Writing NEW_TOKEN frame";
   WriteOrBufferQuicFrame(
       QuicFrame(new QuicNewTokenFrame(++last_control_frame_id_, token)));
+#endif
 }
 
 void QuicControlFrameManager::OnControlFrameSent(const QuicFrame& frame) {
   QuicControlFrameId id = GetControlFrameId(frame);
-  if (id == kInvalidControlFrameId) {
+  if (DCHECK_FLAG && id == kInvalidControlFrameId) {
     QUIC_BUG(quic_bug_12727_1)
         << "Send or retransmit a control frame with invalid control frame id";
     return;
@@ -205,7 +219,7 @@ bool QuicControlFrameManager::OnControlFrameAcked(const QuicFrame& frame) {
 
 void QuicControlFrameManager::OnControlFrameLost(const QuicFrame& frame) {
   QuicControlFrameId id = GetControlFrameId(frame);
-  if (id == kInvalidControlFrameId) {
+  if (DCHECK_FLAG && id == kInvalidControlFrameId) {
     // Frame does not have a valid control frame ID, ignore it.
     return;
   }
@@ -262,7 +276,7 @@ void QuicControlFrameManager::OnCanWrite() {
   if (HasPendingRetransmission()) {
     // Exit early to allow streams to write pending retransmissions if any.
     WritePendingRetransmission();
-    return;
+    //return;
   }
   WriteBufferedFrames();
 }
@@ -326,10 +340,11 @@ void QuicControlFrameManager::WritePendingRetransmission() {
 }
 
 bool QuicControlFrameManager::OnControlFrameIdAcked(QuicControlFrameId id) {
-  if (id == kInvalidControlFrameId) {
+  if (id - least_unacked_ >= control_frames_.size()) {
     // Frame does not have a valid control frame ID, ignore it.
     return false;
   }
+#if 0
   if (id >= least_unsent_) {
     QUIC_BUG(quic_bug_10517_4) << "Try to ack unsent control frame";
     delegate_->OnControlFrameManagerError(QUIC_INTERNAL_ERROR,
@@ -342,16 +357,18 @@ bool QuicControlFrameManager::OnControlFrameIdAcked(QuicControlFrameId id) {
     // This frame has already been acked.
     return false;
   }
+#endif
 
   // Set control frame ID of acked frames to 0.
   SetControlFrameId(kInvalidControlFrameId,
-                    &control_frames_.at(id - least_unacked_));
+                    &control_frames_[id - least_unacked_]);
   // Remove acked control frames from pending retransmissions.
   if (!pending_retransmissions_.empty())
   pending_retransmissions_.erase(id);
   // Clean up control frames queue and increment least_unacked_.
   while (!control_frames_.empty() &&
          GetControlFrameId(control_frames_.front()) == kInvalidControlFrameId) {
+    if (control_frames_.front().type != WINDOW_UPDATE_FRAME)
     DeleteFrame(&control_frames_.front());
     control_frames_.erase(control_frames_.begin());
     ++least_unacked_;

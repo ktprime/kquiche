@@ -87,12 +87,13 @@ void QuicIdleNetworkDetector::OnPacketSent(QuicTime now,
     MaybeSetAlarmOnSentPacket(pto_delay);
     return;
   }
-  if (false && !alarm_->IsSet()) //TODO3 hybchanged
+  if (false && !alarm_->IsSet()) //TODO3 hybchanged. follow is set if receive packet.
   SetAlarm();
 }
 
 void QuicIdleNetworkDetector::OnPacketReceived(QuicTime now) {
-  QUICHE_DCHECK(time_of_last_received_packet_ <= now);
+  //QUICHE_DCHECK(time_of_last_received_packet_ <= now);
+  if(time_of_last_received_packet_ < now)
   time_of_last_received_packet_ = now;
   SetAlarm();
 }

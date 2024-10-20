@@ -135,7 +135,7 @@ class QUIC_EXPORT_PRIVATE QuicControlFrameManager {
   // sent.
   bool WillingToWrite() const;
 
- private:
+
   friend class test::QuicControlFrameManagerPeer;
 
   // Tries to write buffered control frames to the peer.
@@ -146,7 +146,7 @@ class QUIC_EXPORT_PRIVATE QuicControlFrameManager {
 
   // Writes pending retransmissions if any.
   void WritePendingRetransmission();
-
+ private:
   // Called when frame with |id| gets acked. Returns true if |id| gets acked for
   // the first time, return false otherwise.
   bool OnControlFrameIdAcked(QuicControlFrameId id);

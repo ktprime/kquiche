@@ -253,10 +253,11 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   QuicBandwidth BandwidthEstimate() const {
     return send_algorithm_->BandwidthEstimate();
   }
-
+#if DCHECK_FLAG
   const QuicSustainedBandwidthRecorder* SustainedBandwidthRecorder() const {
     return &sustained_bandwidth_recorder_;
   }
+#endif
 
   // Returns the size of the current congestion window in number of
   // kDefaultTCPMSS-sized segments. Note, this is not the *available* window.
@@ -454,10 +455,9 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   }
 
   bool handshake_mode_disabled() const { return handshake_mode_disabled_; }
-
-  bool zero_rtt_packet_acked() const { return zero_rtt_packet_acked_; }
-
-  bool one_rtt_packet_acked() const { return one_rtt_packet_acked_; }
+  bool zero_rtt_packet_acked() const {  return rtt_packet_state_  & (1 << ENCRYPTION_ZERO_RTT); }
+  bool one_rtt_packet_acked() const {  return rtt_packet_state_  & (1 << ENCRYPTION_FORWARD_SECURE); }
+  bool handshake_packet_acked() const { return rtt_packet_state_ & (1 << ENCRYPTION_HANDSHAKE); }
 
   void OnUserAgentIdKnown() { loss_algorithm_->OnUserAgentIdKnown(); }
 
@@ -529,7 +529,6 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   // Called after packets have been marked handled with last received ack frame.
   void PostProcessNewlyAckedPackets(QuicPacketNumber ack_packet_number,
                                     EncryptionLevel ack_decrypted_level,
-                                    const QuicAckFrame& ack_frame,
                                     QuicTime ack_receive_time, bool rtt_updated,
                                     QuicByteCount prior_bytes_in_flight);
 
@@ -597,6 +596,9 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   bool using_pacing_;
   // If true, use a more conservative handshake retransmission policy.
   bool conservative_handshake_retransmits_;
+  // Indicates whether handshake is finished. This is purely used to determine
+  // retransmission mode. DONOT use this to infer handshake state.
+  bool handshake_finished_;
 
   // Vectors packets acked and lost as a result of the last congestion event.
   AckedPacketVector packets_acked_;
@@ -609,10 +611,6 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   // Replaces certain calls to |send_algorithm_| when |using_pacing_| is true.
   // Calls into |send_algorithm_| for the underlying congestion control.
   PacingSender pacing_sender_;
-
-  // Indicates whether handshake is finished. This is purely used to determine
-  // retransmission mode. DONOT use this to infer handshake state.
-  bool handshake_finished_;
 
   // Records bandwidth from server to client in normal operation, over periods
   // of time with no loss events.
@@ -635,9 +633,6 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   // AckFrequencyFrame.
   QuicTime::Delta peer_min_ack_delay_ = QuicTime::Delta::Infinite();
 
-  // Use smoothed RTT for computing max_ack_delay in AckFrequency frame.
-  bool use_smoothed_rtt_in_ack_delay_ = false;
-
   // The history of outstanding max_ack_delays sent to peer. Outstanding means
   // a max_ack_delay is sent as part of the last acked AckFrequencyFrame or
   // an unacked AckFrequencyFrame after that.
@@ -651,6 +646,9 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   // Record whether RTT gets updated by last largest acked..
   bool rtt_updated_;
 
+  // Use smoothed RTT for computing max_ack_delay in AckFrequency frame.
+  bool use_smoothed_rtt_in_ack_delay_ = false;
+
   // A reverse iterator of last_ack_frame_.packets. This is reset in
   // OnAckRangeStart, and gradually moves in OnAckRange..
   PacketNumberQueue::const_reverse_iterator acked_packets_iter_;
@@ -661,18 +659,8 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   // True if HANDSHAKE mode has been disabled.
   bool handshake_mode_disabled_;
 
-  // True if any ENCRYPTION_HANDSHAKE packet gets acknowledged.
-  bool handshake_packet_acked_;
-
-  // True if any 0-RTT packet gets acknowledged.
-  bool zero_rtt_packet_acked_;
-
-  // True if any 1-RTT packet gets acknowledged.
-  bool one_rtt_packet_acked_;
-
-  // The number of PTOs needed for path degrading alarm. If equals to 0, the
-  // traditional path degrading mechanism will be used.
-  int num_ptos_for_path_degrading_;
+  //combine state of zero/hand/forward packet
+  uint8_t rtt_packet_state_;
 
   // If true, do not use PING only packets for RTT measurement or congestion
   // control.
@@ -680,6 +668,10 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
 
   // Whether to ignore the ack_delay in received ACKs.
   bool ignore_ack_delay_;
+
+  // The number of PTOs needed for path degrading alarm. If equals to 0, the
+  // traditional path degrading mechanism will be used.
+  int num_ptos_for_path_degrading_;
 };
 
 }  // namespace quic

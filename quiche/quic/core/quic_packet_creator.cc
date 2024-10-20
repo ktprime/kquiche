@@ -440,7 +440,7 @@ bool QuicPacketCreator::CreateCryptoFrame(EncryptionLevel level,
                                           QuicStreamOffset offset,
                                           QuicFrame* frame) {
   const size_t min_frame_size =
-      QuicFramer::GetMinCryptoFrameSize(write_length, offset);
+      QuicFramer::GetMinCryptoFrameSize(offset, write_length);
   if (BytesFree() <= min_frame_size &&
       (!RemoveSoftMaxPacketLength() || BytesFree() <= min_frame_size)) {
     return false;
@@ -490,7 +490,7 @@ void QuicPacketCreator::OnSerializedPacket() {
 }
 
 void QuicPacketCreator::ClearPacket() {
-//  packet_.has_ack = false;
+  //packet_.has_ack = false;
   //packet_.has_crypto_handshake = NOT_HANDSHAKE;
   packet_.transmission_type = NOT_RETRANSMISSION;
   packet_.encrypted_buffer = nullptr;
@@ -839,6 +839,7 @@ bool QuicPacketCreator::SerializePacket(QuicOwnedPacketBuffer encrypted_buffer,
                                       encrypted_buffer.buffer, packet_size_,
                                       packet_.encryption_level);
   }
+  QUICHE_DCHECK(length != 0);
   if (length == 0) {
     QUIC_BUG(quic_bug_10752_16)
         << ENDPOINT << "Failed to serialize "
@@ -857,7 +858,7 @@ bool QuicPacketCreator::SerializePacket(QuicOwnedPacketBuffer encrypted_buffer,
   // in the packet, and if packet_size_ was set to max_plaintext_size_. If
   // truncation due to length occurred, then GetSerializedFrameLength will have
   // returned all bytes free.
-  if (packet_size_ != length) {
+  if (DCHECK_FLAG && packet_size_ != length) {
     bool possibly_truncated_by_length = packet_size_ == max_plaintext_size_ &&
       queued_frames_.size() == 1 &&
       queued_frames_.back().type == ACK_FRAME;
@@ -1018,6 +1019,7 @@ QuicPacketCreator::SerializePathResponseConnectivityProbingPacket(
 size_t QuicPacketCreator::BuildPaddedPathChallengePacket(
     const QuicPacketHeader& header, char* buffer, size_t packet_length,
     const QuicPathFrameBuffer& payload, EncryptionLevel level) {
+#if QUIC_TLS_SESSION
   QUICHE_DCHECK(VersionHasIetfQuicFrames(framer_->transport_version()))
       ;//<< ENDPOINT;
   QuicFrames frames;
@@ -1035,6 +1037,9 @@ size_t QuicPacketCreator::BuildPaddedPathChallengePacket(
   frames.push_back(QuicFrame(padding_frame));
 
   return framer_->BuildDataPacket(header, frames, buffer, packet_length, level);
+#else
+  return 0;
+#endif
 }
 
 size_t QuicPacketCreator::BuildPathResponsePacket(
@@ -1051,6 +1056,7 @@ size_t QuicPacketCreator::BuildPathResponsePacket(
       ;//<< ENDPOINT;
 
   QuicFrames frames;
+#if QUIC_TLS_SESSION
   for (const QuicPathFrameBuffer& payload : payloads) {
     // Note that the control frame ID can be 0 since this is not retransmitted.
     frames.push_back(QuicFrame(QuicPathResponseFrame(0, payload)));
@@ -1058,6 +1064,7 @@ size_t QuicPacketCreator::BuildPathResponsePacket(
       debug_delegate_->OnFrameAddedToPacket(frames.back());
     }
   }
+#endif
 
   if (is_padded) {
     // Add padding to the rest of the packet in order to assess Path MTU
@@ -1239,8 +1246,8 @@ size_t QuicPacketCreator::PacketHeaderSize() const {
 
 quiche::QuicheVariableLengthIntegerLength
 QuicPacketCreator::GetRetryTokenLengthLength() const {
-  if (QuicVersionHasLongHeaderLengths(framer_->transport_version()) &&
-      HasIetfLongHeader() &&
+  if (HasIetfLongHeader() &&
+      QuicVersionHasLongHeaderLengths(framer_->transport_version()) &&
       EncryptionlevelToLongHeaderType(packet_.encryption_level) == INITIAL) {
     return QuicDataWriter::GetVarInt62Len(GetRetryToken().length());
   }
@@ -1248,8 +1255,8 @@ QuicPacketCreator::GetRetryTokenLengthLength() const {
 }
 
 absl::string_view QuicPacketCreator::GetRetryToken() const {
-  if (QuicVersionHasLongHeaderLengths(framer_->transport_version()) &&
-      HasIetfLongHeader() &&
+  if (HasIetfLongHeader() &&
+      QuicVersionHasLongHeaderLengths(framer_->transport_version()) &&
       EncryptionlevelToLongHeaderType(packet_.encryption_level) == INITIAL) {
     return retry_token_;
   }
@@ -1565,9 +1572,11 @@ void QuicPacketCreator::AddRandomPadding() {
 
 void QuicPacketCreator::AttachPacketFlusher() {
   flusher_attached_ = true;
+#if DCHECK_FLAG
   if (!write_start_packet_number_.IsInitialized()) {
     write_start_packet_number_ = NextSendingPacketNumber();
   }
+#endif
 }
 
 void QuicPacketCreator::Flush() {
@@ -1576,7 +1585,7 @@ void QuicPacketCreator::Flush() {
   else if (pending_padding_bytes_ > 0)
     SendRemainingPendingPadding();
   flusher_attached_ = false;
-  if (DCHECK_FLAG && GetQuicFlag(quic_export_write_path_stats_at_server)) {
+  if (DCHECK_FLAG /* && GetQuicFlag(quic_export_write_path_stats_at_server)***/) {
     if (!write_start_packet_number_.IsInitialized()) {
       QUIC_BUG(quic_bug_10752_32)
           << ENDPOINT << "write_start_packet_number is not initialized";
@@ -1586,8 +1595,8 @@ void QuicPacketCreator::Flush() {
         "quic_server_num_written_packets_per_write",
         NextSendingPacketNumber() - write_start_packet_number_, 1, 200, 50,
         "Number of QUIC packets written per write operation");
+    write_start_packet_number_.Clear();
   }
-  write_start_packet_number_.Clear();
 }
 
 void QuicPacketCreator::SendRemainingPendingPadding() {
@@ -1684,6 +1693,7 @@ size_t QuicPacketCreator::GetSerializedFrameLength(const QuicFrame& frame) {
   size_t serialized_frame_length = framer_->GetSerializedFrameLength(
       frame, BytesFree(), queued_frames_.empty(),
       /* last_frame_in_packet= */ true, GetPacketNumberLength());
+  //QUICHE_DCHECK(serialized_frame_length);
   if (!framer_->version().HasHeaderProtection() /* ||
       serialized_frame_length == 0 **/) {
     return serialized_frame_length;
@@ -1724,20 +1734,25 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
   QUICHE_DCHECK(
       packet_.encryption_level == ENCRYPTION_FORWARD_SECURE ||
       packet_.encryption_level == ENCRYPTION_ZERO_RTT ||
-      (frame.type != GOAWAY_FRAME && frame.type != WINDOW_UPDATE_FRAME &&
-       frame.type != HANDSHAKE_DONE_FRAME &&
-       frame.type != NEW_CONNECTION_ID_FRAME &&
-       frame.type != MAX_STREAMS_FRAME && frame.type != STREAMS_BLOCKED_FRAME &&
-       frame.type != PATH_RESPONSE_FRAME &&
-       frame.type != PATH_CHALLENGE_FRAME && frame.type != STOP_SENDING_FRAME &&
-       frame.type != MESSAGE_FRAME && frame.type != NEW_TOKEN_FRAME &&
-       frame.type != RETIRE_CONNECTION_ID_FRAME &&
-       frame.type != ACK_FREQUENCY_FRAME))
-      ;//<< ENDPOINT << frame.type << " not allowed at "
+    (frame.type != GOAWAY_FRAME && frame.type != WINDOW_UPDATE_FRAME &&
+     frame.type != HANDSHAKE_DONE_FRAME
+    ));
+#if 0
+    frame.type != NEW_CONNECTION_ID_FRAME &&
+    frame.type != MAX_STREAMS_FRAME && frame.type != STREAMS_BLOCKED_FRAME &&
+    frame.type != PATH_RESPONSE_FRAME &&
+    frame.type != PATH_CHALLENGE_FRAME && frame.type != STOP_SENDING_FRAME &&
+    frame.type != MESSAGE_FRAME && frame.type != NEW_TOKEN_FRAME &&
+    frame.type != RETIRE_CONNECTION_ID_FRAME &&
+    frame.type != ACK_FREQUENCY_FRAME
+#endif
+
+      //<< ENDPOINT << frame.type << " not allowed at "
       //<< packet_.encryption_level;
 
   if (frame.type == STREAM_FRAME) {
-    if (!QuicUtils::IsCryptoStreamId(framer_->transport_version(), frame.stream_frame.stream_id) &&
+    if (packet_.encryption_level != ENCRYPTION_FORWARD_SECURE &&
+      !QuicUtils::IsCryptoStreamId(framer_->transport_version(), frame.stream_frame.stream_id) &&
       AttemptingToSendUnencryptedStreamData()) {
       return false;
     }
@@ -1779,7 +1794,6 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
     auto is_handshake_frame = QuicUtils::IsHandshakeFrame(frame, framer_->transport_version());
     if (is_handshake_frame)
       packet_.frame_types |= 1u << CRYPTO_FRAME;
-    packet_.transmission_type = transmission_type;
   } else {
     if (frame.type == PADDING_FRAME &&
         frame.padding_frame.num_padding_bytes == -1) {
@@ -1801,7 +1815,7 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
   if (transmission_type == NOT_RETRANSMISSION) {
     packet_.bytes_not_retransmitted.emplace(
         packet_.bytes_not_retransmitted.value_or(0) + frame_len);
-  } else if (packet_.transmission_type != transmission_type && QuicUtils::IsRetransmittableFrame(frame.type)) {
+  } else if (QuicUtils::IsRetransmittableFrame(frame.type)) {
     // Packet transmission type is determined by the last added retransmittable
     // frame of a retransmission type. If a packet has no retransmittable
     // retransmission frames, it has type NOT_RETRANSMISSION.
@@ -2071,8 +2085,8 @@ bool QuicPacketCreator::AttemptingToSendUnencryptedStreamData() {
 }
 
 bool QuicPacketCreator::HasIetfLongHeader() const {
-  return packet_.encryption_level < ENCRYPTION_FORWARD_SECURE &&
-         version().HasIetfInvariantHeader();
+  return packet_.encryption_level < ENCRYPTION_FORWARD_SECURE;
+        //&& version().HasIetfInvariantHeader(); TODO3
 }
 
 // static
@@ -2124,7 +2138,6 @@ void QuicPacketCreator::SetDefaultPeerAddress(const QuicSocketAddress& address) 
     return;
   }
   if (packet_.peer_address != address) {
-    if (HasPendingFrames())
     FlushCurrentPacket();
     packet_.peer_address = address;
   }
@@ -2209,6 +2222,7 @@ void QuicPacketCreator::set_encryption_level(EncryptionLevel level) {
 
 void QuicPacketCreator::AddPathChallengeFrame(
     const QuicPathFrameBuffer& payload) {
+#if QUIC_TLS_SESSION
   // TODO(danzh) Unify similar checks at several entry points into one in
   // AddFrame(). Sort out test helper functions and peer class that don't
   // enforce this check.
@@ -2227,16 +2241,19 @@ void QuicPacketCreator::AddPathChallengeFrame(
   // regression, consider to notify the caller about the sending failure and let
   // the caller to decide if it worth retrying.
   QUIC_DVLOG(1) << ENDPOINT << "Can't send PATH_CHALLENGE now";
+#endif
 }
 
 bool QuicPacketCreator::AddPathResponseFrame(
     const QuicPathFrameBuffer& data_buffer) {
+#if QUIC_TLS_SESSION
   QuicFrame frame(QuicPathResponseFrame(kInvalidControlFrameId, data_buffer));
   if (AddPaddedFrameWithRetry(frame)) {
     return true;
   }
 
   QUIC_DVLOG(1) << ENDPOINT << "Can't send PATH_RESPONSE now";
+#endif
   return false;
 }
 
