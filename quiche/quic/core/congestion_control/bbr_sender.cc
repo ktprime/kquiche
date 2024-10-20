@@ -481,7 +481,7 @@ void BbrSender::EnterProbeBandwidthMode(QuicTime now) {
 }
 
 bool BbrSender::UpdateRoundTripCounter(QuicPacketNumber last_acked_packet) {
-  if (!current_round_trip_end_.IsInitialized() ||
+  if (//!current_round_trip_end_.IsInitialized() ||
       last_acked_packet > current_round_trip_end_) {
     round_trip_count_++;
     current_round_trip_end_ = last_sent_packet_;

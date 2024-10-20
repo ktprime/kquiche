@@ -46,7 +46,7 @@ Bbr2Mode Bbr2StartupMode::OnCongestionEvent(
     const LostPacketVector& /*lost_packets*/,
     const Bbr2CongestionEvent& congestion_event) {
   if (model_->full_bandwidth_reached()) {
-    QUIC_BUG() << "In STARTUP, but full_bandwidth_reached is true.";
+    QUIC_BUG("Bbr2") << "In STARTUP, but full_bandwidth_reached is true.";
     return Bbr2Mode::DRAIN;
   }
   if (!congestion_event.end_of_round_trip) {

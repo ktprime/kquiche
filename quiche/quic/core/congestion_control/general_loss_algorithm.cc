@@ -42,7 +42,7 @@ LossDetectionInterface::DetectionStats GeneralLossAlgorithm::DetectLosses(
   if (!packets_acked.empty() &&// least_in_flight_.IsInitialized() &&
       packets_acked.front().packet_number == least_in_flight_) {
     if (packets_acked.back().packet_number == largest_newly_acked &&
-        least_in_flight_ + packets_acked.size() - 1 == largest_newly_acked) {
+        least_in_flight_ + packets_acked.size() == largest_newly_acked + 1) {
       // Optimization for the case when no packet is missing. Please note,
       // packets_acked can include packets of different packet number space, so
       // do not use this optimization if largest_newly_acked is not the largest
@@ -63,7 +63,7 @@ LossDetectionInterface::DetectionStats GeneralLossAlgorithm::DetectLosses(
 
   QuicPacketNumber packet_number = unacked_packets.GetLeastUnacked();
   auto it = unacked_packets.begin();
-  if (/*least_in_flight_.IsInitialized() &&**/ least_in_flight_ >= packet_number) {
+  if (/*least_in_flight_.IsInitialized() &&**/ least_in_flight_ > packet_number) {
     if (least_in_flight_ > unacked_packets.largest_sent_packet() + 1) {
       QUIC_BUG(quic_bug_10430_1) << "least_in_flight: " << least_in_flight_
                                  << " is greater than largest_sent_packet + 1: "
@@ -77,15 +77,15 @@ LossDetectionInterface::DetectionStats GeneralLossAlgorithm::DetectLosses(
   least_in_flight_.Clear();
   QUICHE_DCHECK_EQ(packet_number_space_,
                    unacked_packets.GetPacketNumberSpace(largest_newly_acked));
-  for (; it != unacked_packets.end() && packet_number <= largest_newly_acked;
-       ++it, ++packet_number) {
-    if (unacked_packets.GetPacketNumberSpace(it->encryption_level) !=
-        packet_number_space_) {
-      // Skip packets of different packet number space.
+  for (; packet_number <= largest_newly_acked; ++it, ++packet_number) {
+    QUICHE_DCHECK(it != unacked_packets.end());
+    if (!it->in_flight) {
       continue;
     }
 
-    if (!it->in_flight) {
+    if (unacked_packets.GetPacketNumberSpace(it->encryption_level) !=
+        packet_number_space_) {
+      // Skip packets of different packet number space.
       continue;
     }
 
@@ -122,7 +122,9 @@ LossDetectionInterface::DetectionStats GeneralLossAlgorithm::DetectLosses(
         ++detection_stats.sent_packets_num_borderline_time_reorderings;
       }
       loss_detection_timeout_ = when_lost;
-      if (!least_in_flight_.IsInitialized()) {
+      QUICHE_DCHECK(!least_in_flight_.IsInitialized());
+      //if (!least_in_flight_.IsInitialized())
+      {
         // At this point, packet_number is in flight and not detected as lost.
         least_in_flight_ = packet_number;
       }

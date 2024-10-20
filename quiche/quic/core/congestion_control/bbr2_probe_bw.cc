@@ -328,7 +328,7 @@ bool Bbr2ProbeBwMode::IsTimeToProbeForRenoCoexistence(
 
 void Bbr2ProbeBwMode::RaiseInflightHighSlope() {
   QUICHE_DCHECK_EQ(cycle_.phase, CyclePhase::PROBE_UP);
-  uint64_t growth_this_round = 1 << cycle_.probe_up_rounds;
+  uint64_t growth_this_round = 1ull << cycle_.probe_up_rounds;
   // The number 30 below means |growth_this_round| is capped at 1G and the lower
   // bound of |probe_up_bytes| is (practically) 1 mss, at this speed inflight_hi
   // grows by approximately 1 packet per packet acked.

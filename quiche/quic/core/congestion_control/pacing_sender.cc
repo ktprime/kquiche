@@ -65,22 +65,24 @@ void PacingSender::OnPacketSent(
 
   if (remove_non_initial_burst_) {
     QUIC_RELOADABLE_FLAG_COUNT_N(quic_pacing_remove_non_initial_burst, 1, 2);
-  }
-  else {
+  } else {
     // If in recovery, the connection is not coming out of quiescence.
     if (bytes_in_flight == 0 && !sender_->InRecovery()) {
       // Add more burst tokens anytime the connection is leaving quiescence, but
       // limit it to the equivalent of a single bulk write, not exceeding the
       // current CWND in packets.
-      burst_tokens_ = std::min(initial_burst_size_,
-          static_cast<uint32_t>(sender_->GetCongestionWindow() / kDefaultTCPMSS));
-      if (burst_tokens_ > 0) {
-        --burst_tokens_;
-        ideal_next_packet_send_time_ = QuicTime::Zero();
-        pacing_limited_ = false;
-        return;
-      }
+      burst_tokens_ =
+          std::min(initial_burst_size_,
+                   static_cast<uint32_t>(sender_->GetCongestionWindow() /
+                                         kDefaultTCPMSS));
     }
+  }
+
+  if (burst_tokens_ > 0) {
+    --burst_tokens_;
+    ideal_next_packet_send_time_ = QuicTime::Zero();
+    pacing_limited_ = false;
+    return;
   }
 
   // The next packet should be sent as soon as the current packet has been
@@ -93,15 +95,15 @@ void PacingSender::OnPacketSent(
     lumpy_tokens_ = //std::max(1u,
         std::min(static_cast<uint32_t>(GetQuicFlag(quic_lumpy_pacing_size)),
           uint32_t(sender_->GetCongestionWindow() / (kDefaultTCPMSS * 4)));
-    if (sender_->BandwidthEstimate() <
+    if ((bytes_in_flight + bytes) >= sender_->GetCongestionWindow()) {
+      // Don't add lumpy_tokens if the congestion controller is CWND limited.
+      lumpy_tokens_ = 1u;
+    }
+    else if (sender_->BandwidthEstimate() <
         QuicBandwidth::FromKBitsPerSecond(
             GetQuicFlag(quic_lumpy_pacing_min_bandwidth_kbps))) {
       // Below 1.2Mbps, send 1 packet at once, because one full-sized packet
       // is about 10ms of queueing.
-      lumpy_tokens_ = 1u;
-    }
-    else if ((bytes_in_flight + bytes) >= sender_->GetCongestionWindow()) {
-      // Don't add lumpy_tokens if the congestion controller is CWND limited.
       lumpy_tokens_ = 1u;
     }
   }
@@ -111,7 +113,7 @@ void PacingSender::OnPacketSent(
     ideal_next_packet_send_time_ = ideal_next_packet_send_time_ + delay;
   } else {
     ideal_next_packet_send_time_ =
-        std::max(ideal_next_packet_send_time_ + delay, sent_time + delay);
+        std::max(ideal_next_packet_send_time_, sent_time) + delay;
   }
   // Stop making up for lost time if underlying sender prevents sending.
   pacing_limited_ = sender_->CanSend(bytes_in_flight + bytes);
@@ -133,29 +135,29 @@ QuicTime::Delta PacingSender::TimeUntilSend(
     QuicTime now, QuicByteCount bytes_in_flight) const {
   QUICHE_DCHECK(sender_ != nullptr);
 
+  //TODO3: move form line 136 to here
+  if (!sender_->CanSend(bytes_in_flight)) {
+    // The underlying sender prevents sending.
+    return QuicTime::Delta::FromMilliseconds(1000);
+    //return PacingRate(bytes_in_flight).TransferTime(bytes_in_flight - sender_->GetCongestionWindow());
+  }
+
   if (remove_non_initial_burst_) {
     QUIC_RELOADABLE_FLAG_COUNT_N(quic_pacing_remove_non_initial_burst, 2, 2);
-    if (burst_tokens_ > 0 || lumpy_tokens_ > 0) {
+    if (burst_tokens_ + lumpy_tokens_ > 0) {
       // Don't pace if we have burst or lumpy tokens available.
       QUIC_DVLOG(1) << "Can send packet now. burst_tokens:" << burst_tokens_
                     << ", lumpy_tokens:" << lumpy_tokens_;
       return QuicTime::Delta::Zero();
     }
   } else {
-    if (burst_tokens_ > 0 || bytes_in_flight == 0 || lumpy_tokens_ > 0) {
+    if (burst_tokens_ + lumpy_tokens_ > 0 /** || bytes_in_flight == 0 *****/) {
       // Don't pace if we have burst tokens available or leaving quiescence.
       QUIC_DVLOG(1) << "Sending packet now. burst_tokens:" << burst_tokens_
                     << ", bytes_in_flight:" << bytes_in_flight
                     << ", lumpy_tokens:" << lumpy_tokens_;
       return QuicTime::Delta::Zero();
     }
-  }
-
-  //TODO3: move form line 136 to here
-  if (!sender_->CanSend(bytes_in_flight)) {
-    // The underlying sender prevents sending.
-    //return QuicTime::Delta::FromSeconds(1);
-    return PacingRate(bytes_in_flight).TransferTime(bytes_in_flight - sender_->GetCongestionWindow());
   }
 
   const auto delay = ideal_next_packet_send_time_ - now;
@@ -168,7 +170,7 @@ QuicTime::Delta PacingSender::TimeUntilSend(
 
 QuicBandwidth PacingSender::PacingRate(QuicByteCount bytes_in_flight) const {
   QUICHE_DCHECK(sender_ != nullptr && max_pacing_rate_.IsZero());
-  if (false && !max_pacing_rate_.IsZero()) {
+  if (DCHECK_FLAG && !max_pacing_rate_.IsZero()) { //TODO2
     return QuicBandwidth::FromBitsPerSecond(
         std::min(max_pacing_rate_.ToBitsPerSecond(),
                  sender_->PacingRate(bytes_in_flight).ToBitsPerSecond()));

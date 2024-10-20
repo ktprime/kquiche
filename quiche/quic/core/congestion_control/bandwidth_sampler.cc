@@ -488,7 +488,7 @@ BandwidthSample BandwidthSampler::OnPacketAcknowledgedInner(
   sample.send_rate = send_rate;
   SentPacketToSendTimeState(sent_packet, &sample.state_at_send);
 
-  if (sample.bandwidth.IsZero()) {
+  if (false && sample.bandwidth.IsZero()) {
     QUIC_LOG_EVERY_N_SEC(ERROR, 60)
         << "ack_rate: " << ack_rate << ", send_rate: " << send_rate
         << ". acked packet number:" << packet_number

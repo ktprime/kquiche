@@ -24,7 +24,7 @@ constexpr QuicByteCount kMaxBurstBytes = 3 * kDefaultTCPMSS;
 constexpr float kRenoBeta = 0.7f;  // Reno backoff factor.
 // The minimum cwnd based on RFC 3782 (TCP NewReno) for cwnd reductions on a
 // fast retransmission.
-constexpr QuicByteCount kDefaultMinimumCongestionWindow = 2 * kDefaultTCPMSS;
+constexpr QuicByteCount kDefaultMinimumCongestionWindow = 4 * kDefaultTCPMSS;
 }  // namespace
 
 TcpCubicSenderBytes::TcpCubicSenderBytes(
@@ -70,6 +70,7 @@ void TcpCubicSenderBytes::SetFromConfig(const QuicConfig& config,
       // Use unity pacing instead of PRR.
       no_prr_ = true;
     }
+    //SetNumEmulatedConnections(100); TODO3
   }
 }
 
@@ -156,13 +157,10 @@ bool TcpCubicSenderBytes::CanSend(QuicByteCount bytes_in_flight) {
     return prr_.CanSend(GetCongestionWindow(), bytes_in_flight,
                         GetSlowStartThreshold());
   }
-  if (GetCongestionWindow() > bytes_in_flight) {
+  if (bytes_in_flight < congestion_window_) {
     return true;
   }
-  if (min4_mode_ && bytes_in_flight < 4 * kDefaultTCPMSS) {
-    return true;
-  }
-  return false;
+  return min4_mode_ && bytes_in_flight < 4 * kDefaultTCPMSS;
 }
 
 QuicBandwidth TcpCubicSenderBytes::PacingRate(
@@ -178,7 +176,7 @@ QuicBandwidth TcpCubicSenderBytes::PacingRate(
 
 QuicBandwidth TcpCubicSenderBytes::BandwidthEstimate() const {
   QuicTime::Delta srtt = rtt_stats_->smoothed_rtt();
-  if (srtt.IsZero()) {
+  if (false && srtt.IsZero()) {
     // If we haven't measured an rtt, the bandwidth estimate is unknown.
     return QuicBandwidth::Zero();
   }
@@ -202,7 +200,7 @@ bool TcpCubicSenderBytes::IsCwndLimited(QuicByteCount bytes_in_flight) const {
 
 bool TcpCubicSenderBytes::InRecovery() const {
   return //largest_acked_packet_number_.IsInitialized() &&
-         largest_sent_at_last_cutback_.IsInitialized() &&
+         //largest_sent_at_last_cutback_.IsInitialized() &&
          largest_acked_packet_number_ <= largest_sent_at_last_cutback_;
 }
 
@@ -290,8 +288,7 @@ void TcpCubicSenderBytes::OnPacketLost(QuicPacketNumber packet_number,
   } else if (reno_) {
     congestion_window_ = congestion_window_ * RenoBeta();
   } else {
-    congestion_window_ =
-        cubic_.CongestionWindowAfterPacketLoss(congestion_window_);
+    congestion_window_ = cubic_.CongestionWindowAfterPacketLoss(congestion_window_);
   }
   if (congestion_window_ < min_congestion_window_) {
     congestion_window_ = min_congestion_window_;
@@ -326,14 +323,14 @@ void TcpCubicSenderBytes::MaybeIncreaseCwnd(
     cubic_.OnApplicationLimited();
     return;
   }
-  if (congestion_window_ >= max_congestion_window_) {
-    return;
-  }
   if (InSlowStart()) {
     // TCP slow start, exponential growth, increase by one for each ACK.
     congestion_window_ += kDefaultTCPMSS;
     QUIC_DVLOG(1) << "Slow start; congestion window: " << congestion_window_
                   << " slowstart threshold: " << slowstart_threshold_;
+    return;
+  }
+  if (DCHECK_FLAG && congestion_window_ >= max_congestion_window_) {
     return;
   }
   // Congestion avoidance.

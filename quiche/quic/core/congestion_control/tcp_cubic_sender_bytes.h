@@ -31,7 +31,7 @@ namespace test {
 class TcpCubicSenderBytesPeer;
 }  // namespace test
 
-class QUIC_EXPORT_PRIVATE TcpCubicSenderBytes final: public SendAlgorithmInterface {
+class QUIC_EXPORT_PRIVATE TcpCubicSenderBytes : public SendAlgorithmInterface {
  public:
   TcpCubicSenderBytes(const QuicClock* clock, const RttStats* rtt_stats,
                       bool reno, QuicPacketCount initial_tcp_congestion_window,
@@ -96,6 +96,13 @@ class QUIC_EXPORT_PRIVATE TcpCubicSenderBytes final: public SendAlgorithmInterfa
                          QuicByteCount acked_bytes,
                          QuicByteCount prior_in_flight, QuicTime event_time);
   void HandleRetransmissionTimeout();
+  const RttStats* rtt_stats() const { return rtt_stats_; }
+
+  void set_congestion_window(QuicByteCount cwnd) { congestion_window_ = cwnd; }
+  void set_slowstart_threshold(QuicByteCount ssthresh) {
+    slowstart_threshold_ = ssthresh;
+  }
+  void ExitRecovery() { largest_sent_at_last_cutback_.Clear(); }
 
  private:
   friend class test::TcpCubicSenderBytesPeer;

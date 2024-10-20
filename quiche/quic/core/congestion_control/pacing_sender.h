@@ -107,7 +107,7 @@ class QUIC_EXPORT_PRIVATE PacingSender {
   // time.
   bool pacing_limited_;
 
-  constexpr static bool remove_non_initial_burst_ = true;
+  constexpr static bool remove_non_initial_burst_ = false;
 //      GetQuicReloadableFlag(quic_pacing_remove_non_initial_burst);
 };
 

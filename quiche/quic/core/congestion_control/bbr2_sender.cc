@@ -106,7 +106,7 @@ void Bbr2Sender::SetFromConfig(const QuicConfig& config,
     params_.startup_full_bw_rounds = 2;
   }
   if (config.HasClientRequestedIndependentOption(kB2HR, perspective)) {
-    params_.inflight_hi_headroom = 0.15;
+    params_.inflight_hi_headroom = 0.15f;
   }
   if (config.HasClientRequestedIndependentOption(kICW1, perspective)) {
     max_cwnd_when_network_parameters_adjusted_ = 100 * kDefaultTCPMSS;
@@ -128,12 +128,12 @@ void Bbr2Sender::ApplyConnectionOptions(
     model_.SetMaxAckHeightTrackerWindowLength(40);
   }
   if (ContainsQuicTag(connection_options, kBBQ1)) {
-    params_.startup_pacing_gain = 2.773;
+    params_.startup_pacing_gain = 2.773f;
     params_.drain_pacing_gain = 1.0 / params_.drain_cwnd_gain;
   }
   if (ContainsQuicTag(connection_options, kBBQ2)) {
-    params_.startup_cwnd_gain = 2.885;
-    params_.drain_cwnd_gain = 2.885;
+    params_.startup_cwnd_gain = 2.885f;
+    params_.drain_cwnd_gain = 2.885f;
     model_.set_cwnd_gain(params_.startup_cwnd_gain);
   }
   if (ContainsQuicTag(connection_options, kB2LO)) {
@@ -192,10 +192,6 @@ void Bbr2Sender::ApplyConnectionOptions(
   }
   if (ContainsQuicTag(connection_options, kB206)) {
     params_.startup_full_loss_count = params_.probe_bw_full_loss_count;
-  }
-  if (ContainsQuicTag(connection_options, kBBPD)) {
-    // Derived constant to ensure fairness.
-    params_.probe_bw_probe_down_pacing_gain = 0.91;
   }
   if (GetQuicReloadableFlag(quic_bbr2_simplify_inflight_hi) &&
       ContainsQuicTag(connection_options, kBBHI)) {
@@ -472,8 +468,9 @@ QuicByteCount Bbr2Sender::GetCongestionWindow() const {
 }
 
 QuicBandwidth Bbr2Sender::PacingRate(QuicByteCount /*bytes_in_flight*/) const {
-  const float loss_rate = 1 - 3.0 * connection_stats_->packets_lost / (1000 + connection_stats_->packets_sent); //* model_.GetLossRate();
-  return pacing_rate_ * loss_rate;
+//  const float loss_rate = 1 - 3.0 * connection_stats_->packets_lost / (1000 + connection_stats_->packets_sent); //* model_.GetLossRate();
+//  return pacing_rate_ * loss_rate;
+  return pacing_rate_;
 }
 
 void Bbr2Sender::OnApplicationLimited(QuicByteCount bytes_in_flight) {

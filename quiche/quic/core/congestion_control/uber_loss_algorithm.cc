@@ -61,6 +61,8 @@ LossDetectionInterface::DetectionStats UberLossAlgorithm::DetectLosses(
 }
 
 QuicTime UberLossAlgorithm::GetLossTimeout() const {
+  return general_loss_algorithms_[APPLICATION_DATA].GetLossTimeout();
+#if 0
   QuicTime loss_timeout = QuicTime::Zero();
   // Returns the earliest non-zero loss timeout.
   for (int8_t i = INITIAL_DATA; i < NUM_PACKET_NUMBER_SPACES; ++i) {
@@ -74,6 +76,7 @@ QuicTime UberLossAlgorithm::GetLossTimeout() const {
     }
   }
   return loss_timeout;
+#endif
 }
 
 void UberLossAlgorithm::SpuriousLossDetected(

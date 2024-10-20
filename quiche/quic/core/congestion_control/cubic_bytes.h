@@ -73,6 +73,9 @@ class QUIC_EXPORT_PRIVATE CubicBytes {
   // Number of connections to simulate.
   int num_connections_;
 
+  // Time to origin point of cubic function in 2^10 fractions of a second.
+  uint32_t time_to_origin_point_;
+
   // Time when this cycle started, after last loss event.
   QuicTime epoch_;
 
@@ -89,9 +92,6 @@ class QUIC_EXPORT_PRIVATE CubicBytes {
 
   // Origin point of cubic function.
   QuicByteCount origin_point_congestion_window_;
-
-  // Time to origin point of cubic function in 2^10 fractions of a second.
-  uint32_t time_to_origin_point_;
 
   // Last congestion window in packets computed by cubic function.
   QuicByteCount last_target_congestion_window_;

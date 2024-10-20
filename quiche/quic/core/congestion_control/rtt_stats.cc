@@ -14,17 +14,17 @@ namespace quic {
 
 namespace {
 
-constexpr float kAlpha = 0.125f;
-constexpr float kOneMinusAlpha = (1 - kAlpha);
-constexpr float kBeta = 0.25f;
-constexpr float kOneMinusBeta = (1 - kBeta);
+constexpr int kAlpha = 1;
+constexpr int kOneMinusAlpha = 8 - kAlpha;
+constexpr int kBeta = 1;
+constexpr int kOneMinusBeta = 4 - kBeta;// (1 - kBeta);
 
 }  // namespace
 
 RttStats::RttStats()
     : latest_rtt_(QuicTime::Delta::Zero()),
       min_rtt_(QuicTime::Delta::FromSeconds(10)),
-      smoothed_rtt_(QuicTime::Delta::Zero()),
+      smoothed_rtt_(QuicTime::Delta::FromMilliseconds(kInitialRttMs)),
       previous_srtt_(QuicTime::Delta::Zero()),
       mean_deviation_(QuicTime::Delta::Zero()),
       //calculate_standard_deviation_(false),
@@ -59,9 +59,11 @@ bool RttStats::UpdateRtt(QuicTime::Delta send_delta, QuicTime::Delta ack_delay,
   // the client may cause a high ack_delay to result in underestimation of the
   // min_rtt_.
   QUICHE_DCHECK(min_rtt_.ToMicroseconds() > 0);
+//  if (min_rtt_.IsZero() || min_rtt_ > send_delta) {
   if (min_rtt_ > send_delta && send_delta > smoothed_rtt_ / 2) {
-    min_rtt_ = send_delta;
-    smoothed_rtt_ = previous_srtt_ = latest_rtt_ = min_rtt_; //TODO3: use min_rtt_.
+    previous_srtt_ = smoothed_rtt_;
+    smoothed_rtt_ = (kOneMinusAlpha * smoothed_rtt_ + kAlpha * send_delta) / 8;
+    latest_rtt_ = min_rtt_ = send_delta;
     return true;
   }
 
@@ -88,8 +90,8 @@ bool RttStats::UpdateRtt(QuicTime::Delta send_delta, QuicTime::Delta ack_delay,
   } else {
     mean_deviation_ = QuicTime::Delta::FromMicroseconds(static_cast<int64_t>(
         kOneMinusBeta * mean_deviation_.ToMicroseconds() +
-        kBeta * std::abs((smoothed_rtt_ - rtt_sample).ToMicroseconds())));
-    smoothed_rtt_ = kOneMinusAlpha * smoothed_rtt_ + kAlpha * rtt_sample;
+        kBeta * std::abs((smoothed_rtt_ - rtt_sample).ToMicroseconds())) / 4);
+    smoothed_rtt_ = (kOneMinusAlpha * smoothed_rtt_ + kAlpha * rtt_sample) / 8;
     QUIC_DVLOG(1) << " smoothed_rtt(us):" << smoothed_rtt_.ToMicroseconds()
                   << " mean_deviation(us):" << mean_deviation_.ToMicroseconds();
   }
@@ -114,19 +116,19 @@ QuicTime::Delta RttStats::GetStandardOrMeanDeviation() const {
 
 void RttStats::StandardDeviationCalculator::OnNewRttSample(
     QuicTime::Delta rtt_sample, QuicTime::Delta smoothed_rtt) {
-  double new_value = rtt_sample.ToMicroseconds();
+  auto new_value = rtt_sample.ToMicroseconds();
   if (smoothed_rtt.IsZero()) {
     return;
   }
   has_valid_standard_deviation = true;
-  const double delta = new_value - smoothed_rtt.ToMicroseconds();
-  m2 = kOneMinusBeta * m2 + kBeta * pow(delta, 2);
+  const auto delta = new_value - smoothed_rtt.ToMicroseconds();
+  m2 = (kOneMinusBeta * m2 + kBeta * pow(delta, 2)) / 4;
 }
 
 QuicTime::Delta
 RttStats::StandardDeviationCalculator::CalculateStandardDeviation() const {
   QUICHE_DCHECK(has_valid_standard_deviation);
-  return QuicTime::Delta::FromMicroseconds(sqrt(m2));
+  return QuicTime::Delta::FromMicroseconds((int64_t)sqrt(m2));
 }
 
 void RttStats::CloneFrom(const RttStats& stats) {
