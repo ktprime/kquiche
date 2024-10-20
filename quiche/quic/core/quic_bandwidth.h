@@ -61,6 +61,7 @@ class QUIC_EXPORT_PRIVATE QuicBandwidth {
 
     // 1 bit is 1000000 micro bits.
     int64_t num_micro_bits = 8 * bytes * kNumMicrosPerSecond;
+    QUICHE_DCHECK(delta.ToMicroseconds() > 0 && num_micro_bits >= delta.ToMicroseconds());
     if (false && num_micro_bits < delta.ToMicroseconds()) {
       return QuicBandwidth(1);
     }
@@ -92,7 +93,7 @@ class QUIC_EXPORT_PRIVATE QuicBandwidth {
   }
 
   constexpr QuicTime::Delta TransferTime(QuicByteCount bytes) const {
-    QUICHE_DCHECK(bits_per_second_ >= 0);
+    QUICHE_DCHECK(bits_per_second_ > 0);
     if (DCHECK_FLAG && bits_per_second_ == 0) {
       return QuicTime::Delta::Zero();
     }

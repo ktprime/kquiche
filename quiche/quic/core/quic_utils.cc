@@ -235,21 +235,19 @@ AddressChangeType QuicUtils::DetermineAddressChangeType(
 }
 
 // static
-bool QuicUtils::IsAckable(SentPacketState state) {
-  return state < NEVER_SENT || state > UNACKABLE;
-//    (state != NEVER_SENT && state != ACKED && state != UNACKABLE);
-}
-
-// static
 bool QuicUtils::IsRetransmittableFrame(QuicFrameType type) {
 #if 1
   constexpr auto retransmittable_type =
     (1 << ACK_FRAME) |
     (1 << PADDING_FRAME) |
     (1 << STOP_WAITING_FRAME) |
+#if QUIC_TLS_SESSION
     (1 << MTU_DISCOVERY_FRAME) |
     (1 << PATH_CHALLENGE_FRAME) |
     (1 << PATH_RESPONSE_FRAME);
+#else
+    (1 << MTU_DISCOVERY_FRAME);
+#endif
   return (1 << type) & (~retransmittable_type);
 #else
   switch (type) {
@@ -498,6 +496,7 @@ QuicConnectionId QuicUtils::CreateZeroConnectionId(
 bool QuicUtils::IsConnectionIdLengthValidForVersion(
     size_t connection_id_length, QuicTransportVersion transport_version) {
   // No version of QUIC can support lengths that do not fit in an uint8_t.
+#if QUIC_TLS_SESSION
   if (connection_id_length >
       static_cast<size_t>(std::numeric_limits<uint8_t>::max())) {
     return false;
@@ -508,6 +507,7 @@ bool QuicUtils::IsConnectionIdLengthValidForVersion(
     // Unknown versions could allow connection ID lengths up to 255.
     return true;
   }
+#endif
 
   const uint8_t connection_id_length8 =
       static_cast<uint8_t>(connection_id_length);
@@ -579,9 +579,11 @@ EncryptionLevel QuicUtils::GetEncryptionLevelToSendAckofSpace(
 // static
 bool QuicUtils::IsProbingFrame(QuicFrameType type) {
   switch (type) {
+#if QUIC_TLS_SESSION
     case PATH_CHALLENGE_FRAME:
     case PATH_RESPONSE_FRAME:
     case NEW_CONNECTION_ID_FRAME:
+#endif
     case PADDING_FRAME:
       return true;
     default:

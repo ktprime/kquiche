@@ -30,6 +30,11 @@ inline constexpr uint64_t kNumMicrosPerSecond =
 inline constexpr uint32_t kDefaultNumConnections = 2;
 // Default initial maximum size in bytes of a QUIC packet.
 inline constexpr QuicByteCount kEthernetMTU = 1500;
+// Tunnels (such as MASQUE and QBONE) reduce the inner MTU so they work best
+// with a higher outer MTU. This means that outer connections could fail on some
+// networks where the UDP MTU is between 1250 and 1350, but allows inner QUIC
+// connections to still have 1200 bytes of UDP MTU, even if we apply two nested
+// levels of connect-udp proxying, as we do for IP Protection.
 inline constexpr QuicByteCount kDefaultMaxPacketSize = kEthernetMTU - 250;
 // Default initial maximum size in bytes of a QUIC packet for servers.
 inline constexpr QuicByteCount kDefaultServerMaxPacketSize = 1000;
@@ -232,7 +237,7 @@ inline constexpr size_t kDiversificationNonceSize = 32;
 
 // The largest gap in packets we'll accept without closing the connection.
 // This will likely have to be tuned.
-inline constexpr QuicPacketCount kMaxPacketGap = 100;
+inline constexpr QuicPacketCount kMaxPacketGap = 50;
 
 // The max number of sequence number intervals that
 // QuicPeerIssuedConnetionIdManager can maintain.
@@ -281,7 +286,7 @@ inline constexpr size_t kMaxNewTokenTokenLength = 0xffff;
 inline constexpr uint8_t kAddressTokenPrefix = 0;
 
 // Default initial rtt used before any samples are received.
-inline constexpr int kInitialRttMs = 100;
+inline constexpr int kInitialRttMs = 50;
 
 // Default threshold of packet reordering before a packet is declared lost.
 inline constexpr QuicPacketCount kDefaultPacketReorderingThreshold = 3;

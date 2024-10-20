@@ -242,8 +242,8 @@ class QUIC_EXPORT_PRIVATE QuicFixedSocketAddress : public QuicConfigValue {
 class QUIC_EXPORT_PRIVATE QuicConfig {
  public:
   QuicConfig();
-  QuicConfig(const QuicConfig& other);
-  ~QuicConfig();
+  QuicConfig(const QuicConfig& other) = default;
+  ~QuicConfig() = default;
 
   void SetConnectionOptionsToSend(const QuicTagVector& connection_options);
 

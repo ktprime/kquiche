@@ -72,7 +72,7 @@ bool QuicSocketAddressCoder::Decode(const char* data, size_t length) {
   if (length < ip_length) {
     return false;
   }
-  std::vector<uint8_t> ip(ip_length);
+  uint8_t ip[QuicIpAddress::kMaxAddressSize * 2];
   memcpy(&ip[0], data, ip_length);
   data += ip_length;
   length -= ip_length;

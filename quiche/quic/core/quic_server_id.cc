@@ -70,7 +70,6 @@ QuicServerId::QuicServerId(std::string host, uint16_t port,
       port_(port),
       privacy_mode_enabled_(privacy_mode_enabled) {}
 
-QuicServerId::~QuicServerId() {}
 
 bool QuicServerId::operator<(const QuicServerId& other) const {
   return std::tie(port_, host_, privacy_mode_enabled_) <

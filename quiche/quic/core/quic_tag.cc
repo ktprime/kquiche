@@ -40,7 +40,7 @@ std::string QuicTagToString(QuicTag tag) {
   if (tag == 0) {
     return "0";
   }
-  char chars[sizeof tag];
+  char chars[sizeof tag] = { 0 };
   bool ascii = true;
   const QuicTag orig_tag = tag;
 

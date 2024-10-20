@@ -162,22 +162,22 @@ size_t GetStartOfEncryptedData(
 
 QuicPacketHeader::QuicPacketHeader()
     : destination_connection_id(EmptyQuicConnectionId()),
-      destination_connection_id_included(CONNECTION_ID_PRESENT),
       source_connection_id(EmptyQuicConnectionId()),
+      destination_connection_id_included(CONNECTION_ID_PRESENT),
       source_connection_id_included(CONNECTION_ID_ABSENT),
       reset_flag(false),
       version_flag(false),
       has_possible_stateless_reset_token(false),
       packet_number_length(PACKET_4BYTE_PACKET_NUMBER),
       version(UnsupportedQuicVersion()),
-      nonce(nullptr),
       form(GOOGLE_QUIC_PACKET),
       long_packet_type(INITIAL),
+      length_length(quiche::VARIABLE_LENGTH_INTEGER_LENGTH_0),
       possible_stateless_reset_token({}),
       retry_token_length_length(quiche::VARIABLE_LENGTH_INTEGER_LENGTH_0),
       retry_token(absl::string_view()),
-      length_length(quiche::VARIABLE_LENGTH_INTEGER_LENGTH_0),
-      remaining_packet_length(0) {}
+      remaining_packet_length(0),
+      nonce(nullptr) {}
 
 QuicPacketHeader::QuicPacketHeader(const QuicPacketHeader& other) = default;
 
@@ -290,12 +290,12 @@ QuicPacket::QuicPacket(
       buffer_(buffer),
       destination_connection_id_length_(destination_connection_id_length),
       source_connection_id_length_(source_connection_id_length),
+      length_length_(length_length),
       includes_version_(includes_version),
       includes_diversification_nonce_(includes_diversification_nonce),
       packet_number_length_(packet_number_length),
       retry_token_length_length_(retry_token_length_length),
-      retry_token_length_(retry_token_length),
-      length_length_(length_length) {}
+      retry_token_length_(retry_token_length) {}
 
 QuicPacket::QuicPacket(QuicTransportVersion /*version*/, char* buffer,
                        size_t length, bool owns_buffer,
@@ -354,8 +354,8 @@ QuicReceivedPacket::QuicReceivedPacket(const char* buffer, size_t length,
                                        bool owns_header_buffer)
     : QuicEncryptedPacket(buffer, length, owns_buffer),
       receipt_time_(receipt_time),
-      ttl_(ttl_valid ? ttl : -1),
       packet_headers_(packet_headers),
+      ttl_(ttl_valid ? ttl : -1),
       headers_length_(headers_length),
       owns_header_buffer_(owns_header_buffer) {}
 
@@ -445,20 +445,40 @@ SerializedPacket::SerializedPacket(SerializedPacket&& other) noexcept
     other.release_encrypted_buffer = nullptr;
 }
 
+constexpr int DEL_FRAME_TYPES =
+//    1 << ACK_FRAME        |
+    1 << ACK_FRAME_COPY   |
+    1 << RST_STREAM_FRAME |
+    1 << CONNECTION_CLOSE_FRAME |
+    1 << GOAWAY_FRAME  |
+    1 << MESSAGE_FRAME | 1 << CRYPTO_FRAME
+#if QUIC_TLS_SESSION
+    | 1 << NEW_CONNECTION_ID_FRAME |
+    1 << RETIRE_CONNECTION_ID_FRAME |
+    1 << NEW_TOKEN_FRAME |
+    1 << ACK_FREQUENCY_FRAME
+#endif
+  ;
+
 SerializedPacket::~SerializedPacket() {
   if (DCHECK_FLAG && release_encrypted_buffer && encrypted_buffer != nullptr) {
     release_encrypted_buffer(encrypted_buffer);
   }
 
+  if (0 == (DEL_FRAME_TYPES & frame_types))
+    return;
+
+  //QUICHE_DCHECK(retransmittable_frames.empty());
   if (!retransmittable_frames.empty()) {
     DeleteFrames(&retransmittable_frames);
   }
   for (auto& frame : nonretransmittable_frames) {
-    if (frame.type == ACK_FRAME /*  && !(frame_types & (1 << ACK_FRAME_COPY)) **/) {
+    if (frame.type == ACK_FRAME  && !(frame_types & (1 << ACK_FRAME_COPY))) {
       // Do not delete ack frame if the packet does not own a copy of it.
       continue;
     }
-    DeleteFrame(&frame);
+    if (DEL_FRAME_TYPES & frame.type)
+      DeleteFrame(&frame);
   }
 }
 
@@ -488,7 +508,7 @@ SerializedPacket* CopySerializedPacket(const SerializedPacket& serialized,
   QUICHE_DCHECK(copy->nonretransmittable_frames.empty());
   for (const auto& frame : serialized.nonretransmittable_frames) {
     if (frame.type == ACK_FRAME) {
-      copy->frame_types |= (1 << ACK_FRAME); //TODO3  (1 << ACK_FRAME_COPY)
+      copy->frame_types |= (1 << ACK_FRAME) | (1 << ACK_FRAME_COPY);
     }
     copy->nonretransmittable_frames.push_back(CopyQuicFrame(allocator, frame));
   }

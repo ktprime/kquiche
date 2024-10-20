@@ -391,7 +391,7 @@ QUIC_EXPORT_PRIVATE ParsedQuicVersion QuicVersionReservedForNegotiation();
 QUIC_EXPORT_PRIVATE std::ostream& operator<<(std::ostream& os,
                                              const ParsedQuicVersion& version);
 
-using ParsedQuicVersionVector = std::vector<ParsedQuicVersion>;
+using ParsedQuicVersionVector = absl::InlinedVector<ParsedQuicVersion, 6>;// std::vector<ParsedQuicVersion>;
 
 QUIC_EXPORT_PRIVATE std::ostream& operator<<(
     std::ostream& os, const ParsedQuicVersionVector& versions);
@@ -399,7 +399,7 @@ QUIC_EXPORT_PRIVATE std::ostream& operator<<(
 // Representation of the on-the-wire QUIC version number. Will be written/read
 // to the wire in network-byte-order.
 using QuicVersionLabel = uint32_t;
-using QuicVersionLabelVector = std::vector<QuicVersionLabel>;
+using QuicVersionLabelVector = absl::InlinedVector<QuicVersionLabel, 8>; //std::vector<QuicVersionLabel>;
 
 // Constructs a version label from the 4 bytes such that the on-the-wire
 // order will be: d, c, b, a.
@@ -414,21 +414,13 @@ constexpr std::array<HandshakeProtocol, 2> SupportedHandshakeProtocols() {
   return {PROTOCOL_TLS1_3, PROTOCOL_QUIC_CRYPTO};
 }
 
-constexpr std::array<ParsedQuicVersion, 6> SupportedVersions() {
-  return {
-      ParsedQuicVersion::V2Draft08(), ParsedQuicVersion::RFCv1(),
-      ParsedQuicVersion::Draft29(),   ParsedQuicVersion::Q050(),
-      ParsedQuicVersion::Q046(),      ParsedQuicVersion::Q043(),
-  };
-}
-
 using QuicTransportVersionVector = std::vector<QuicTransportVersion>;
 
 QUIC_EXPORT_PRIVATE std::ostream& operator<<(
     std::ostream& os, const QuicTransportVersionVector& transport_versions);
 
 // Returns a vector of supported QUIC versions.
-QUIC_EXPORT_PRIVATE ParsedQuicVersionVector AllSupportedVersions();
+QUIC_EXPORT_PRIVATE const ParsedQuicVersionVector& AllSupportedVersions();
 
 // Returns a vector of supported QUIC versions, with any versions disabled by
 // flags excluded.

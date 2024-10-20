@@ -82,6 +82,7 @@ QuicFrameTypeBitfield GetFrameTypeBitfield(QuicFrameType type) {
       return kAckFrameBitfield;
     case MTU_DISCOVERY_FRAME:
       return kMtuDiscoveryFrameBitfield;
+#if QUIC_TLS_SESSION
     case NEW_CONNECTION_ID_FRAME:
       return kNewConnectionIdFrameBitfield;
     case MAX_STREAMS_FRAME:
@@ -94,15 +95,17 @@ QuicFrameTypeBitfield GetFrameTypeBitfield(QuicFrameType type) {
       return kPathChallengeFrameBitfield;
     case STOP_SENDING_FRAME:
       return kStopSendingFrameBitfield;
-    case MESSAGE_FRAME:
-      return kMessageFrameBitfield;
     case NEW_TOKEN_FRAME:
       return kNewTokenFrameBitfield;
     case RETIRE_CONNECTION_ID_FRAME:
       return kRetireConnectionIdFrameBitfield;
     case ACK_FREQUENCY_FRAME:
       return kAckFrequencyFrameBitfield;
+#endif
+    case MESSAGE_FRAME:
+      return kMessageFrameBitfield;
     case NUM_FRAME_TYPES:
+    case ACK_FRAME_COPY:
       QUIC_BUG(quic_bug_10518_1) << "Unexpected frame type";
       return kInvalidFrameBitfield;
   }
@@ -247,40 +250,49 @@ void QuicUnackedPacketMap::MaybeUpdateLargestAckedOfPacketNumberSpace(
     PacketNumberSpace packet_number_space, QuicPacketNumber packet_number) {
   largest_acked_packets_[packet_number_space].UpdateMax(packet_number);
 }
-
-bool QuicUnackedPacketMap::IsPacketUsefulForMeasuringRtt(
-    QuicPacketNumber packet_number, const QuicTransmissionInfo& info) const {
-  // Packet can be used for RTT measurement if it may yet be acked as the
-  // largest observed packet by the receiver.
-  return (/*!largest_acked_.IsInitialized() ||**/ packet_number > largest_acked_) &&
-         QuicUtils::IsAckable(info.state) &&
-         info.state != NOT_CONTRIBUTING_RTT;
-}
-
+#if 0
 bool QuicUnackedPacketMap::IsPacketUsefulForCongestionControl(
-    const QuicTransmissionInfo& info) const {
+  const QuicTransmissionInfo& info) const {
   // Packet contributes to congestion control if it is considered inflight.
   return info.in_flight;
 }
 
 bool QuicUnackedPacketMap::IsPacketUsefulForRetransmittableData(
-    const QuicTransmissionInfo& info) const {
+  const QuicTransmissionInfo& info) const {
   // Wait for 1 RTT before giving up on the lost packet.
   return //info.first_sent_after_loss.IsInitialized() &&
-         (//!largest_acked_.IsInitialized() ||
-           largest_acked_ < info.first_sent_after_loss);
+    (//!largest_acked_.IsInitialized() ||
+      largest_acked_ < info.first_sent_after_loss);
+}
+#endif
+
+bool QuicUnackedPacketMap::IsPacketUsefulForMeasuringRtt(
+    QuicPacketNumber packet_number, const QuicTransmissionInfo& info) const {
+  // Packet can be used for RTT measurement if it may yet be acked as the
+  // largest observed packet by the receiver.
+  QUICHE_DCHECK(info.state != NOT_CONTRIBUTING_RTT);
+  if (packet_number > largest_acked_ + 1) {
+    QUICHE_DCHECK(info.state <= OUTSTANDING);
+    //printf("%lld %lld %d\n", packet_number - largest_acked_, largest_acked_.ToUint64(), info.state);
+  }
+  return packet_number > largest_acked_ &&
+         QuicUtils::IsAckable(info.state) &&
+         info.state != NOT_CONTRIBUTING_RTT;
 }
 
 bool QuicUnackedPacketMap::IsPacketUseless(
     QuicPacketNumber packet_number, const QuicTransmissionInfo& info) const {
-  return info.in_flight || //IsPacketUsefulForCongestionControl(info) ||
-        IsPacketUsefulForMeasuringRtt(packet_number, info) ||
-        largest_acked_ < info.first_sent_after_loss;//    IsPacketUsefulForRetransmittableData(info);
+  return info.in_flight ||
+         //IsPacketUsefulForMeasuringRtt(packet_number, info) ||
+        (packet_number > largest_acked_ && QuicUtils::IsAckable(info.state)) ||
+        largest_acked_ < info.first_sent_after_loss;
 }
 
 bool QuicUnackedPacketMap::IsUnacked(QuicPacketNumber packet_number) const {
-  if (packet_number < least_unacked_ ||
-      packet_number >= least_unacked_ + unacked_packets_.size()) {
+  QUICHE_DCHECK(packet_number < least_unacked_ + unacked_packets_.size());
+  QUICHE_DCHECK(largest_sent_packet_ + 1 == least_unacked_ + unacked_packets_.size());
+  if (packet_number < least_unacked_ /* ||
+      packet_number >= least_unacked_ + unacked_packets_.size()**/) {
     return false;
   }
   return IsPacketUseless(packet_number,
@@ -460,11 +472,12 @@ bool QuicUnackedPacketMap::NotifyFramesAcked(const QuicTransmissionInfo& info,
   return new_data_acked;
 }
 
-void QuicUnackedPacketMap::NotifyFramesLost(const QuicTransmissionInfo& info,
+bool QuicUnackedPacketMap::NotifyFramesLost(const QuicTransmissionInfo& info,
                                             TransmissionType /*type*/) {
   for (const QuicFrame& frame : info.retransmittable_frames) {
     session_notifier_->OnFrameLost(frame);
   }
+  return session_notifier_->HasLostStreamData();
 }
 
 bool QuicUnackedPacketMap::RetransmitFrames(const QuicFrames& frames,
@@ -532,7 +545,7 @@ void QuicUnackedPacketMap::NotifyAggregatedStreamFrameAcked(
                                   ack_delay,
                                   /*receive_timestamp=*/QuicTime::Zero());
   // Clear aggregated stream frame.
-  aggregated_stream_frame_.stream_id = -1;
+  aggregated_stream_frame_.stream_id = static_cast<QuicStreamId>(-1);
 }
 
 PacketNumberSpace QuicUnackedPacketMap::GetPacketNumberSpace(

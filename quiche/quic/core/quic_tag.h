@@ -11,6 +11,8 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "absl/container/btree_map.h"
+#include "absl/container/inlined_vector.h"
 #include "quiche/quic/platform/api/quic_export.h"
 
 namespace quic {
@@ -24,8 +26,9 @@ namespace quic {
 // just a mnemonic for the value 0x504d5845 (little-endian version of the ASCII
 // string E X M P).
 using QuicTag = uint32_t;
-using QuicTagValueMap = std::map<QuicTag, std::string>;
-using QuicTagVector = std::vector<QuicTag>;
+//using QuicTagValueMap = std::map<QuicTag, std::string>;
+using QuicTagValueMap = absl::btree_map<QuicTag, std::string>;
+using QuicTagVector = absl::InlinedVector<QuicTag, 8>;// std::vector<QuicTag>;
 
 // MakeQuicTag returns a value given the four bytes. For example:
 //   MakeQuicTag('C', 'H', 'L', 'O');

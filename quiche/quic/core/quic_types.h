@@ -255,6 +255,7 @@ enum QuicFrameType : uint8_t {
   // from Google QUIC frames. These are valid/allowed if and only if IETF-
   // QUIC has been negotiated. Values are not important, they are not
   // the values that are in the packets (see QuicIetfFrameType, below).
+#if QUIC_TLS_SESSION
   NEW_CONNECTION_ID_FRAME,
   MAX_STREAMS_FRAME,
   STREAMS_BLOCKED_FRAME,
@@ -265,7 +266,10 @@ enum QuicFrameType : uint8_t {
   NEW_TOKEN_FRAME,
   RETIRE_CONNECTION_ID_FRAME,
   ACK_FREQUENCY_FRAME,
-
+#else
+  MESSAGE_FRAME = 19,
+#endif
+  ACK_FRAME_COPY,
   NUM_FRAME_TYPES
 };
 
@@ -438,6 +442,7 @@ enum CongestionControlType {
   kPCC,
   kGoogCC,
   kBBRv2,
+  kPragueCubic
 };
 
 QUIC_EXPORT_PRIVATE std::string CongestionControlTypeToString(
@@ -514,15 +519,15 @@ enum StreamSendingState {
 };
 
 enum SentPacketState : uint8_t {
-  // The packet is in flight and waiting to be acked.
-  OUTSTANDING,
-  FIRST_PACKET_STATE = OUTSTANDING,
   // The packet was never sent.
   NEVER_SENT,
-  // The packet has been acked.
-  ACKED,
+  FIRST_PACKET_STATE = NEVER_SENT,
   // This packet is not expected to be acked.
   UNACKABLE,
+  // The packet has been acked.
+  ACKED,
+  // The packet is in flight and waiting to be acked.
+  OUTSTANDING,
   // This packet has been delivered or unneeded.
   NEUTERED,
 
@@ -589,7 +594,7 @@ struct QUIC_EXPORT_PRIVATE LostPacket {
 };
 
 // A vector of lost packets.
-using LostPacketVector = absl::InlinedVector<LostPacket, 16>;
+using LostPacketVector = absl::InlinedVector<LostPacket, 8>;
 
 // Please note, this value cannot used directly for packet serialization.
 enum QuicLongHeaderType : uint8_t {
@@ -707,10 +712,10 @@ enum AckResult {
 
 // Indicates the fate of a serialized packet in WritePacket().
 enum SerializedPacketFate : uint8_t {
+  SEND_TO_WRITER,  // Send packet to writer.
   DISCARD,         // Discard the packet.
   COALESCE,        // Try to coalesce packet.
   BUFFER,          // Buffer packet in buffered_packets_.
-  SEND_TO_WRITER,  // Send packet to writer.
 };
 
 QUIC_EXPORT_PRIVATE std::string SerializedPacketFateToString(

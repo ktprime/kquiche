@@ -30,7 +30,7 @@ class QUIC_EXPORT_PRIVATE QuicServerId {
   QuicServerId();
   QuicServerId(std::string host, uint16_t port);
   QuicServerId(std::string host, uint16_t port, bool privacy_mode_enabled);
-  ~QuicServerId();
+  ~QuicServerId() = default;
 
   // Needed to be an element of an ordered container.
   bool operator<(const QuicServerId& other) const;

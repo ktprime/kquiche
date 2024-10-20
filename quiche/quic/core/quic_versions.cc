@@ -24,9 +24,13 @@ namespace quic {
 namespace {
 #if QUIC_TLS_SESSION
 static constexpr bool enable_tls = true;
-#else
-static constexpr bool enable_tls = false;
 #endif
+
+static const ParsedQuicVersionVector SupportedVersions = {
+      ParsedQuicVersion::V2Draft08(), ParsedQuicVersion::RFCv1(),
+      ParsedQuicVersion::Draft29(),   ParsedQuicVersion::Q050(),
+      ParsedQuicVersion::Q046(),      ParsedQuicVersion::Q043(),
+};
 
 QuicVersionLabel CreateRandomVersionLabelForNegotiation() {
   QuicVersionLabel result;
@@ -407,10 +411,8 @@ QuicTransportVersionVector AllSupportedTransportVersions() {
   return transport_versions;
 }
 
-ParsedQuicVersionVector AllSupportedVersions() {
-  constexpr auto supported_versions = SupportedVersions();
-  return ParsedQuicVersionVector(supported_versions.begin(),
-                                 supported_versions.end());
+const ParsedQuicVersionVector& AllSupportedVersions() {
+  return SupportedVersions;
 }
 
 ParsedQuicVersionVector CurrentSupportedVersions() {

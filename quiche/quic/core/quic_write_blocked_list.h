@@ -31,8 +31,12 @@ class QUICHE_EXPORT QuicWriteBlockedListInterface {
   virtual bool HasWriteBlockedDataStreams() const = 0;
   virtual size_t NumBlockedSpecialStreams() const = 0;
   virtual size_t NumBlockedStreams() const = 0;
-  bool HasWriteBlockedSpecialStream() const {
+  static constexpr bool HasWriteBlockedSpecialStream() {
+#if NO_STTAIC
     return NumBlockedSpecialStreams() > 0;
+#else
+    return false;
+#endif
   }
 
   // Returns true if there is another stream with higher priority in the queue.
@@ -87,11 +91,15 @@ class QUIC_EXPORT_PRIVATE QuicWriteBlockedList final
   }
 
   size_t NumBlockedSpecialStreams() const override {
+#if NO_STTAIC
     return static_stream_collection_.num_blocked();
+#else
+    return 0;
+#endif
   }
 
   size_t NumBlockedStreams() const override {
-    return static_stream_collection_.num_blocked() +
+    return NumBlockedSpecialStreams() +
            priority_write_scheduler_.NumReadyStreams();
   }
 
@@ -174,7 +182,7 @@ class QUIC_EXPORT_PRIVATE QuicWriteBlockedList final
     };
 
     // Optimized for the typical case of 2 static streams per session.
-    using StreamsVector = absl::InlinedVector<StreamIdBlockedPair, 2>;
+    using StreamsVector = absl::InlinedVector<StreamIdBlockedPair, 1>;
 
     StreamsVector::const_iterator begin() const { return streams_.cbegin(); }
 
@@ -207,7 +215,9 @@ class QUIC_EXPORT_PRIVATE QuicWriteBlockedList final
     StreamsVector streams_;
   };
 
+#if NO_STTAIC
   StaticStreamCollection static_stream_collection_;
+#endif
 
   // Latched value of reloadable_flag_quic_priority_respect_incremental.
   const bool respect_incremental_;

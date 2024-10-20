@@ -32,11 +32,11 @@ QuicStreamSequencer::QuicStreamSequencer(StreamInterface* quic_stream)
       buffered_frames_(kStreamReceiveWindowLimit),
       highest_offset_(0),
       close_offset_(std::numeric_limits<QuicStreamOffset>::max()),
-      blocked_(false),
       num_frames_received_(0),
       num_duplicate_frames_received_(0),
       ignore_read_data_(false),
-      level_triggered_(false) {}
+      level_triggered_(false),
+      blocked_(false) {}
 
 QuicStreamSequencer::~QuicStreamSequencer() {
   if (stream_ == nullptr) {

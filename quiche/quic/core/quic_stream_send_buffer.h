@@ -10,6 +10,7 @@
 //#include "quiche/quic/core/quic_interval_deque.h"
 #include "quiche/quic/core/quic_interval_set.h"
 #include "quiche/quic/core/quic_types.h"
+#include "quiche/quic/core/quic_constants.h"
 #include "quiche/common/platform/api/quiche_mem_slice.h"
 //#include "quiche/common/quiche_circular_deque.h"
 
@@ -65,12 +66,11 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
   // Size of blocks used by this buffer.
   // Choose 8K to make block large enough to hold multiple frames, each of
   // which could be up to 1.5 KB.
-  inline static constexpr uint32_t kBlockSizeBytes = 8 * 1024;  // 8KB
-  inline static constexpr uint32_t kSmallBlocks = 64 * 1024 / kBlockSizeBytes;
+  inline static constexpr uint32_t kBlockSizeBytes = 16 * 1024;  // 8KB
+  inline static constexpr uint32_t kSmallBlocks = 128 * 1024 / kBlockSizeBytes;
 public:
-  inline static constexpr int32_t kInterSetSize = 6;
 
-  //static_assert(kBlockSizeBytes > kMaxIncomingPacketSize);
+  static_assert(kBlockSizeBytes > kMaxIncomingPacketSize);
 
   // The basic storage block used by this buffer.
   struct QUIC_EXPORT_PRIVATE BufferBlock {
@@ -132,14 +132,9 @@ public:
   QuicStreamOffset stream_offset() const { return stream_offset_; }
 
   uint64_t stream_bytes_written() const { return stream_bytes_written_; }
+  uint64_t stream_bytes_outstanding() const {  return stream_bytes_outstanding_; }
 
-  uint64_t stream_bytes_outstanding() const {
-    return stream_bytes_outstanding_;
-  }
-
-  const auto& bytes_acked() const {
-    return bytes_acked_;
-  }
+  const auto& bytes_acked() const {    return bytes_acked_;  }
 #if 0
   const QuicIntervalSet<QuicStreamOffset>& pending_retransmissions() const {
     return pending_retransmissions_;
@@ -177,10 +172,10 @@ public:
   // Bytes that have been consumed and are waiting to be acked.
   uint64_t stream_bytes_outstanding_;
 
-  absl::InlinedVector<BufferBlock*, kSmallBlocks> blocks_;
-
   // Offsets of data that has been acked.
   QuicIntervalSet<QuicStreamOffset> bytes_acked_;
+
+  absl::InlinedVector<BufferBlock*, kSmallBlocks> blocks_;
 
   // Data considered as lost and needs to be retransmitted.
   QuicIntervalSet<QuicStreamOffset> pending_retransmissions_;

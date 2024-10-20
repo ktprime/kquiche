@@ -82,9 +82,8 @@ class QUIC_EXPORT_PRIVATE QuicStreamSequencerBuffer {
   // Size of blocks used by this buffer.
   // Choose 8K to make block large enough to hold multiple frames, each of
   // which could be up to 1.5 KB.
-  inline static constexpr uint32_t kBlockSizeBytes = 8 * 1024;  // 8KB
+  inline static constexpr uint32_t kBlockSizeBytes = 64 * 1024;  // 8KB
   inline static constexpr uint32_t kEmptyBlocks = 64 * 1024 / kBlockSizeBytes;
-  inline static constexpr uint32_t kSmallBlocks = kEmptyBlocks;
 
   // The basic storage block used by this buffer.
   struct QUIC_EXPORT_PRIVATE BufferBlock {
@@ -235,7 +234,7 @@ class QUIC_EXPORT_PRIVATE QuicStreamSequencerBuffer {
   // An ordered, variable-length list of blocks, with the length limited
   // such that the number of blocks never exceeds max_blocks_count_.
   // Each list entry can hold up to kBlockSizeBytes bytes.
-  absl::InlinedVector<BufferBlock*, kSmallBlocks> blocks_;
+  absl::InlinedVector<BufferBlock*, kEmptyBlocks> blocks_;
 
   //empty buffer cache for reuse
   BufferBlock* empty_blocks[kEmptyBlocks];

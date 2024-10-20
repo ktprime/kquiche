@@ -16,7 +16,7 @@ namespace {
 const QuicPacketCount kMaxPrintRange = 128;
 
 }  // namespace
-
+#if 0
 bool IsAwaitingPacket(const QuicAckFrame& ack_frame,
                       QuicPacketNumber packet_number,
                       QuicPacketNumber peer_least_packet_awaiting_ack) {
@@ -25,6 +25,7 @@ bool IsAwaitingPacket(const QuicAckFrame& ack_frame,
           packet_number >= peer_least_packet_awaiting_ack &&
          !ack_frame.packets.Contains(packet_number);
 }
+#endif
 
 QuicAckFrame::QuicAckFrame() = default;
 
@@ -60,7 +61,13 @@ void QuicAckFrame::Clear() {
   packets.Clear();
 }
 
-PacketNumberQueue::PacketNumberQueue() {}
+PacketNumberQueue::PacketNumberQueue() {
+  //TODO3. only flat set can do this without no memory allocted.
+  QuicIntervalSet<QuicPacketNumber>::iterator it = packet_number_intervals_.begin();
+  const_cast<QuicPacketNumber&>(it->max()) = QuicPacketNumber(0);
+  const_cast<QuicPacketNumber&>(it->min()) = QuicPacketNumber(0);
+}
+
 PacketNumberQueue::PacketNumberQueue(const PacketNumberQueue& other) = default;
 PacketNumberQueue::PacketNumberQueue(PacketNumberQueue&& other) = default;
 PacketNumberQueue::~PacketNumberQueue() {}
@@ -92,7 +99,7 @@ void PacketNumberQueue::Add(QuicPacketNumber packet_number) {
     interval_set.AddInter(interval);
   }
 
-//  packet_number_intervals_.AddOptimizedForAppend(interval);
+//  interval_set.AddOptimizedForAppend(interval);
 }
 
 void PacketNumberQueue::AddRange(QuicPacketNumber lower,

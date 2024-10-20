@@ -15,6 +15,7 @@
 
 namespace quic {
 
+#if 0
 constexpr int IETF_FRAME_TYPES =
   (1 << NEW_CONNECTION_ID_FRAME) |
   (1 << MAX_STREAMS_FRAME) |
@@ -35,6 +36,22 @@ constexpr int NO_FRAME_TYPES =
   (1 << WINDOW_UPDATE_FRAME) | (1 << BLOCKED_FRAME) |
   (1 << STOP_SENDING_FRAME)  | (1 << PATH_CHALLENGE_FRAME) |
   (1 << PATH_RESPONSE_FRAME);
+#endif
+
+constexpr int DEL_FRAME_TYPES =
+    1 << ACK_FRAME        |
+    1 << RST_STREAM_FRAME |
+    1 << CONNECTION_CLOSE_FRAME |
+    1 << GOAWAY_FRAME |
+    1 << MESSAGE_FRAME |
+    1 << CRYPTO_FRAME
+#if QUIC_TLS_SESSION
+    | 1 << NEW_CONNECTION_ID_FRAME |
+    1 << RETIRE_CONNECTION_ID_FRAME |
+    1 << NEW_TOKEN_FRAME |
+    1 << ACK_FREQUENCY_FRAME
+#endif
+  ;
 
 QuicFrame::QuicFrame() {}
 
@@ -73,6 +90,7 @@ QuicFrame::QuicFrame(QuicWindowUpdateFrame frame)
 
 QuicFrame::QuicFrame(QuicBlockedFrame frame) : blocked_frame(frame) {}
 
+#if QUIC_TLS_SESSION
 QuicFrame::QuicFrame(QuicNewConnectionIdFrame* frame)
     : type(NEW_CONNECTION_ID_FRAME), new_connection_id_frame(frame) {}
 
@@ -91,19 +109,22 @@ QuicFrame::QuicFrame(QuicPathChallengeFrame frame)
     : path_challenge_frame(frame) {}
 
 QuicFrame::QuicFrame(QuicStopSendingFrame frame) : stop_sending_frame(frame) {}
+#endif
 
 QuicFrame::QuicFrame(QuicMessageFrame* frame)
     : type(MESSAGE_FRAME), message_frame(frame) {}
 
+#if QUIC_TLS_SESSION
 QuicFrame::QuicFrame(QuicNewTokenFrame* frame)
     : type(NEW_TOKEN_FRAME), new_token_frame(frame) {}
 
 QuicFrame::QuicFrame(QuicAckFrequencyFrame* frame)
     : type(ACK_FREQUENCY_FRAME), ack_frequency_frame(frame) {}
+#endif
 
 void DeleteFrames(QuicFrames* frames) {
   for (QuicFrame& frame : *frames) {
-    if ((NO_FRAME_TYPES & (1 << frame.type)) == 0)
+    if (DEL_FRAME_TYPES & (1 << frame.type))
     DeleteFrame(&frame);
   }
   frames->clear();
@@ -112,14 +133,11 @@ void DeleteFrames(QuicFrames* frames) {
 void DeleteFrame(QuicFrame* frame) {
 #if QUIC_FRAME_DEBUG == 1
   // If the frame is not inlined, check that it can be safely deleted.
-  if (0 == (NO_FRAME_TYPES & (1 << frame->type))) {
+  if (DEL_FRAME_TYPES & (1 << frame->type)) {
     QUICHE_CHECK(!frame->delete_forbidden);// << *frame;
   } else
     return;
 #endif  // QUIC_FRAME_DEBUG
-
-  if (NO_FRAME_TYPES & (1 << frame->type))
-    return;
 
   switch (frame->type) {
     case ACK_FRAME:
@@ -155,6 +173,7 @@ void DeleteFrame(QuicFrame* frame) {
       break;
 #endif
     case NUM_FRAME_TYPES:
+    case ACK_FRAME_COPY:
       QUICHE_DCHECK(false);//<< "Cannot delete type: " << frame->type;
   }
 }
@@ -517,13 +536,13 @@ std::ostream& operator<<(std::ostream& os, const QuicFrame& frame) {
     case NEW_TOKEN_FRAME:
       os << "type { NEW_TOKEN_FRAME }" << *(frame.new_token_frame);
       break;
-    case HANDSHAKE_DONE_FRAME:
-      os << "type { HANDSHAKE_DONE_FRAME } " << frame.handshake_done_frame;
-      break;
     case ACK_FREQUENCY_FRAME:
       os << "type { ACK_FREQUENCY_FRAME } " << *(frame.ack_frequency_frame);
       break;
 #endif
+    case HANDSHAKE_DONE_FRAME:
+      os << "type { HANDSHAKE_DONE_FRAME } " << frame.handshake_done_frame;
+      break;
     default: {
       QUIC_LOG(ERROR) << "Unknown frame type: " << frame.type;
       break;

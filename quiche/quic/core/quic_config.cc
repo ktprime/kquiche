@@ -452,10 +452,6 @@ QuicConfig::QuicConfig()
   SetDefaults();
 }
 
-QuicConfig::QuicConfig(const QuicConfig& other) = default;
-
-QuicConfig::~QuicConfig() {}
-
 bool QuicConfig::SetInitialReceivedConnectionOptions(
     const QuicTagVector& tags) {
   if (HasReceivedConnectionOptions()) {

@@ -80,7 +80,10 @@ class QUIC_EXPORT_PRIVATE QuicUtils {
   // Returns true if a packet is ackable. A packet is unackable if it can never
   // be acked. Occurs when a packet is never sent, after it is acknowledged
   // once, or if it's a crypto packet we never expect to receive an ack for.
-  static bool IsAckable(SentPacketState state);
+  static inline bool IsAckable(SentPacketState state) {
+    //    (state != NEVER_SENT && state != ACKED && state != UNACKABLE);
+    return state >= OUTSTANDING;
+  };
 
   // Returns true if frame with |type| is retransmittable. A retransmittable
   // frame should be retransmitted if it is detected as lost.

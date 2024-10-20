@@ -219,7 +219,7 @@ class QUIC_EXPORT_PRIVATE QuicData {
 
  private:
   const char* buffer_;
-  size_t length_;
+  uint32_t length_;
   bool owns_buffer_;
 };
 
@@ -248,12 +248,12 @@ class QUIC_EXPORT_PRIVATE QuicPacket : public QuicData {
   char* buffer_;
   const uint8_t destination_connection_id_length_;
   const uint8_t source_connection_id_length_;
+  const quiche::QuicheVariableLengthIntegerLength length_length_;
   const bool includes_version_;
   const bool includes_diversification_nonce_;
   const QuicPacketNumberLength packet_number_length_;
   const quiche::QuicheVariableLengthIntegerLength retry_token_length_length_;
   const QuicByteCount retry_token_length_;
-  const quiche::QuicheVariableLengthIntegerLength length_length_;
 };
 
 class QUIC_EXPORT_PRIVATE QuicEncryptedPacket : public QuicData {
@@ -326,9 +326,9 @@ class QUIC_EXPORT_PRIVATE QuicReceivedPacket : public QuicEncryptedPacket {
 
  private:
   const QuicTime receipt_time_;
-  int ttl_;
   // Points to the start of packet headers.
   char* packet_headers_;
+  int ttl_;
   // Length of packet headers.
   int headers_length_;
   // Whether owns the buffer for packet headers.

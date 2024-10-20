@@ -23,12 +23,12 @@ class QUIC_EXPORT_PRIVATE StreamDelegateInterface {
 
   // Called when the stream has encountered errors that it can't handle.
   virtual void OnStreamError(QuicErrorCode error_code,
-                             std::string error_details) = 0;
+                             const std::string& error_details) = 0;
   // Called when the stream has encountered errors that it can't handle,
   // specifying the wire error code |ietf_error| explicitly.
   virtual void OnStreamError(QuicErrorCode error_code,
                              QuicIetfTransportErrorCodes ietf_error,
-                             std::string error_details) = 0;
+                             const std::string& error_details) = 0;
   // Called when the stream needs to write data at specified |level| and
   // transmission |type|.
   virtual QuicConsumedData WritevData(QuicStreamId id, size_t write_length,

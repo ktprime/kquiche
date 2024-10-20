@@ -29,7 +29,7 @@ size_t CalculateBlockCount(size_t max_capacity_bytes) {
 // Upper limit of how many gaps allowed in buffer, which ensures a reasonable
 // number of iterations needed to find the right gap to fill when a frame
 // arrives.
-constexpr uint32_t kMaxNumDataIntervalsAllowed = 2 * kMaxPacketGap;
+// constexpr uint32_t kMaxNumDataIntervalsAllowed = 2 * kMaxPacketGap;
 
 // Number of blocks allocated initially.
 constexpr uint32_t kInitialBlockCount = 2u;
@@ -45,7 +45,10 @@ QuicStreamSequencerBuffer::QuicStreamSequencerBuffer(size_t max_capacity_bytes)
       current_blocks_count_(0u),
       current_capacity_bytes_(0u),
       total_bytes_read_(0) {
-  const auto max_blocks_count_ = CalculateBlockCount(max_capacity_bytes);
+#if DCHECK_FLAG
+  const auto max_blocks_count_ =
+#endif
+    CalculateBlockCount(max_capacity_bytes);
   QUICHE_DCHECK_GE(max_blocks_count_, kInitialBlockCount);
   QUICHE_DCHECK((max_blocks_count_ & (max_blocks_count_ - 1)) == 0);
   QUICHE_DCHECK((max_capacity_bytes & (max_capacity_bytes - 1)) == 0);
@@ -169,14 +172,14 @@ QuicErrorCode QuicStreamSequencerBuffer::OnStreamData(
 
   if (starting_offset == rmax) {
     // Optimization for the normal case, when all data is newly received.
-    const_cast<size_t&>(rmax) = ending_offset;
+    const_cast<QuicStreamOffset&>(rmax) = ending_offset;
     CopyStreamData(starting_offset, data, bytes_buffered, error_details);
     return QUIC_NO_ERROR;
   }
   else if (starting_offset > rmax) {
     // Optimization for the normal case, when all data is newly received.
     bytes_received_.AppendBack(off);
-    if (bytes_received_.Size() >= kMaxNumDataIntervalsAllowed) {
+    if (bytes_received_.Size() >= kMaxPacketGap) {
       // This frame is going to create more intervals than allowed. Stop processing.
       *error_details = "Too many data intervals received for this stream.";
       return QUIC_TOO_MANY_STREAM_DATA_INTERVALS;

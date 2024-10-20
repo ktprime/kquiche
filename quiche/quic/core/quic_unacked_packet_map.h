@@ -53,7 +53,7 @@ class QUIC_EXPORT_PRIVATE QuicUnackedPacketMap {
                          QuicTime::Delta ack_delay, QuicTime receive_timestamp);
 
   // Notifies session_notifier that frames in |info| are considered as lost.
-  void NotifyFramesLost(const QuicTransmissionInfo& info,
+  bool NotifyFramesLost(const QuicTransmissionInfo& info,
                         TransmissionType type);
 
   // Notifies session_notifier to retransmit frames with |transmission_type|.

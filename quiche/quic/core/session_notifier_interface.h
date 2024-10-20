@@ -41,6 +41,9 @@ class QUIC_EXPORT_PRIVATE SessionNotifierInterface {
 
   // Returns true if any stream is waiting for acks.
   virtual bool HasUnackedStreamData() const = 0;
+
+  // Returns true if any stream has lost data.
+  virtual bool HasLostStreamData() const = 0;
 };
 
 }  // namespace quic

@@ -198,10 +198,6 @@ class QUIC_EXPORT_PRIVATE QuicStreamSequencer final {
   // have been processed, the sequencer will be closed.
   QuicStreamOffset close_offset_;
 
-  // If true, the sequencer is blocked from passing data to the stream and will
-  // buffer all new incoming data until FlushBufferedFrames is called.
-  bool blocked_;
-
   // Count of the number of frames received.
   int num_frames_received_;
 
@@ -214,6 +210,10 @@ class QUIC_EXPORT_PRIVATE QuicStreamSequencer final {
   // If false, only call OnDataAvailable() when it becomes newly unblocked.
   // Otherwise, call OnDataAvailable() when number of readable bytes changes.
   bool level_triggered_;
+
+  // If true, the sequencer is blocked from passing data to the stream and will
+  // buffer all new incoming data until FlushBufferedFrames is called.
+  bool blocked_;
 };
 
 }  // namespace quic

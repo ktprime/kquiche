@@ -62,17 +62,18 @@ std::ostream& operator<<(std::ostream& os, const QuicConnectionStats& s) {
   }
   if (s.tcp_loss_events)
   os << " tcp_loss_events: " << s.tcp_loss_events;
+  os << " send_alarms: " << s.send_alarms;
 //  os << " connection_creation_time: "
 //     << s.connection_creation_time.ToDebuggingValue();
   if (s.blocked_frames_received)
   os << " blocked_frames_received: " << s.blocked_frames_received;
 //  if (s.blocked_frames_sent)
 //  os << " blocked_frames_sent: " << s.blocked_frames_sent;
+#if QUIC_TLS_SESSION
   if (s.num_connectivity_probing_received)
   os << " num_connectivity_probing_received: " << s.num_connectivity_probing_received;
   if (s.num_path_response_received)
   os << " num_path_response_received: " << s.num_path_response_received;
-#if QUIC_TLS_SESSION
   if (s.retry_packet_processed)
   os << " retry_packet_processed: yes";
   if (s.num_coalesced_packets_received)
@@ -95,13 +96,6 @@ std::ostream& operator<<(std::ostream& os, const QuicConnectionStats& s) {
      << s.address_validated_via_decrypting_packet;
   if (s.address_validated_via_token)
   os << " address_validated_via_token: " << s.address_validated_via_token;
-
-  os << " server_preferred_address_validated: "
-     << s.server_preferred_address_validated;
-  os << " failed_to_validate_server_preferred_address: "
-     << s.failed_to_validate_server_preferred_address;
-  os << " num_duplicated_packets_sent_to_server_preferred_address: "
-     << s.num_duplicated_packets_sent_to_server_preferred_address;
 #endif
   os << " }";
 

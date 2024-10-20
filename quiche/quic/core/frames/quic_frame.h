@@ -86,17 +86,18 @@ struct QUIC_EXPORT_PRIVATE QuicFrame {
     QuicPaddingFrame padding_frame;
     QuicMtuDiscoveryFrame mtu_discovery_frame;
     QuicPingFrame ping_frame;
-    QuicMaxStreamsFrame max_streams_frame;
     QuicStopWaitingFrame stop_waiting_frame;
-    QuicStreamsBlockedFrame streams_blocked_frame;
     QuicStreamFrame stream_frame;
+    QuicBlockedFrame blocked_frame;
     QuicHandshakeDoneFrame handshake_done_frame;
     QuicWindowUpdateFrame window_update_frame;
-    QuicBlockedFrame blocked_frame;
+#if QUIC_TLS_SESSION
+    QuicStreamsBlockedFrame streams_blocked_frame;
+    QuicMaxStreamsFrame max_streams_frame;
     QuicStopSendingFrame stop_sending_frame;
     QuicPathChallengeFrame path_challenge_frame;
     QuicPathResponseFrame path_response_frame;
-
+#endif
     // Out of line frames.
     struct {
       QuicFrameType type;
@@ -110,12 +111,14 @@ struct QUIC_EXPORT_PRIVATE QuicFrame {
         QuicRstStreamFrame* rst_stream_frame;
         QuicConnectionCloseFrame* connection_close_frame;
         QuicGoAwayFrame* goaway_frame;
-        QuicNewConnectionIdFrame* new_connection_id_frame;
-        QuicRetireConnectionIdFrame* retire_connection_id_frame;
         QuicMessageFrame* message_frame;
         QuicCryptoFrame* crypto_frame;
+#if QUIC_TLS_SESSION
         QuicAckFrequencyFrame* ack_frequency_frame;
         QuicNewTokenFrame* new_token_frame;
+        QuicNewConnectionIdFrame* new_connection_id_frame;
+        QuicRetireConnectionIdFrame* retire_connection_id_frame;
+#endif
       };
     };
   };
@@ -130,15 +133,12 @@ static_assert(offsetof(QuicStreamFrame, type) == offsetof(QuicFrame, type),
 
 // A inline size of 1 is chosen to optimize the typical use case of
 // 1-stream-frame in QuicTransmissionInfo.retransmittable_frames.
-#ifndef _DEBUG
+#if 1
 using QuicFrames = absl::InlinedVector<QuicFrame, 2>;
 using QuicFramesN = absl::InlinedVector<QuicFrame, 1>;
-//using QuicFramesN = std::vector<QuicFrame>;
-//using QuicFrames  = absl::small_vector<QuicFrame, 2>;
 #else
 using QuicFrames  = std::vector<QuicFrame>;
-using QuicFramesN = absl::InlinedVector<QuicFrame, 1>;
-//using QuicFramesN = std::vector<QuicFrame>;
+using QuicFramesN = std::vector<QuicFrame>;
 #endif
 
 // Deletes all the sub-frames contained in |frames|.

@@ -83,6 +83,7 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
 
   // Number of PROBE_BW cycles. Populated for BBRv1 and BBRv2.
   uint32_t bbr_num_cycles = 0;
+  uint32_t send_alarms = 0;
   // Number of PROBE_BW cycles shortened for reno coexistence. BBRv2 only.
   uint32_t bbr_num_short_cycles_for_reno_coexistence = 0;
 
@@ -90,9 +91,9 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
 
   // Packets that failed to decrypt when they were first received,
   // before the handshake was complete.
-  uint32_t undecryptable_packets_received_before_handshake_complete = 0;
+  uint16_t undecryptable_packets_received_before_handshake_complete = 0;
 
-  uint32_t crypto_retransmit_count = 0;
+  uint16_t crypto_retransmit_count = 0;
   // Count of times the loss detection alarm fired.  At least one packet should
   // be lost when the alarm fires.
   uint32_t loss_timeout_count = 0;
@@ -114,9 +115,9 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
 
   // Reordering stats for received packets.
   // Number of packets received out of packet number order.
-  uint64_t packets_reordered = 0;
+  uint32_t packets_reordered = 0;
   // Maximum reordering observed in packet number space.
-  uint64_t max_sequence_reordering = 0;
+  uint32_t max_sequence_reordering = 0;
   // Maximum reordering observed in microseconds
   int64_t max_time_reordering_us = 0;
 
@@ -167,18 +168,18 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   bool address_validated_via_token = false;
 
   // Number of received coalesced packets.
-  uint32_t num_coalesced_packets_received = 0;
+  uint16_t num_coalesced_packets_received = 0;
   // Number of successfully processed coalesced packets.
-  uint32_t num_coalesced_packets_processed = 0;
+  uint16_t num_coalesced_packets_processed = 0;
   // Number of ack aggregation epochs. For the same number of bytes acked, the
   // smaller this value, the more ack aggregation is going on.
-  uint32_t num_ack_aggregation_epochs = 0;
+  uint16_t num_ack_aggregation_epochs = 0;
 
   // Packet number of first decrypted packet.
   QuicPacketNumber first_decrypted_packet;
 
   // Max consecutive retransmission timeout before making forward progress.
-  uint32_t max_consecutive_rto_with_forward_progress = 0;
+  uint16_t max_consecutive_rto_with_forward_progress = 0;
 
   // Number of times when the connection tries to send data but gets throttled
   // by amplification factor.
@@ -199,28 +200,28 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
       num_tls_server_zero_rtt_packets_received_after_discarding_decrypter = 0;
 
 
-  uint32_t ping_frames_sent = 0;
+  uint16_t ping_frames_sent = 0;
 
   // Number of detected peer address changes which changes to a peer address
   // validated by earlier path validation.
-  uint32_t num_peer_migration_to_proactively_validated_address = 0;
+  uint16_t num_peer_migration_to_proactively_validated_address = 0;
   // Number of detected peer address changes which triggers reverse path
   // validation.
-  uint32_t num_reverse_path_validtion_upon_migration = 0;
+  uint16_t num_reverse_path_validtion_upon_migration = 0;
   // Number of detected peer migrations which either succeed reverse path
   // validation or no need to be validated.
-  uint32_t num_validated_peer_migration = 0;
+  uint16_t num_validated_peer_migration = 0;
   // Number of detected peer migrations which triggered reverse path validation
   // and failed and fell back to the old path.
-  uint32_t num_invalid_peer_migration = 0;
+  uint16_t num_invalid_peer_migration = 0;
   // Number of detected peer migrations which triggered reverse path validation
   // which was canceled because the peer migrated again. Such migration is also
   // counted as invalid peer migration.
-  uint32_t num_peer_migration_while_validating_default_path = 0;
+  uint16_t num_peer_migration_while_validating_default_path = 0;
   // Number of NEW_CONNECTION_ID frames sent.
-  uint32_t num_new_connection_id_sent = 0;
+  uint16_t num_new_connection_id_sent = 0;
   // Number of RETIRE_CONNECTION_ID frames sent.
-  uint32_t num_retire_connection_id_sent = 0;
+  uint16_t num_retire_connection_id_sent = 0;
 
   struct QUIC_NO_EXPORT TlsServerOperationStats {
     bool success = false;

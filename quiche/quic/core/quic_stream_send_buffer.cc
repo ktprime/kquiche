@@ -95,8 +95,8 @@ void QuicStreamSendBuffer::SaveStreamData(std::string_view data) {
   memcpy(blocks_[index]->buffer + offset, data.data(), max_data_slice_size - offset);
   data = data.substr(max_data_slice_size - offset);
 
-  for (auto csize = 0; csize < data.size(); csize += max_data_slice_size) {
-    const auto slice_size = std::min(max_data_slice_size, data.size() - csize);
+  for (auto csize = 0; csize < (int)data.size(); csize += max_data_slice_size) {
+    const auto slice_size = std::min((size_t)max_data_slice_size, data.size() - csize);
     memcpy(blocks_[++index]->buffer, data.data() + csize, slice_size);
   }
 }
@@ -188,7 +188,7 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
 
   if (offset == rmax) {
     // Optimization for the normal case.
-    const_cast<size_t&>(rmax) = ending_offset;
+    const_cast<QuicStreamOffset&>(rmax) = ending_offset;
     if (ending_offset >= stream_bytes_start_ + kBlockSizeBytes)
       FreeMemSlices();
     return true;
@@ -203,7 +203,7 @@ bool QuicStreamSendBuffer::OnStreamDataAcked(
     return true;
   }
   else if (bytes_acked_.IsDisjoint(off)) {
-    // Optimization for the typical case, maybe update pending.
+    // Optimization for the typical case, maybe fix hole in middle.
     bytes_acked_.AddInter(off);
     return FreeMemSlices();
   }
@@ -261,13 +261,12 @@ void QuicStreamSendBuffer::OnStreamDataRetransmitted(
     return;
 
   QuicInterval<QuicStreamOffset> off(offset, offset + data_length);
-  QUICHE_DCHECK (!bytes_acked_.Contains(off));
 
   if (*pending_retransmissions_.begin() == off) {
     pending_retransmissions_.PopFront();
     return;
   }
-
+  QUICHE_DCHECK (!bytes_acked_.Contains(off));
   pending_retransmissions_.Difference(off);
 }
 
@@ -290,20 +289,16 @@ StreamPendingRetransmission QuicStreamSendBuffer::NextPendingRetransmission()
 }
 
 bool QuicStreamSendBuffer::FreeMemSlices() {
-//  if (end < stream_bytes_start_ + kBlockSizeBytes) return true;
 
-  for (int i = 0; i < (int)blocks_.size(); i++) {
-    if (bytes_acked_.begin()->Contains(
-        QuicInterval<QuicStreamOffset>(stream_bytes_start_, stream_bytes_start_ + kBlockSizeBytes))) {
-      stream_bytes_start_ += kBlockSizeBytes;
-      if (blocks_.size() > kSmallBlocks) {
-        delete blocks_[0];
-      } else {
-        blocks_.emplace_back(blocks_[0]);//bugs TODO?
-      }
-      blocks_.erase(blocks_.begin());
-    } else
-      break;
+  while (bytes_acked_.begin()->Contains(QuicInterval<QuicStreamOffset>(
+    stream_bytes_start_, stream_bytes_start_ + kBlockSizeBytes))) {
+    stream_bytes_start_ += kBlockSizeBytes;
+    if (blocks_.size() >= kSmallBlocks) {
+      delete blocks_[0];
+    } else {
+      blocks_.emplace_back(blocks_[0]);//bugs TODO?
+    }
+    blocks_.erase(blocks_.begin());
   }
 
   return true;

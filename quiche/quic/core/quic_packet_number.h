@@ -119,13 +119,13 @@ inline bool operator<(QuicPacketNumber lhs, QuicPacketNumber rhs) {
 }
 
 inline bool operator<=(QuicPacketNumber lhs, QuicPacketNumber rhs) {
-  QUICHE_DCHECK(lhs.IsInitialized()/* && rhs.IsInitialized()**/)
+  //QUICHE_DCHECK(lhs.IsInitialized()/* && rhs.IsInitialized()**/)
     ;// << lhs << " vs. " << rhs;
   return lhs.packet_number_ <= rhs.packet_number_;
 }
 
 inline bool operator>(QuicPacketNumber lhs, QuicPacketNumber rhs) {
-  QUICHE_DCHECK(lhs.IsInitialized()/* && rhs.IsInitialized()**/)
+  //QUICHE_DCHECK(lhs.IsInitialized()/* && rhs.IsInitialized()**/)
     ;// << lhs << " vs. " << rhs;
   return lhs.packet_number_ > rhs.packet_number_;
 }

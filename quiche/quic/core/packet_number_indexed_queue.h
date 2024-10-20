@@ -126,7 +126,7 @@ class QUIC_NO_EXPORT PacketNumberIndexedQueue {
 template <typename T>
 T* PacketNumberIndexedQueue<T>::GetEntry(QuicPacketNumber packet_number) {
   EntryWrapper* entry = GetEntryWrapper(packet_number);
-  if (entry == nullptr) {
+  if (false && entry == nullptr) {
     return nullptr;
   }
   return entry;
@@ -136,7 +136,7 @@ template <typename T>
 const T* PacketNumberIndexedQueue<T>::GetEntry(
     QuicPacketNumber packet_number) const {
   const EntryWrapper* entry = GetEntryWrapper(packet_number);
-  if (entry == nullptr) {
+  if (false && entry == nullptr) {
     return nullptr;
   }
   return entry;
@@ -146,7 +146,7 @@ template <typename T>
 template <typename... Args>
 bool PacketNumberIndexedQueue<T>::Emplace(QuicPacketNumber packet_number,
                                           Args&&... args) {
-  if (!packet_number.IsInitialized()) {
+  if (DCHECK_FLAG && !packet_number.IsInitialized()) {
     QUIC_BUG(quic_bug_10359_1)
         << "Try to insert an uninitialized packet number";
     return false;
@@ -163,7 +163,8 @@ bool PacketNumberIndexedQueue<T>::Emplace(QuicPacketNumber packet_number,
   }
 
   // Do not allow insertion out-of-order.
-  if (packet_number <= last_packet()) {
+  QUICHE_DCHECK(packet_number > last_packet());
+  if (false && packet_number <= last_packet()) {
     return false;
   }
 
@@ -229,12 +230,14 @@ void PacketNumberIndexedQueue<T>::Cleanup() {
 template <typename T>
 auto PacketNumberIndexedQueue<T>::GetEntryWrapper(
     QuicPacketNumber packet_number) const -> const EntryWrapper* {
+#if 0
   if (!packet_number.IsInitialized() || IsEmpty() ||
       packet_number < first_packet_) {
     return nullptr;
   }
+#endif
 
-  uint64_t offset = packet_number - first_packet_;
+  uint64_t offset = packet_number.ToUint64() - first_packet_.ToUint64();
   if (offset >= entries_.size()) {
     return nullptr;
   }

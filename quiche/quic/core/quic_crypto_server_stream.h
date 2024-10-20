@@ -81,7 +81,6 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerStream final
   // From QuicCryptoHandshaker
   void OnHandshakeMessage(const CryptoHandshakeMessage& message) override;
 
- protected:
   QUIC_EXPORT_PRIVATE friend std::unique_ptr<QuicCryptoServerStreamBase>
   CreateCryptoServerStream(const QuicCryptoServerConfig* crypto_config,
                            QuicCompressedCertsCache* compressed_certs_cache,
@@ -96,6 +95,7 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerStream final
                          QuicSession* session,
                          QuicCryptoServerStreamBase::Helper* helper);
 
+protected:
   virtual void ProcessClientHello(
       quiche::QuicheReferenceCountedPointer<
           ValidateClientHelloResultCallback::Result>

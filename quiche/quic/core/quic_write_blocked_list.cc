@@ -19,6 +19,7 @@ QuicWriteBlockedList::QuicWriteBlockedList()
 }
 
 bool QuicWriteBlockedList::ShouldYield(QuicStreamId id) const {
+#if NO_STTAIC
   for (const auto& stream : static_stream_collection_) {
     if (stream.id == id) {
       // Static streams should never yield to data streams, or to lower
@@ -29,15 +30,18 @@ bool QuicWriteBlockedList::ShouldYield(QuicStreamId id) const {
       return true;  // All data streams yield to static streams.
     }
   }
+#endif
 
   return priority_write_scheduler_.ShouldYield(id);
 }
 
 QuicStreamId QuicWriteBlockedList::PopFront() {
+#if NO_STTAIC
   QuicStreamId static_stream_id;
   if (static_stream_collection_.UnblockFirstBlocked(&static_stream_id)) {
     return static_stream_id;
   }
+#endif
 
   const auto [id, priority] =
       priority_write_scheduler_.PopNextReadyStreamAndPriority();
@@ -79,24 +83,28 @@ void QuicWriteBlockedList::RegisterStream(QuicStreamId stream_id,
                                           const QuicStreamPriority& priority) {
   QUICHE_DCHECK(!priority_write_scheduler_.StreamRegistered(stream_id))
     ;//<< "stream " << stream_id << " already registered";
+#if NO_STTAIC
   if (is_static_stream) {
     static_stream_collection_.Register(stream_id);
     return;
   }
+#endif
 
   priority_write_scheduler_.RegisterStream(stream_id, priority.http());
 }
 
 void QuicWriteBlockedList::UnregisterStream(QuicStreamId stream_id) {
+#if NO_STTAIC
   if (static_stream_collection_.Unregister(stream_id)) {
     return;
   }
+#endif
   priority_write_scheduler_.UnregisterStream(stream_id);
 }
 
 void QuicWriteBlockedList::UpdateStreamPriority(
     QuicStreamId stream_id, const QuicStreamPriority& new_priority) {
-  QUICHE_DCHECK(!static_stream_collection_.IsRegistered(stream_id));
+  //QUICHE_DCHECK(!static_stream_collection_.IsRegistered(stream_id));
   priority_write_scheduler_.UpdateStreamPriority(stream_id,
                                                  new_priority.http());
 }
@@ -117,9 +125,11 @@ void QuicWriteBlockedList::UpdateBytesForStream(QuicStreamId stream_id,
 }
 
 void QuicWriteBlockedList::AddStream(QuicStreamId stream_id) {
+#if NO_STTAIC
   if (static_stream_collection_.SetBlocked(stream_id)) {
     return;
   }
+#endif
 
   if (respect_incremental_) {
     QUIC_RELOADABLE_FLAG_COUNT(quic_priority_respect_incremental);
@@ -146,11 +156,13 @@ void QuicWriteBlockedList::AddStream(QuicStreamId stream_id) {
 }
 
 bool QuicWriteBlockedList::IsStreamBlocked(QuicStreamId stream_id) const {
+#if NO_STTAIC
   for (const auto& stream : static_stream_collection_) {
     if (stream.id == stream_id) {
       return stream.is_blocked;
     }
   }
+#endif
 
   return priority_write_scheduler_.IsStreamReady(stream_id);
 }
