@@ -27,15 +27,17 @@ class QUIC_EXPORT_PRIVATE CryptoSecretBoxer {
   CryptoSecretBoxer& operator=(const CryptoSecretBoxer&) = delete;
   ~CryptoSecretBoxer();
 
+  // used to use.
+  static constexpr size_t kBoxKeySize = 32;
   // GetKeySize returns the number of bytes in a key.
-  static size_t GetKeySize();
+  static constexpr size_t GetKeySize() { return kBoxKeySize; }
 
   // SetKeys sets a list of encryption keys. The first key in the list will be
   // used by |Box|, but all supplied keys will be tried by |Unbox|, to handle
   // key skew across the fleet. This must be called before |Box| or |Unbox|.
   // Keys must be |GetKeySize()| bytes long. No change is made if any key is
   // invalid, or if there are no keys supplied.
-  bool SetKeys(const std::vector<std::string>& keys);
+  bool SetKeys(const absl::string_view keys);
 
   // Box encrypts |plaintext| using a random nonce generated from |rand| and
   // returns the resulting ciphertext. Since an authenticator and nonce are

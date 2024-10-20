@@ -78,7 +78,12 @@ const QuicData& CryptoHandshakeMessage::GetSerialized() const {
 void CryptoHandshakeMessage::MarkDirty() { serialized_.reset(); }
 
 void CryptoHandshakeMessage::SetVersionVector(
-    QuicTag tag, ParsedQuicVersionVector versions) {
+    QuicTag tag, const ParsedQuicVersionVector& versions) {
+  if (versions.size() == 1) {
+    SetValue(tag, quiche::QuicheEndian::HostToNet32(CreateQuicVersionLabel(versions[0])));
+    return;
+  }
+
   QuicVersionLabelVector version_labels;
   for (const ParsedQuicVersion& version : versions) {
     version_labels.push_back(
@@ -95,7 +100,7 @@ void CryptoHandshakeMessage::SetVersion(QuicTag tag,
 
 void CryptoHandshakeMessage::SetStringPiece(QuicTag tag,
                                             absl::string_view value) {
-  tag_value_map_[tag] = std::string(value);
+  tag_value_map_[tag] = value;
 }
 
 void CryptoHandshakeMessage::Erase(QuicTag tag) { tag_value_map_.erase(tag); }

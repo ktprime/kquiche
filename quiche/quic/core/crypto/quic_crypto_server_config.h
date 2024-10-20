@@ -30,6 +30,8 @@
 #include "quiche/quic/platform/api/quic_mutex.h"
 #include "quiche/quic/platform/api/quic_socket_address.h"
 #include "quiche/common/platform/api/quiche_reference_counted.h"
+#include "absl/container/inlined_vector.h"
+
 
 namespace quic {
 
@@ -59,7 +61,7 @@ struct QUIC_EXPORT_PRIVATE ClientHelloInfo {
   SourceAddressTokens source_address_tokens;
 
   // Errors from EvaluateClientHello.
-  std::vector<uint32_t> reject_reasons;
+  absl::InlinedVector<uint32_t, 2> reject_reasons;
   static_assert(sizeof(QuicTag) == sizeof(uint32_t), "header out of sync");
 };
 
@@ -146,7 +148,7 @@ class QUIC_EXPORT_PRIVATE RejectionObserver {
   RejectionObserver(const RejectionObserver&) = delete;
   RejectionObserver& operator=(const RejectionObserver&) = delete;
   // Called after a rejection is built.
-  virtual void OnRejectionBuilt(const std::vector<uint32_t>& reasons,
+  virtual void OnRejectionBuilt(const absl::InlinedVector<uint32_t, 2>& reasons,
                                 CryptoHandshakeMessage* out) const = 0;
 };
 
@@ -254,8 +256,8 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerConfig {
   // decrypting a source address token.  Note that these keys are used *without*
   // passing them through a KDF, in contradistinction to the
   // |source_address_token_secret| argument to the constructor.
-  void SetSourceAddressTokenKeys(const std::vector<std::string>& keys);
-  void SetServerNonceKeys(const std::vector<std::string>& keys); //hybchanged
+  //void SetSourceAddressTokenKeys(const std::vector<std::string>& keys);
+  void SetServerNonceKeys(const std::string_view keys); //hybchanged
 
   // Get the server config ids for all known configs.
   std::vector<std::string> GetConfigIds() const;
@@ -482,7 +484,7 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerConfig {
 
     // key_exchanges contains key exchange objects. The values correspond,
     // one-to-one, with the tags in |kexs| from the parent class.
-    std::vector<std::unique_ptr<AsynchronousKeyExchange>> key_exchanges;
+    absl::InlinedVector<std::unique_ptr<AsynchronousKeyExchange>, 1> key_exchanges;
 
     // channel_id_enabled is true if the config in |serialized| specifies that
     // ChannelIDs are supported.
@@ -730,13 +732,13 @@ class QUIC_EXPORT_PRIVATE QuicCryptoServerConfig {
   // the RejectionObserver.
   void BuildRejectionAndRecordStats(const ProcessClientHelloContext& context,
                                     const Config& config,
-                                    const std::vector<uint32_t>& reject_reasons,
+                                    const absl::InlinedVector<uint32_t, 2>& reject_reasons,
                                     CryptoHandshakeMessage* out) const;
 
   // BuildRejection sets |out| to be a REJ message in reply to |client_hello|.
   void BuildRejection(const ProcessClientHelloContext& context,
                       const Config& config,
-                      const std::vector<uint32_t>& reject_reasons,
+                      const absl::InlinedVector<uint32_t, 2>& reject_reasons,
                       CryptoHandshakeMessage* out) const;
 
   // CompressChain compresses the certificates in |chain->certs| and returns a

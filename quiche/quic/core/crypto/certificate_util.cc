@@ -210,7 +210,7 @@ std::string CreateSelfSignedCertificate(EVP_PKEY& key,
   if (!CBB_init(cbb.get(), 64) ||
       !CBB_add_asn1(cbb.get(), &tbs_cert, CBS_ASN1_SEQUENCE) ||
       !CBB_add_asn1(&tbs_cert, &version,
-                    CBS_ASN1_CONTEXT_SPECIFIC | CBS_ASN1_CONSTRUCTED | 0) ||
+                    CBS_ASN1_CONTEXT_SPECIFIC | CBS_ASN1_CONSTRUCTED) ||
       !CBB_add_asn1_uint64(&version, 2) ||  // X.509 version 3
       !CBB_add_asn1_uint64(&tbs_cert, options.serial_number) ||
       !AddEcdsa256SignatureAlgorithm(&tbs_cert) ||  // signature algorithm

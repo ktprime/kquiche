@@ -46,21 +46,23 @@ class QUIC_EXPORT_PRIVATE CryptoHandshakeMessage {
   // SetValue sets an element with the given tag to the raw, memory contents of
   // |v|.
   template <class T>
-  void SetValue(QuicTag tag, const T& v) {
-    tag_value_map_[tag] =
-        std::string(reinterpret_cast<const char*>(&v), sizeof(v));
+  void SetValue(QuicTag tag, const T v) {
+    tag_value_map_.try_emplace(tag,
+       reinterpret_cast<const char*>(&v), sizeof(v));
+  }
+
+  template <class T>
+  void SetValue2(QuicTag tag, const T v1, const T v2) {
+    const std::array<T, 2> v = { v1, v2 };
+    tag_value_map_.try_emplace(tag,
+      reinterpret_cast<const char*>(&v), sizeof(T) * 2);
   }
 
   // SetVector sets an element with the given tag to the raw contents of an
   // array of elements in |v|.
   template <class T>
-  void SetVector(QuicTag tag, const std::vector<T>& v) {
-    if (v.empty()) {
-      tag_value_map_[tag] = std::string();
-    } else {
-      tag_value_map_[tag] = std::string(reinterpret_cast<const char*>(&v[0]),
-                                        v.size() * sizeof(T));
-    }
+  void SetVector(QuicTag tag, const absl::InlinedVector<T, 8>& v) {
+    tag_value_map_.try_emplace(tag, reinterpret_cast<const char*>(&v[0]), v.size() * sizeof(T));
   }
 
   // Sets an element with the given tag to the on-the-wire representation of
@@ -69,7 +71,7 @@ class QUIC_EXPORT_PRIVATE CryptoHandshakeMessage {
 
   // Sets an element with the given tag to the on-the-wire representation of
   // the elements in |versions|.
-  void SetVersionVector(QuicTag tag, ParsedQuicVersionVector versions);
+  void SetVersionVector(QuicTag tag, const ParsedQuicVersionVector& versions);
 
   // Returns the message tag.
   QuicTag tag() const { return tag_; }

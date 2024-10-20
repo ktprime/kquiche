@@ -12,9 +12,10 @@
 #include "quiche/quic/platform/api/quic_logging.h"
 
 namespace quic {
-
+#if DCHECK_FLAG
 constexpr size_t kSHA256HashLength = 32;
 constexpr size_t kMaxKeyMaterialSize = kSHA256HashLength * 256;
+#endif
 
 QuicHKDF::QuicHKDF(absl::string_view secret, absl::string_view salt,
                    absl::string_view info, size_t key_bytes_to_generate,

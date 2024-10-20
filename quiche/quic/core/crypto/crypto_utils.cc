@@ -298,7 +298,9 @@ void CryptoUtils::CreateInitialObfuscators(Perspective perspective,
   std::vector<uint8_t> handshake_secret;
   handshake_secret.resize(EVP_MAX_MD_SIZE);
   size_t handshake_secret_len;
+#if DCHECK_FLAG
   const bool hkdf_extract_success =
+#endif
       HKDF_extract(handshake_secret.data(), &handshake_secret_len, hash,
                    reinterpret_cast<const uint8_t*>(connection_id.data()),
                    connection_id.length(), salt, salt_len);

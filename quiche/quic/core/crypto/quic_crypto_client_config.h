@@ -380,7 +380,7 @@ class QUIC_EXPORT_PRIVATE QuicCryptoClientConfig final : public QuicCryptoConfig
   }
 
   // Saves the |alpn| that will be passed in QUIC's CHLO message.
-  void set_alpn(const std::string& alpn) { alpn_ = alpn; }
+  void set_alpn(const std::string_view& alpn) { alpn_ = alpn; }
 
   // Saves the pre-shared key used during the handshake.
   void set_pre_shared_key(absl::string_view psk) {

@@ -147,24 +147,13 @@ std::unique_ptr<QuicData> CryptoFramer::ConstructHandshakeMessage(
     len += overhead + pad_length;
   }
 
-  if (num_entries > kMaxEntries) {
-    return nullptr;
-  }
+  QUICHE_DCHECK(num_entries < kMaxEntries);
 
   std::unique_ptr<char[]> buffer(new char[len]);
   QuicDataWriter writer(len, buffer.get(), quiche::HOST_BYTE_ORDER);
-  if (!writer.WriteTag(message.tag())) {
-    QUICHE_DCHECK(false);//<< "Failed to write message tag.";
-    return nullptr;
-  }
-  if (!writer.WriteUInt16(static_cast<uint16_t>(num_entries))) {
-    QUICHE_DCHECK(false);//<< "Failed to write size.";
-    return nullptr;
-  }
-  if (!writer.WriteUInt16(0)) {
-    QUICHE_DCHECK(false);//<< "Failed to write padding.";
-    return nullptr;
-  }
+  writer.WriteTag(message.tag());
+  writer.WriteUInt16(static_cast<uint16_t>(num_entries));
+  writer.WriteUInt16(0);
 
   uint32_t end_offset = 0;
   // Tags and offsets
@@ -181,26 +170,16 @@ std::unique_ptr<QuicData> CryptoFramer::ConstructHandshakeMessage(
 
     if (it->first > kPAD && need_pad_tag) {
       need_pad_tag = false;
-      if (!WritePadTag(&writer, pad_length, &end_offset)) {
-        return nullptr;
-      }
+      WritePadTag(&writer, pad_length, &end_offset);
     }
 
-    if (!writer.WriteTag(it->first)) {
-      QUICHE_DCHECK(false);//<< "Failed to write tag.";
-      return nullptr;
-    }
+    writer.WriteTag(it->first);
     end_offset += it->second.length();
-    if (!writer.WriteUInt32(end_offset)) {
-      QUICHE_DCHECK(false);//<< "Failed to write end offset.";
-      return nullptr;
-    }
+    writer.WriteUInt32(end_offset);
   }
 
   if (need_pad_tag) {
-    if (!WritePadTag(&writer, pad_length, &end_offset)) {
-      return nullptr;
-    }
+    WritePadTag(&writer, pad_length, &end_offset);
   }
 
   // Values
@@ -208,23 +187,14 @@ std::unique_ptr<QuicData> CryptoFramer::ConstructHandshakeMessage(
        it != message.tag_value_map().end(); ++it) {
     if (it->first > kPAD && need_pad_value) {
       need_pad_value = false;
-      if (!writer.WriteRepeatedByte('-', pad_length)) {
-        QUICHE_DCHECK(false) ;//<< "Failed to write padding.";
-        return nullptr;
-      }
+      writer.WriteRepeatedByte('-', pad_length);
     }
 
-    if (!writer.WriteBytes(it->second.data(), it->second.length())) {
-      QUICHE_DCHECK(false) ;//<< "Failed to write value.";
-      return nullptr;
-    }
+    writer.WriteBytes(it->second.data(), it->second.length());
   }
 
   if (need_pad_value) {
-    if (!writer.WriteRepeatedByte('-', pad_length)) {
-      QUICHE_DCHECK(false) ;//<< "Failed to write padding.";
-      return nullptr;
-    }
+    writer.WriteRepeatedByte('-', pad_length);
   }
 
   return std::make_unique<QuicData>(buffer.release(), len, true);
@@ -336,15 +306,11 @@ QuicErrorCode CryptoFramer::Process(absl::string_view input) {
 // static
 bool CryptoFramer::WritePadTag(QuicDataWriter* writer, size_t pad_length,
                                uint32_t* end_offset) {
-  if (!writer->WriteTag(kPAD)) {
-    QUICHE_DCHECK(false) ;//<< "Failed to write tag.";
-    return false;
-  }
+  writer->WriteTag(kPAD);
+
   *end_offset += pad_length;
-  if (!writer->WriteUInt32(*end_offset)) {
-    QUICHE_DCHECK(false);//<< "Failed to write end offset.";
-    return false;
-  }
+  writer->WriteUInt32(*end_offset);
+
   return true;
 }
 

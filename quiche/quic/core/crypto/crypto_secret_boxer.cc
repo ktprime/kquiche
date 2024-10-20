@@ -12,6 +12,7 @@
 #include "openssl/err.h"
 #include "quiche/quic/core/crypto/quic_random.h"
 #include "quiche/quic/platform/api/quic_logging.h"
+#include "absl/container/inlined_vector.h"
 
 namespace quic {
 
@@ -23,34 +24,31 @@ constexpr size_t kSIVNonceSize = 12;
 
 // AES-GCM-SIV comes in AES-128 and AES-256 flavours. The AES-256 version is
 // used here so that the key size matches the 256-bit XSalsa20 keys that we
-// used to use.
-constexpr size_t kBoxKeySize = 32;
 
 struct CryptoSecretBoxer::State {
   // ctxs are the initialised AEAD contexts. These objects contain the
   // scheduled AES state for each of the keys.
-  std::vector<bssl::UniquePtr<EVP_AEAD_CTX>> ctxs;
+  absl::InlinedVector<bssl::UniquePtr<EVP_AEAD_CTX>, 1> ctxs;
 };
 
 CryptoSecretBoxer::CryptoSecretBoxer() {}
 
 CryptoSecretBoxer::~CryptoSecretBoxer() {}
 
-// static
-size_t CryptoSecretBoxer::GetKeySize() { return kBoxKeySize; }
 
 // kAEAD is the AEAD used for boxing: AES-256-GCM-SIV.
 static const EVP_AEAD* (*const kAEAD)() = EVP_aead_aes_256_gcm_siv;
 
-bool CryptoSecretBoxer::SetKeys(const std::vector<std::string>& keys) {
-  if (keys.empty()) {
+bool CryptoSecretBoxer::SetKeys(const absl::string_view key) {
+  if (key.empty()) {
     QUIC_LOG(DFATAL) << "No keys supplied!";
     return false;
   }
   const EVP_AEAD* const aead = kAEAD();
   std::unique_ptr<State> new_state(new State);
 
-  for (const std::string& key : keys) {
+  //for (const std::string& key : keys)
+  {
     QUICHE_DCHECK_EQ(kBoxKeySize, key.size());
     bssl::UniquePtr<EVP_AEAD_CTX> ctx(
         EVP_AEAD_CTX_new(aead, reinterpret_cast<const uint8_t*>(key.data()),

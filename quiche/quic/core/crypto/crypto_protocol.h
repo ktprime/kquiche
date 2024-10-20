@@ -125,7 +125,7 @@ const QuicTag kBBQ9 = TAG('B', 'B', 'Q', '9');   // Reduce bw_lo by
                                                  // bw_lo * bytes_lost/cwnd
 const QuicTag kBBQ0 = TAG('B', 'B', 'Q', '0');   // Increase bytes_acked in
                                                  // PROBE_UP when app limited.
-const QuicTag kBBPD = TAG('B', 'B', 'P', 'D');   // Use 0.91 PROBE_DOWN gain.
+//const QuicTag kBBPD = TAG('B', 'B', 'P', 'D');   // Use 0.91 PROBE_DOWN gain.
 const QuicTag kBBHI = TAG('B', 'B', 'H', 'I');   // Increase inflight_hi in
                                                  // PROBE_UP if ever inflight_hi
                                                  // limited in round
@@ -299,8 +299,8 @@ const QuicTag kNCMR = TAG('N', 'C', 'M', 'R');   // Do not attempt connection
 // Allows disabling defer_send_in_response_to_packets in QuicConnection.
 const QuicTag kDFER = TAG('D', 'F', 'E', 'R');   // Do not defer sending.
 
-// Disable Pacing offload option.
-const QuicTag kNPCO = TAG('N', 'P', 'C', 'O');    // No pacing offload.
+// Pacing options.
+const QuicTag kNPCO = TAG('N', 'P', 'C', 'O');  // No pacing offload.
 
 // Enable bandwidth resumption experiment.
 const QuicTag kBWRE = TAG('B', 'W', 'R', 'E');  // Bandwidth resumption.

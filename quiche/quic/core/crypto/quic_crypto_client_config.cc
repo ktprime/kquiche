@@ -451,7 +451,7 @@ void QuicCryptoClientConfig::FillInchoateClientHello(
   out->SetStringPiece(
       kNONP, absl::string_view(proof_nonce, ABSL_ARRAYSIZE(proof_nonce)));
 
-  out->SetVector(kPDMD, QuicTagVector{kX509});
+  out->SetValue(kPDMD, kX509);
 
   out->SetStringPiece(kCertificateSCTTag, "");
 
@@ -461,8 +461,11 @@ void QuicCryptoClientConfig::FillInchoateClientHello(
   // doesn't update the cached certificates and cause us to be unable to
   // process the server's compressed certificate chain.
   out_params->cached_certs = certs;
-  if (!certs.empty()) {
-    std::vector<uint64_t> hashes;
+  if (certs.size() == 1) {
+    out->SetValue(kCCRT, (uint64_t)QuicUtils::FNV1a_64_Hash(certs[0]));
+  }
+  else if (!certs.empty()) {
+    absl::InlinedVector<uint64_t, 8> hashes;
     hashes.reserve(certs.size());
     for (auto i = certs.begin(); i != certs.end(); ++i) {
       hashes.push_back(QuicUtils::FNV1a_64_Hash(*i));
@@ -534,7 +537,7 @@ QuicErrorCode QuicCryptoClientConfig::FillClientHello(
     *error_details = "Unsupported AEAD or KEXS";
     return QUIC_CRYPTO_NO_SUPPORT;
   }
-  out->SetVector(kAEAD, QuicTagVector{out_params->aead});
+  out->SetValue(kAEAD, out_params->aead);
 #if 0
   //hybchanged
   if (GetQuicFlag(FLAGS_quic_use_unencrypted_transmission)) {
@@ -543,7 +546,7 @@ QuicErrorCode QuicCryptoClientConfig::FillClientHello(
       }
   }
 #endif
-  out->SetVector(kKEXS, QuicTagVector{out_params->key_exchange});
+  out->SetValue(kKEXS, out_params->key_exchange);
 
   absl::string_view public_value;
   if (scfg->GetNthValue24(kPUBS, key_exchange_index, &public_value) !=

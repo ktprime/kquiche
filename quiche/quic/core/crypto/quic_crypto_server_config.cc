@@ -129,7 +129,7 @@ std::string FormatCryptoHandshakeMessageForTrace(
   // Append the reasons for REJ.
   if (const auto it = message->tag_value_map().find(kRREJ);
       it != message->tag_value_map().end()) {
-    const std::string& value = it->second;
+    const auto& value = it->second;
     // The value is a vector of uint32_t(s).
     if (value.size() % sizeof(uint32_t) == 0) {
       absl::StrAppend(&s, " RREJ:[");
@@ -295,17 +295,17 @@ QuicCryptoServerConfig::QuicCryptoServerConfig(
       validate_source_address_token_(true) {
   QUICHE_DCHECK(proof_source_.get());
   source_address_token_boxer_.SetKeys(
-      {DeriveSourceAddressTokenKey(source_address_token_secret)});
+      DeriveSourceAddressTokenKey(source_address_token_secret));
 
   // Generate a random key and orbit for server nonces.
   server_nonce_entropy->RandBytes(server_nonce_orbit_,
                                   sizeof(server_nonce_orbit_));
-  const size_t key_size = server_nonce_boxer_.GetKeySize();
-  std::unique_ptr<uint8_t[]> key_bytes(new uint8_t[key_size]);
-  server_nonce_entropy->RandBytes(key_bytes.get(), key_size);
+  constexpr size_t key_size = CryptoSecretBoxer::GetKeySize();
+  uint8_t key_bytes[key_size + 1];
+  server_nonce_entropy->RandBytes(key_bytes, key_size);
 
   server_nonce_boxer_.SetKeys(
-      {std::string(reinterpret_cast<char*>(key_bytes.get()), key_size)});
+      std::string_view(reinterpret_cast<char*>(key_bytes), key_size));
 }
 
 QuicCryptoServerConfig::~QuicCryptoServerConfig() {}
@@ -358,11 +358,11 @@ QuicServerConfigProtobuf QuicCryptoServerConfig::GenerateConfig(
 
   msg.set_tag(kSCFG);
   if (options.p256) {
-    msg.SetVector(kKEXS, QuicTagVector{kC255, kP256});
+    msg.SetValue2(kKEXS, kC255, kP256);
   } else {
-    msg.SetVector(kKEXS, QuicTagVector{kC255});
+    msg.SetValue(kKEXS, kC255);
   }
-  msg.SetVector(kAEAD, QuicTagVector{kAESG, kCC20});
+  msg.SetValue2(kAEAD, kAESG, kCC20);
   msg.SetStringPiece(kPUBS, encoded_public_values);
 
   if (options.expiry_time.IsZero()) {
@@ -386,7 +386,7 @@ QuicServerConfigProtobuf QuicCryptoServerConfig::GenerateConfig(
                      absl::string_view(orbit_bytes, sizeof(orbit_bytes)));
 
   if (options.channel_id_enabled) {
-    msg.SetVector(kPDMD, QuicTagVector{kCHID});
+    msg.SetValue(kPDMD, kCHID);
   }
 
   if (options.id.empty()) {
@@ -552,16 +552,16 @@ bool QuicCryptoServerConfig::SetConfigs(
 
   return true;
 }
-
+#if 0
 void QuicCryptoServerConfig::SetSourceAddressTokenKeys(
     const std::vector<std::string>& keys) {
   // TODO(b/208866709)
   source_address_token_boxer_.SetKeys(keys);
 }
+#endif
 
-void QuicCryptoServerConfig::SetServerNonceKeys(
-    const std::vector<std::string>& keys) {
-    server_nonce_boxer_.SetKeys(keys);
+void QuicCryptoServerConfig::SetServerNonceKeys(const std::string_view keys) {
+  server_nonce_boxer_.SetKeys(keys);
 }
 
 std::vector<std::string> QuicCryptoServerConfig::GetConfigIds() const {
@@ -1114,7 +1114,7 @@ void QuicCryptoServerConfig::SendRejectWithFallbackConfigAfterGetProof(
 
   auto out = std::make_unique<CryptoHandshakeMessage>();
   BuildRejectionAndRecordStats(*context, *fallback_config,
-                               {SERVER_CONFIG_UNKNOWN_CONFIG_FAILURE},
+    absl::InlinedVector<uint32_t, 2>{SERVER_CONFIG_UNKNOWN_CONFIG_FAILURE},
                                out.get());
 
   context->Succeed(std::move(out), std::make_unique<DiversificationNonce>(),
@@ -1191,8 +1191,8 @@ bool QuicCryptoServerConfig::ConfigPrimaryTimeLessThan(
 
 void QuicCryptoServerConfig::SelectNewPrimaryConfig(
     const QuicWallTime now) const {
-  std::vector<quiche::QuicheReferenceCountedPointer<Config>> configs;
-  configs.reserve(configs_.size());
+  absl::InlinedVector<quiche::QuicheReferenceCountedPointer<Config>, 1> configs;
+  //configs.reserve(configs_.size());
 
   for (auto it = configs_.begin(); it != configs_.end(); ++it) {
     // TODO(avd) Exclude expired configs?
@@ -1468,7 +1468,7 @@ void QuicCryptoServerConfig::FinishBuildServerConfigUpdateMessage(
 
 void QuicCryptoServerConfig::BuildRejectionAndRecordStats(
     const ProcessClientHelloContext& context, const Config& config,
-    const std::vector<uint32_t>& reject_reasons,
+    const absl::InlinedVector<uint32_t, 2>& reject_reasons,
     CryptoHandshakeMessage* out) const {
   BuildRejection(context, config, reject_reasons, out);
   if (rejection_observer_ != nullptr) {
@@ -1478,7 +1478,7 @@ void QuicCryptoServerConfig::BuildRejectionAndRecordStats(
 
 void QuicCryptoServerConfig::BuildRejection(
     const ProcessClientHelloContext& context, const Config& config,
-    const std::vector<uint32_t>& reject_reasons,
+    const absl::InlinedVector<uint32_t, 2>& reject_reasons,
     CryptoHandshakeMessage* out) const {
   const QuicWallTime now = context.clock()->WallNow();
 
@@ -1499,7 +1499,8 @@ void QuicCryptoServerConfig::BuildRejection(
 
   // Send client the reject reason for debugging purposes.
   QUICHE_DCHECK_LT(0u, reject_reasons.size());
-  out->SetVector(kRREJ, reject_reasons);
+  out->SetStringPiece(kRREJ,
+    absl::string_view((char*)&reject_reasons[0], reject_reasons.size() * sizeof(uint32_t)));
 
   // The client may have requested a certificate chain.
   if (!ClientDemandsX509Proof(context.client_hello())) {

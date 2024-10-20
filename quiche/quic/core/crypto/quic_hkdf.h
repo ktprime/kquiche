@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "absl/container/inlined_vector.h"
 #include "quiche/quic/platform/api/quic_export.h"
 
 namespace quic {
@@ -56,7 +57,8 @@ class QUIC_EXPORT_PRIVATE QuicHKDF {
   absl::string_view server_hp_key() const { return server_hp_key_; }
 
  private:
-  std::vector<uint8_t> output_;
+  //std::vector<uint8_t> output_;
+  absl::InlinedVector<uint8_t, 256> output_;
 
   absl::string_view client_write_key_;
   absl::string_view server_write_key_;
