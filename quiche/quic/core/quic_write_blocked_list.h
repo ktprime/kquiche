@@ -17,7 +17,7 @@
 #include "quiche/quic/platform/api/quic_export.h"
 #include "quiche/quic/platform/api/quic_flags.h"
 #include "quiche/spdy/core/spdy_protocol.h"
-
+//#define NO_STTAIC 1
 namespace quic {
 
 // Keeps tracks of the order of QUIC streams that have data to write.

@@ -25,7 +25,7 @@ namespace {
 
 // The maximum number of buffered control frames which are waiting to be ACKed
 // or sent for the first time.
-constexpr size_t kMaxNumControlFrames = 100;
+constexpr size_t kMaxNumControlFrames = 100 / 4;
 
 }  // namespace
 
@@ -45,17 +45,17 @@ QuicControlFrameManager::~QuicControlFrameManager() {
 void QuicControlFrameManager::WriteOrBufferQuicFrame(QuicFrame frame) {
   const bool had_buffered_frames = HasBufferedFrames();
   control_frames_.emplace_back(frame);
-  if (control_frames_.size() > kMaxNumControlFrames) {
-    delegate_->OnControlFrameManagerError(
+  if (had_buffered_frames) {
+    if (control_frames_.size() > kMaxNumControlFrames) {
+      delegate_->OnControlFrameManagerError(
         QUIC_TOO_MANY_BUFFERED_CONTROL_FRAMES,
         absl::StrCat("More than ", kMaxNumControlFrames,
-                     "buffered control frames, least_unacked: ", least_unacked_,
-                     ", least_unsent_: ", least_unsent_));
+          "buffered control frames, least_unacked: ", least_unacked_,
+          ", least_unsent_: ", least_unsent_));
+    }
     return;
   }
-  if (had_buffered_frames) {
-    return;
-  }
+
   WriteBufferedFrames();
 }
 
@@ -177,17 +177,15 @@ void QuicControlFrameManager::OnControlFrameSent(const QuicFrame& frame) {
   }
   if (frame.type == WINDOW_UPDATE_FRAME) {
     QuicStreamId stream_id = frame.window_update_frame.stream_id;
-    auto& wid = window_update_frames_.at(stream_id); //TODO2, not find set zero
+    auto wid = window_update_frames_.at(stream_id); //TODO2, not find set zero
     if (wid > 0 && id > wid) {
       // Consider the older window update of the same stream as acked.
       OnControlFrameIdAcked(wid);
     }
-    if (wid == 0)
-      window_update_frames_.insert_or_assign(stream_id, id);
-    else
-      wid = id;
+    window_update_frames_[stream_id] = id;
   }
-  if (pending_retransmissions_.erase(id)) {
+  if (!pending_retransmissions_.empty() &&
+      pending_retransmissions_.erase(id)) {
     // This is retransmitted control frame.
     return;
   }
@@ -204,21 +202,20 @@ void QuicControlFrameManager::OnControlFrameSent(const QuicFrame& frame) {
 
 bool QuicControlFrameManager::OnControlFrameAcked(const QuicFrame& frame) {
   QuicControlFrameId id = GetControlFrameId(frame);
-  if (!OnControlFrameIdAcked(id)) {
-    return false;
-  }
-  if (frame.type == WINDOW_UPDATE_FRAME) {
+  auto acked = OnControlFrameIdAcked(id);
+  if (frame.type == WINDOW_UPDATE_FRAME && acked) {
     QuicStreamId stream_id = frame.window_update_frame.stream_id;
-    if (//window_update_frames_.contains(stream_id) &&
-        window_update_frames_.at(stream_id) == id) {
+    QUICHE_DCHECK(window_update_frames_.at(stream_id) == id); 
+    {
       window_update_frames_.erase(stream_id);
     }
   }
-  return true;
+  return acked;
 }
 
 void QuicControlFrameManager::OnControlFrameLost(const QuicFrame& frame) {
   QuicControlFrameId id = GetControlFrameId(frame);
+#if 0
   if (DCHECK_FLAG && id == kInvalidControlFrameId) {
     // Frame does not have a valid control frame ID, ignore it.
     return;
@@ -229,7 +226,8 @@ void QuicControlFrameManager::OnControlFrameLost(const QuicFrame& frame) {
         QUIC_INTERNAL_ERROR, "Try to mark unsent control frame as lost");
     return;
   }
-  if (id < least_unacked_ ||
+#endif
+  if (id - least_unacked_ >= control_frames_.size() ||
       GetControlFrameId(control_frames_.at(id - least_unacked_)) ==
           kInvalidControlFrameId) {
     // This frame has already been acked.
@@ -246,6 +244,13 @@ void QuicControlFrameManager::OnControlFrameLost(const QuicFrame& frame) {
 bool QuicControlFrameManager::IsControlFrameOutstanding(
     const QuicFrame& frame) const {
   QuicControlFrameId id = GetControlFrameId(frame);
+  if (id - least_unacked_ >= control_frames_.size()) {
+    return false;
+  }
+
+  return GetControlFrameId(control_frames_.at(id - least_unacked_)) != kInvalidControlFrameId;
+
+#if 0
   if (id == kInvalidControlFrameId) {
     // Frame without a control frame ID should not be retransmitted.
     return false;
@@ -254,6 +259,7 @@ bool QuicControlFrameManager::IsControlFrameOutstanding(
   return id < least_unacked_ + control_frames_.size() && id >= least_unacked_ &&
          GetControlFrameId(control_frames_.at(id - least_unacked_)) !=
              kInvalidControlFrameId;
+#endif
 }
 
 bool QuicControlFrameManager::HasPendingRetransmission() const {
@@ -261,7 +267,7 @@ bool QuicControlFrameManager::HasPendingRetransmission() const {
 }
 
 bool QuicControlFrameManager::WillingToWrite() const {
-  return HasPendingRetransmission() || HasBufferedFrames();
+  return !pending_retransmissions_.empty() || least_unsent_ < least_unacked_ + control_frames_.size();
 }
 
 QuicFrame QuicControlFrameManager::NextPendingRetransmission() const {
@@ -285,6 +291,7 @@ bool QuicControlFrameManager::RetransmitControlFrame(const QuicFrame& frame,
                                                      TransmissionType type) {
   QUICHE_DCHECK(type == PTO_RETRANSMISSION);
   QuicControlFrameId id = GetControlFrameId(frame);
+#if 0
   if (id == kInvalidControlFrameId) {
     // Frame does not have a valid control frame ID, ignore it. Returns true
     // to allow writing following frames.
@@ -296,7 +303,12 @@ bool QuicControlFrameManager::RetransmitControlFrame(const QuicFrame& frame,
         QUIC_INTERNAL_ERROR, "Try to retransmit unsent control frame");
     return false;
   }
-  if (id < least_unacked_ ||
+#endif
+  if (id - least_unacked_ >= control_frames_.size()) {
+    return true;
+  }
+
+  if (//id < least_unacked_ ||
       GetControlFrameId(control_frames_.at(id - least_unacked_)) ==
           kInvalidControlFrameId) {
     // This frame has already been acked.

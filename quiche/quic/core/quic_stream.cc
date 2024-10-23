@@ -1060,7 +1060,7 @@ void QuicStream::AddBytesConsumed(QuicByteCount bytes) {
   }
 #endif
   // Only adjust stream level flow controller if still reading.
-  if (true || !read_side_closed_) {
+  if (!read_side_closed_) {
     flow_controller_->AddBytesConsumed(bytes);
 
 

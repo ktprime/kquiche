@@ -830,15 +830,19 @@ bool QuicPacketCreator::SerializePacket(QuicOwnedPacketBuffer encrypted_buffer,
   // packet sizes are properly used.
 
   size_t length;
+#if DCHECK_FLAG
   absl::optional<size_t> length_with_chaos_protection =
       MaybeBuildDataPacketWithChaosProtection(header, encrypted_buffer.buffer);
   if (length_with_chaos_protection.has_value()) {
     length = length_with_chaos_protection.value();
-  } else {
+  } else
+#endif
+  {
     length = framer_->BuildDataPacket(header, queued_frames_,
                                       encrypted_buffer.buffer, packet_size_,
                                       packet_.encryption_level);
   }
+#if DCHECK_FLAG
   QUICHE_DCHECK(length != 0);
   if (length == 0) {
     QUIC_BUG(quic_bug_10752_16)
@@ -853,6 +857,7 @@ bool QuicPacketCreator::SerializePacket(QuicOwnedPacketBuffer encrypted_buffer,
         << ", header: " << header;
     return false;
   }
+#endif
 
   // ACK Frames will be truncated due to length only if they're the only frame
   // in the packet, and if packet_size_ was set to max_plaintext_size_. If
@@ -1305,7 +1310,7 @@ QuicConsumedData QuicPacketCreator::ConsumeData(QuicStreamId id,
       << ENDPOINT
       << "Packet flusher is not attached when "
          "generator tries to write stream data.";
-  bool has_handshake = QuicUtils::IsCryptoStreamId(transport_version(), id);
+  const bool has_handshake = QuicUtils::IsCryptoStreamId(transport_version(), id);
   MaybeBundleAckOpportunistically(); //TODO2 hybchanged!!!.
   bool fin = state != NO_FIN;
   QUIC_BUG_IF(quic_bug_12398_17, has_handshake && fin)
@@ -1414,7 +1419,7 @@ QuicConsumedData QuicPacketCreator::ConsumeDataFastPath(
                                   offset + total_bytes_consumed, fin,
                                   next_transmission_type_, &bytes_consumed);
     QUICHE_DCHECK(bytes_consumed != 0);
-    if (DCHECK_FLAG && bytes_consumed == 0) {
+    if (bytes_consumed == 0) {
       const std::string error_details =
           "Failed in CreateAndSerializeStreamFrame.";
       QUIC_BUG(quic_bug_10752_24) << ENDPOINT << error_details;
@@ -1558,7 +1563,6 @@ bool QuicPacketCreator::FlushAckFrame(const QuicFrame& frame) {
                                         NOT_HANDSHAKE)) {
     return false;
   }
-
   const bool success = AddFrame(frame, next_transmission_type_);
   QUIC_BUG_IF(quic_bug_10752_31, !success)
       << ENDPOINT << "Failed to flush " << frame;
@@ -1693,7 +1697,7 @@ size_t QuicPacketCreator::GetSerializedFrameLength(const QuicFrame& frame) {
   size_t serialized_frame_length = framer_->GetSerializedFrameLength(
       frame, BytesFree(), queued_frames_.empty(),
       /* last_frame_in_packet= */ true, GetPacketNumberLength());
-  //QUICHE_DCHECK(serialized_frame_length);
+  QUICHE_DCHECK(serialized_frame_length);
   if (!framer_->version().HasHeaderProtection() /* ||
       serialized_frame_length == 0 **/) {
     return serialized_frame_length;
@@ -2085,8 +2089,8 @@ bool QuicPacketCreator::AttemptingToSendUnencryptedStreamData() {
 }
 
 bool QuicPacketCreator::HasIetfLongHeader() const {
-  return packet_.encryption_level < ENCRYPTION_FORWARD_SECURE;
-        //&& version().HasIetfInvariantHeader(); TODO3
+  return packet_.encryption_level < ENCRYPTION_FORWARD_SECURE
+        && version().HasIetfInvariantHeader(); //TODO3
 }
 
 // static

@@ -51,28 +51,19 @@ void QuicAlarm::Cancel() {
 bool QuicAlarm::IsPermanentlyCancelled() const { return delegate_ == nullptr; }
 
 void QuicAlarm::Update(QuicTime new_deadline, QuicTime::Delta granularity) {
-#if 0
-  {
-    QUIC_BUG(quic_alarm_illegal_update)
-        << "Update called after alarm is permanently cancelled. new_deadline:"
-        << new_deadline << ", granularity:" << granularity;
-    return;
-  }
-#endif
   const auto delta = (new_deadline - deadline_).ToMicroseconds();
-  deadline_ = new_deadline;
   if (std::abs(delta) <= granularity.ToMicroseconds()) {
-    return;
+    //deadline_ = new_deadline;
   }
   else if (!new_deadline.IsInitialized()) {
     CancelImpl();
-//    deadline_ = new_deadline;
-    return;
+    deadline_ = new_deadline;
   }
-  //QUICHE_DCHECK (!IsPermanentlyCancelled());
-
-//  deadline_ = new_deadline;
-  SetImpl();
+  else {
+    //QUICHE_DCHECK (!IsPermanentlyCancelled());
+    deadline_ = new_deadline;
+    SetImpl();
+  }
 }
 
 bool QuicAlarm::IsSet() const { return deadline_.IsInitialized(); }

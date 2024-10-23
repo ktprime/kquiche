@@ -157,9 +157,9 @@ static uint64_t Delta(uint64_t a, uint64_t b) {
 static uint64_t ClosestTo(uint64_t target, uint64_t a, uint64_t b) {
   return (Delta(target, a) < Delta(target, b)) ? a : b;
 }
-
-static constexpr QuicPacketNumberLength ReadSequenceNumberLength(uint8_t flags) {
 #if 0
+static constexpr QuicPacketNumberLength ReadSequenceNumberLength(uint8_t flags) {
+#if 1
   switch (flags & PACKET_FLAGS_8BYTE_PACKET) {
     case PACKET_FLAGS_8BYTE_PACKET:
       return PACKET_6BYTE_PACKET_NUMBER;
@@ -185,9 +185,9 @@ static constexpr QuicPacketNumberLength ReadSequenceNumberLength(uint8_t flags) 
   }
 #endif
 }
+#endif
 
 static constexpr QuicPacketNumberLength ReadAckPacketNumberLength(uint8_t flags) {
-#if 0
   switch (flags & PACKET_FLAGS_8BYTE_PACKET) {
     case PACKET_FLAGS_8BYTE_PACKET:
       return PACKET_6BYTE_PACKET_NUMBER;
@@ -201,18 +201,6 @@ static constexpr QuicPacketNumberLength ReadAckPacketNumberLength(uint8_t flags)
       QUIC_BUG(quic_bug_10850_2) << "Unreachable case statement.";
       return PACKET_6BYTE_PACKET_NUMBER;
   }
-#else
-  const auto mask = flags & PACKET_FLAGS_8BYTE_PACKET;
-  switch (mask) {
-    case PACKET_FLAGS_1BYTE_PACKET:
-    case PACKET_FLAGS_2BYTE_PACKET:
-    case PACKET_FLAGS_4BYTE_PACKET:
-      return QuicPacketNumberLength(1 << mask);
-    default:
-//    case PACKET_FLAGS_8BYTE_PACKET:
-      return PACKET_6BYTE_PACKET_NUMBER;
-  }
-#endif
 }
 
 static uint8_t PacketNumberLengthToOnWireValue(
@@ -623,7 +611,7 @@ size_t QuicFramer::GetWindowUpdateFrameSize(
 // static
 size_t QuicFramer::GetMaxStreamsFrameSize(QuicTransportVersion version,
                                           const QuicMaxStreamsFrame& frame) {
-  if (DCHECK_FLAG && !VersionHasIetfQuicFrames(version)) {
+  if (!VersionHasIetfQuicFrames(version)) {
     QUIC_BUG(quic_bug_10850_9)
         << "In version " << version
         << ", which does not support IETF Frames, and tried to serialize "
@@ -636,7 +624,7 @@ size_t QuicFramer::GetMaxStreamsFrameSize(QuicTransportVersion version,
 // static
 size_t QuicFramer::GetStreamsBlockedFrameSize(
     QuicTransportVersion version, const QuicStreamsBlockedFrame& frame) {
-  if (DCHECK_FLAG && !VersionHasIetfQuicFrames(version)) {
+  if (!VersionHasIetfQuicFrames(version)) {
     QUIC_BUG(quic_bug_10850_10)
         << "In version " << version
         << ", which does not support IETF frames, and tried to serialize "
@@ -695,6 +683,11 @@ size_t QuicFramer::GetPathResponseFrameSize(
 size_t QuicFramer::GetRetransmittableControlFrameSize(
     QuicTransportVersion version, const QuicFrame& frame) {
   switch (frame.type) {
+    case WINDOW_UPDATE_FRAME:
+      // For IETF QUIC, this could be either a MAX DATA or MAX STREAM DATA.
+      // GetWindowUpdateFrameSize figures this out and returns the correct
+      // length.
+      return GetWindowUpdateFrameSize(version, frame.window_update_frame);
     case PING_FRAME:
       // Ping has no payload.
       return kQuicFrameTypeSize;
@@ -706,11 +699,6 @@ size_t QuicFramer::GetRetransmittableControlFrameSize(
     case GOAWAY_FRAME:
       return GetMinGoAwayFrameSize() +
              TruncatedErrorStringSize(frame.goaway_frame->reason_phrase);
-    case WINDOW_UPDATE_FRAME:
-      // For IETF QUIC, this could be either a MAX DATA or MAX STREAM DATA.
-      // GetWindowUpdateFrameSize figures this out and returns the correct
-      // length.
-      return GetWindowUpdateFrameSize(version, frame.window_update_frame);
     case BLOCKED_FRAME:
       return GetBlockedFrameSize(version, frame.blocked_frame);
 #if QUIC_TLS_SESSION
@@ -757,7 +745,7 @@ size_t QuicFramer::GetRetransmittableControlFrameSize(
 // static
 size_t QuicFramer::GetStreamIdSize(QuicStreamId stream_id) {
   QUICHE_DCHECK(stream_id < 256);
-  return stream_id < 256 ? 1 : 2;
+  return 1;// stream_id < 256 ? 1 : 2;
 #if 0
   // Sizes are 1 through 4 bytes.
   for (int i = 1; i <= 4; ++i) {
@@ -1041,7 +1029,7 @@ size_t QuicFramer::BuildDataPacket(const QuicPacketHeader& header,
         QUIC_BUG(quic_bug_10850_29) << "QUIC_INVALID_FRAME_DATA";
         return 0;
     }
-    if (DCHECK_FLAG && !add_frame) {
+    if (!add_frame) {
       set_detailed_error("add_frame frame failed");
       QUIC_BUG(quic_bug_10850_36)
         << "Append Frame failed: " << frame.type;
@@ -1886,6 +1874,12 @@ bool QuicFramer::ProcessIetfDataPacket(QuicDataReader* encrypted_reader,
     RecordDroppedPacketReason(DroppedPacketReason::DECRYPTION_FAILURE);
     return RaiseError(QUIC_DECRYPTION_FAILURE);
   }
+
+  if (packet.length() > kMaxIncomingPacketSize) {
+    set_detailed_error("Packet too large.");
+    return RaiseError(QUIC_PACKET_TOO_LARGE);
+  }
+
   QuicDataReader reader(decrypted_buffer, decrypted_length);
 
   // Remember decrypted_payload in the current connection context until the end
@@ -1919,11 +1913,6 @@ bool QuicFramer::ProcessIetfDataPacket(QuicDataReader* encrypted_reader,
     RecordDroppedPacketReason(DroppedPacketReason::INVALID_PACKET_NUMBER);
     // The visitor suppresses further processing of the packet.
     return true;
-  }
-
-  if (DCHECK_FLAG && packet.length() > kMaxIncomingPacketSize) {
-    set_detailed_error("Packet too large.");
-    return RaiseError(QUIC_PACKET_TOO_LARGE);
   }
 
   // Handle the payload.
@@ -2404,7 +2393,7 @@ bool QuicFramer::ProcessPublicHeader(QuicDataReader* reader,
       break;
   }
 
-  header->packet_number_length = ReadSequenceNumberLength(
+  header->packet_number_length = ReadAckPacketNumberLength(
       public_flags >> kPublicHeaderSequenceNumberShift);
 
   // Read the version only if the packet is from the client.
@@ -5593,7 +5582,7 @@ bool QuicFramer::AppendAckFrameAndTypeByte(const QuicAckFrame& frame,
   // Number of ack blocks.
   size_t num_ack_blocks =
       std::min(new_ack_info.num_ack_blocks, max_num_ack_blocks);
-  if (num_ack_blocks > std::numeric_limits<uint8_t>::max()) {
+  if (DCHECK_FLAG && num_ack_blocks > std::numeric_limits<uint8_t>::max()) {
     num_ack_blocks = std::numeric_limits<uint8_t>::max();
   }
 
@@ -5602,7 +5591,8 @@ bool QuicFramer::AppendAckFrameAndTypeByte(const QuicAckFrame& frame,
 
   // Largest acked delta time.
   uint64_t ack_delay_time_us = kUFloat16MaxValue;
-  if (!frame.ack_delay_time.IsInfinite()) {
+  QUICHE_DCHECK(!frame.ack_delay_time.IsInfinite());
+  if (true || !frame.ack_delay_time.IsInfinite()) {
     QUICHE_DCHECK_LE(0u, frame.ack_delay_time.ToMicroseconds());
     ack_delay_time_us = frame.ack_delay_time.ToMicroseconds();
   }
@@ -5641,14 +5631,14 @@ bool QuicFramer::AppendAckFrameAndTypeByte(const QuicAckFrame& frame,
           (total_gap + std::numeric_limits<uint8_t>::max() - 1) /
           std::numeric_limits<uint8_t>::max();
 
+      QUICHE_DCHECK(num_encoded_gaps == 1);
+#if DCHECK_FLAG //can not >= 256  ACK blocks. TODO2
       // Append empty ACK blocks because the gap is longer than a single gap.
       for (size_t i = 1;
            i < num_encoded_gaps && num_ack_blocks_written < num_ack_blocks;
            ++i) {
-        if (!AppendAckBlock(std::numeric_limits<uint8_t>::max(),
-                            ack_block_length, 0, writer)) {
-          return false;
-        }
+          AppendAckBlock(std::numeric_limits<uint8_t>::max(),
+                            ack_block_length, 0, writer);
         ++num_ack_blocks_written;
       }
       if (num_ack_blocks_written >= num_ack_blocks) {
@@ -5659,15 +5649,14 @@ bool QuicFramer::AppendAckFrameAndTypeByte(const QuicAckFrame& frame,
         }
         break;
       }
+#endif
 
       const uint8_t last_gap =
           total_gap -
           (num_encoded_gaps - 1) * std::numeric_limits<uint8_t>::max();
       // Append the final ACK block with a non-empty size.
-      if (!AppendAckBlock(last_gap, ack_block_length, interval.Length(),
-                          writer)) {
-        return false;
-      }
+      AppendAckBlock(last_gap, ack_block_length, interval.Length(),
+                          writer);
       ++num_ack_blocks_written;
     }
     QUICHE_DCHECK_EQ(num_ack_blocks, num_ack_blocks_written);
@@ -5675,7 +5664,7 @@ bool QuicFramer::AppendAckFrameAndTypeByte(const QuicAckFrame& frame,
   // Timestamps.
   // If we don't process timestamps or if we don't have enough available space
   // to append all the timestamps, don't append any of them.
-  if (process_timestamps_ && writer->capacity() - writer->length() >=
+  if (DCHECK_FLAG && process_timestamps_ && writer->capacity() - writer->length() >=
                                  GetAckFrameTimeStampSize(frame)) {
     if (!AppendTimestampsToAckFrame(frame, writer)) {
       return false;
@@ -6183,10 +6172,8 @@ bool QuicFramer::IsVersionNegotiation(
       perspective_ == Perspective::IS_CLIENT) {
     return header.version_flag;
   }
-  if (header.form == IETF_QUIC_SHORT_HEADER_PACKET) {
-    return false;
-  }
-  return header.long_packet_type == VERSION_NEGOTIATION;
+  return header.form != IETF_QUIC_SHORT_HEADER_PACKET &&
+         header.long_packet_type == VERSION_NEGOTIATION;
 }
 
 #if QUIC_TLS_SESSION || _WIN32
@@ -7167,7 +7154,10 @@ void MaybeExtractQuicErrorCode(QuicConnectionCloseFrame* frame) {
   std::vector<absl::string_view> ed = absl::StrSplit(frame->error_details, ':');
   uint64_t extracted_error_code;
   if (ed.size() < 2 || !quiche::QuicheTextUtils::IsAllDigits(ed[0]) ||
-      !absl::SimpleAtoi(ed[0], &extracted_error_code)) {
+      !absl::SimpleAtoi(ed[0], &extracted_error_code) ||
+      extracted_error_code >
+          std::numeric_limits<
+              std::underlying_type<QuicErrorCode>::type>::max()) {
     if (frame->close_type == IETF_QUIC_TRANSPORT_CONNECTION_CLOSE &&
         frame->wire_error_code == NO_IETF_QUIC_ERROR) {
       frame->quic_error_code = QUIC_NO_ERROR;

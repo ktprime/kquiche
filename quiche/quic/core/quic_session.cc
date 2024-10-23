@@ -681,7 +681,7 @@ void QuicSession::OnCanWrite() {
 
   // TODO(b/147146815): this makes all datagrams go before stream data.  We
   // should have a better priority scheme for this. TODO3.remove it before use
-  if (!datagram_queue_.empty()) {
+  if (!datagram_queue_.empty()) { //TODO3 need reopen it if datagram_queue_ is OK
     size_t written = datagram_queue_.SendDatagrams();
     QUIC_DVLOG(1) << ENDPOINT << "Sent " << written << " datagrams";
     if (!datagram_queue_.empty()) {
@@ -864,7 +864,7 @@ QuicConsumedData QuicSession::WritevData(QuicStreamId id, size_t write_length,
 
   SetTransmissionType(type);
   //QUICHE_CHECK(level == connection_->encryption_level());// TODO2 hybchanged removed it
-#if DEBUG || QUIC_TLS_SESSION
+#if DEBUG || QUIC_TLS_SESSION //TODO3
   QuicConnection::ScopedEncryptionLevelContext context(connection_, level);
 #endif
   QuicConsumedData data =
@@ -907,11 +907,11 @@ void QuicSession::OnControlFrameManagerError(QuicErrorCode error_code,
 
 bool QuicSession::WriteControlFrame(const QuicFrame& frame,
                                     TransmissionType type) {
-//  QUIC_BUG_IF(quic_bug_12435_11, !connection_->connected())
-//      << ENDPOINT
-//      << absl::StrCat("Try to write control frame: ", QuicFrameToString(frame),
-//                      " when connection is closed: ")
-//      << on_closed_frame_string();
+  QUIC_BUG_IF(quic_bug_12435_11, !connection()->connected())
+      << ENDPOINT
+      << absl::StrCat("Try to write control frame: ", QuicFrameToString(frame),
+                      " when connection is closed: ")
+      << on_closed_frame_string();
   if (DCHECK_FLAG && !IsEncryptionEstablished()) {
     // Suppress the write before encryption gets established.
     return false;
@@ -2325,6 +2325,7 @@ void QuicSession::OnStreamFrameRetransmitted(const QuicStreamFrame& frame) {
 void QuicSession::OnFrameLost(const QuicFrame& frame) {
   if (frame.type != STREAM_FRAME) {
     if (frame.type == MESSAGE_FRAME) {
+      //++total_datagrams_lost_;
       OnMessageLost(frame.message_frame->message_id);
       return;
     }

@@ -1147,7 +1147,7 @@ bool QuicConnection::OnUnauthenticatedHeader(const QuicPacketHeader& header) {
   // Sanity check on the server connection ID in header.
   //QUICHE_DCHECK(ValidateServerConnectionId(header));
 
-  if (DCHECK_FLAG && packet_creator_.HasPendingFrames()) {
+  if (packet_creator_.HasPendingFrames()) {
     // Incoming packets may change a queued ACK frame.
     const std::string error_details =
         "Pending frames must be serialized before incoming packets are "
@@ -2307,7 +2307,7 @@ void QuicConnection::OnPacketComplete() {
   // For IETF QUIC, it is guaranteed that TLS will give connection the
   // corresponding write key before read key. In other words, connection should
   // never process a packet while an ACK for it cannot be encrypted.
-  if (false && !should_last_packet_instigate_acks_) {
+  if (DCHECK_FLAG && !should_last_packet_instigate_acks_) {
     uber_received_packet_manager_.MaybeUpdateAckTimeout(
         should_last_packet_instigate_acks_,
         last_received_packet_info_.decrypted_level,
@@ -2861,9 +2861,7 @@ void QuicConnection::OnBlockedWriterCanWrite() {
 }
 
 void QuicConnection::OnCanWrite() {
-//  QUICHE_DCHECK(connected_);
   if (!connected_) {
-    //printf("!connected_\n");
     return;
   }
   if (false && writer_->IsWriteBlocked()) {
@@ -3088,7 +3086,9 @@ bool QuicConnection::ProcessValidatedPacket(const QuicPacketHeader& header) {
     ReplaceInitialServerConnectionId(header.source_connection_id);
   }
 
-  if (!ValidateReceivedPacketNumber(header.packet_number)) {
+  //!ValidateReceivedPacketNumber(header.packet_number)
+  if (!uber_received_packet_manager_.IsAwaitingPacket(
+      last_received_packet_info_.decrypted_level, header.packet_number) ) {
     return false;
   }
 
@@ -3945,6 +3945,7 @@ void QuicConnection::OnSerializedPacket(SerializedPacket& serialized_packet) {
     return;
   }
 
+#if QUIC_TLS_SESSION
   if (serialized_packet.retransmittable_frames.empty()) {
     // Increment consecutive_num_packets_with_no_retransmittable_frames_ if
     // this packet is a new transmission with no retransmittable frames.
@@ -3952,7 +3953,7 @@ void QuicConnection::OnSerializedPacket(SerializedPacket& serialized_packet) {
   } else {
     consecutive_num_packets_with_no_retransmittable_frames_ = 0;
   }
-#if QUIC_TLS_SESSION
+
   if (retransmittable_on_wire_behavior_ == SEND_FIRST_FORWARD_SECURE_PACKET && //never used.
       first_serialized_one_rtt_packet_ == nullptr &&
       serialized_packet.encryption_level == ENCRYPTION_FORWARD_SECURE) {
@@ -4111,11 +4112,12 @@ void QuicConnection::SendAck() {
     return;
   }
   ResetAckStates();
+
+#if QUIC_TLS_SESSION //TODO3 only for tls
   if (!ShouldBundleRetransmittableFrameWithAck()) {
     return;
   }
   consecutive_num_packets_with_no_retransmittable_frames_ = 0;
-#if 1
   if (packet_creator_.HasPendingRetransmittableFrames() ||
       visitor_->WillingAndAbleToWrite()) {
     // There are pending retransmittable frames.
@@ -4178,6 +4180,11 @@ void QuicConnection::OnRetransmissionTimeout() {
       debug_visitor_->OnNPacketNumbersSkipped(num_packet_numbers_to_skip,
                                               clock_->Now());
     }
+    if constexpr (kConsecutivePtoCount > 0)
+    if (sent_packet_manager_.GetConsecutivePtoCount() >= kConsecutivePtoCount) {
+      OnBlackholeDetected();
+      return;
+    }
   }
   if (!sent_packet_manager_.HasInFlightPackets() &&
       blackhole_detector_.IsDetectionInProgress() &&
@@ -4188,13 +4195,10 @@ void QuicConnection::OnRetransmissionTimeout() {
   }
   WriteIfNotBlocked();
 
-  if constexpr (kConsecutivePtoCount > 0)
-  if (sent_packet_manager_.GetConsecutivePtoCount() >= kConsecutivePtoCount)
-    OnBlackholeDetected();
-
+  //QUICHE_DCHECK(connected_);
   // A write failure can result in the connection being closed, don't attempt to
   // write further packets, or to set alarms.
-  if (!connected_) {
+  if (false && !connected_) { 
     return;
   }
   // When PTO fires, the SentPacketManager gives the connection the opportunity
@@ -5816,6 +5820,7 @@ void QuicConnection::MaybeBundleCryptoDataWithAcks() {
 }
 
 void QuicConnection::SendAllPendingAcks() {
+#if QUIC_TLS_SESSION
   QUICHE_DCHECK(SupportsMultiplePacketNumberSpaces());
   QUIC_DVLOG(1) << ENDPOINT << "Trying to send all pending ACKs";
   ack_alarm_->Cancel();
@@ -5892,6 +5897,7 @@ void QuicConnection::SendAllPendingAcks() {
   }
 
   visitor_->OnAckNeedsRetransmittableFrame();
+#endif
 }
 
 bool QuicConnection::ShouldBundleRetransmittableFrameWithAck() const {
