@@ -630,14 +630,17 @@ void QuicPacketCreator::CreateAndSerializeStreamFrame(
                                   plaintext_bytes_written);
     needs_padding = false;
   }
-  bool omit_frame_length = !needs_padding;
+  QUICHE_DCHECK(!needs_padding);
+  const bool omit_frame_length = true;// !needs_padding;
   framer_->AppendTypeByte(QuicFrame(frame), omit_frame_length, &writer);
   framer_->AppendStreamFrame(frame, omit_frame_length, &writer);
+#if 0
   if (needs_padding && plaintext_bytes_written < min_plaintext_size &&
       !writer.WritePaddingBytes(min_plaintext_size - plaintext_bytes_written)) {
     QUIC_BUG(quic_bug_10752_12) << ENDPOINT << "Unable to add padding bytes";
     return;
   }
+#endif
 
   if (header.version_flag && !framer_->WriteIetfLongHeaderLength(header, &writer, length_field_offset,
                                           packet_.encryption_level)) {
@@ -1676,8 +1679,8 @@ void QuicPacketCreator::FillPacketHeader(QuicPacketHeader* header) {
     QUICHE_DCHECK_EQ(Perspective::IS_SERVER, framer_->perspective())
         ;//<< ENDPOINT;
     header->nonce = &diversification_nonce_;
-  } else {
-    header->nonce = nullptr;
+  //} else {
+    //header->nonce = nullptr;
   }
   packet_.packet_number = NextSendingPacketNumber();
   header->packet_number = packet_.packet_number;

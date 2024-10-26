@@ -61,10 +61,17 @@ bool QuicDataWriter::WriteUFloat16(uint64_t value) {
     result = static_cast<uint16_t>(value + (exponent << kUFloat16MantissaBits));
   }
 
-  if (endianness() == quiche::NETWORK_BYTE_ORDER) {
-    result = quiche::QuicheEndian::HostToNet16(result);
+  if (DCHECK_FLAG == 0 || endianness() == quiche::NETWORK_BYTE_ORDER) {
+    *(uint8_t*)(buffer() + length() + 0) = (uint8_t)(result >> 8);
+    *(uint8_t*)(buffer() + length() + 1) = (uint8_t)result;
+    //result = quiche::QuicheEndian::HostToNet16(result);
+  } else {
+    *(uint8_t*)(buffer() + length() + 0) = (uint8_t)result;
+    *(uint8_t*)(buffer() + length() + 1) = (uint8_t)(result >> 8);
   }
-  return WriteBytes(&result, sizeof(result));
+  IncreaseLength(sizeof(result));
+  return true;
+  //return WriteBytes(&result, sizeof(result));
 }
 
 bool QuicDataWriter::WriteConnectionId(QuicConnectionId connection_id) {

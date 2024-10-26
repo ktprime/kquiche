@@ -666,7 +666,7 @@ bool QuicSentPacketManager::OnPacketSent(
 
   // Deallocate message data in QuicMessageFrame immediately after packet
   // sent.
-  if (false && packet.frame_types & (1 << MESSAGE_FRAME)) { //TODO3
+  if (packet.frame_types & (1 << MESSAGE_FRAME)) { //TODO3 reopen it if msg is OK
     for (const auto& frame : mutable_packet->retransmittable_frames) {
       if (frame.type == MESSAGE_FRAME) {
         frame.message_frame->message_data.clear();
@@ -1172,7 +1172,7 @@ void QuicSentPacketManager::OnAckFrameStart(QuicPacketNumber largest_acked,
   // Ignore peer_max_ack_delay and use received ack_delay during
   // handshake when supporting multiple packet number spaces.
   if (!supports_multiple_packet_number_spaces() || handshake_finished_) {
-    if (DCHECK_FLAG && ack_delay_time > peer_max_ack_delay()) {
+    if (ack_delay_time > peer_max_ack_delay()) {
       ack_delay_time = peer_max_ack_delay();
     }
     if (DCHECK_FLAG && ignore_ack_delay_) {

@@ -4170,7 +4170,7 @@ void QuicConnection::OnRetransmissionTimeout() {
       sent_packet_manager_.OnRetransmissionTimeout();
   if (retransmission_mode == QuicSentPacketManager::PTO_MODE) {
     // Skip a packet number when PTO fires to elicit an immediate ACK.
-    const QuicPacketCount num_packet_numbers_to_skip = 1;
+    const QuicPacketCount num_packet_numbers_to_skip = 1; //TODO2, why add onc hole
     packet_creator_.SkipNPacketNumbers(
         num_packet_numbers_to_skip,
         sent_packet_manager_.GetLeastPacketAwaitedByPeer(encryption_level_),
@@ -5722,7 +5722,7 @@ void QuicConnection::UpdateReleaseTimeIntoFuture() {
 
 void QuicConnection::ResetAckStates() {
   if (ack_alarm_->deadline().IsInitialized()) //TODO2 do not cancel ack timer
-    ack_alarm_->Update(ack_alarm_->deadline() + QuicTimeDelta::FromSeconds(120), QuicTime::Delta::FromSeconds(1));
+    ack_alarm_->Update(ack_alarm_->deadline() + QuicTimeDelta::FromSeconds(60), QuicTime::Delta::FromSeconds(1));
 //  ack_alarm_->Cancel();
   stop_waiting_count_ = 0;
   uber_received_packet_manager_.ResetAckStates(encryption_level_);

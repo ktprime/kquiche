@@ -138,7 +138,7 @@ bool QuicStreamSendBuffer::WriteStreamData(QuicStreamOffset stream_offset,
     // the internal write index for the QuicIntervalDeque. The incrementing is
     // done in operator++.
   const auto offset = GetInBlockOffset(stream_offset);
-  auto index = GetBlockIndex(stream_offset);
+  const auto index = GetBlockIndex(stream_offset);
   QUICHE_DCHECK(index <= blocks_.size());
   constexpr QuicByteCount max_data_slice_size = kBlockSizeBytes;
 
@@ -153,9 +153,10 @@ bool QuicStreamSendBuffer::WriteStreamData(QuicStreamOffset stream_offset,
   QUICHE_DCHECK(data_length <= max_data_slice_size);
   //if (data_length <= max_data_slice_size)
   {
-    return writer->WriteBytes(blocks_[++index]->buffer, data_length);
+    return writer->WriteBytes(blocks_[1 + index]->buffer, data_length);
   }
 
+#if 0
   QuicByteCount csize = 0;
   for (; csize + max_data_slice_size <= data_length; csize += max_data_slice_size) {
     writer->WriteBytes(blocks_[++index]->buffer, max_data_slice_size);
@@ -165,6 +166,7 @@ bool QuicStreamSendBuffer::WriteStreamData(QuicStreamOffset stream_offset,
   }
 
   return false;
+#endif
 }
 
 bool QuicStreamSendBuffer::OnStreamDataAcked(

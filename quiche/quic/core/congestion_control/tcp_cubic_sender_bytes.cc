@@ -176,7 +176,7 @@ QuicBandwidth TcpCubicSenderBytes::PacingRate(
 
 QuicBandwidth TcpCubicSenderBytes::BandwidthEstimate() const {
   QuicTime::Delta srtt = rtt_stats_->smoothed_rtt();
-  if (false && srtt.IsZero()) {
+  if (srtt.IsZero()) {
     // If we haven't measured an rtt, the bandwidth estimate is unknown.
     return QuicBandwidth::Zero();
   }
