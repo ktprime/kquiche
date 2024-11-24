@@ -67,7 +67,6 @@ std::unique_ptr<quic::ProofSource> CreateDefaultProofSourceImpl() {
     return nullptr;
   }
 
-//  printf("===================== load key success -------------------------------------\n");
   return quic::ProofSourceX509::Create(default_chain, std::move(*default_key));
 }
 

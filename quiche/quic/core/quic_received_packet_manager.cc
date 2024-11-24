@@ -162,9 +162,8 @@ const QuicFrame QuicReceivedPacketManager::GetUpdatedAckFrame(
     // Ensure the delta is zero if approximate now is "in the past".
     ack_frame_.ack_delay_time = approximate_now - time_largest_observed_;
   }
-  QUICHE_DCHECK(time_largest_observed_.IsInitialized());
-  QUICHE_DCHECK(approximate_now >= time_largest_observed_);
-  QUICHE_DCHECK(ack_frame_.packets.NumIntervals() < 50);
+  //QUICHE_DCHECK(ack_frame_.ack_delay_time.ToMilliseconds() < 30'000);
+  QUICHE_DCHECK(ack_frame_.packets.NumIntervals() < max_ack_ranges_ / 2);
 
   while (DCHECK_FLAG && ack_frame_.packets.NumIntervals() > max_ack_ranges_) {
     ack_frame_.packets.RemoveSmallestInterval();

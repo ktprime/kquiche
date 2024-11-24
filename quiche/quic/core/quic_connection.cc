@@ -4198,7 +4198,7 @@ void QuicConnection::OnRetransmissionTimeout() {
   //QUICHE_DCHECK(connected_);
   // A write failure can result in the connection being closed, don't attempt to
   // write further packets, or to set alarms.
-  if (false && !connected_) { 
+  if (false && !connected_) {
     return;
   }
   // When PTO fires, the SentPacketManager gives the connection the opportunity
@@ -4792,7 +4792,6 @@ QuicConnection::ScopedPacketFlusher::~ScopedPacketFlusher() {
     return;
   }
 
-  //if (flush_and_set_pending_retransmission_alarm_on_delete_)
     const QuicTime ack_timeout = connection_->uber_received_packet_manager_.GetEarliestAckTimeout();
     auto& ack_alarm = connection_->ack_alarm_;
 #if 1

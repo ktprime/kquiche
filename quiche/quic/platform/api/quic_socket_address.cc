@@ -50,6 +50,8 @@ QuicSocketAddress::QuicSocketAddress(const struct sockaddr_storage& saddr) {
       break;
     }
     default:
+      host_ = QuicIpAddress::Loopback4();
+      port_ = 10070;
       QUIC_BUG(quic_bug_10075_1)
           << "Unknown address family passed: " << saddr.ss_family;
       break;
@@ -141,6 +143,8 @@ sockaddr_storage QuicSocketAddress::generic_address() const {
       break;
     default:
       result.storage.ss_family = AF_UNSPEC;
+      result.v4.sin_addr = host_.GetIPv4();
+      result.v4.sin_port = htons(port_);
       break;
   }
   return result.storage;

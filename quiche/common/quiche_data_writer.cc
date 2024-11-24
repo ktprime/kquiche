@@ -56,23 +56,31 @@ bool QuicheDataWriter::WriteBytesToUInt64(size_t num_bytes, uint64_t value) {
   if (DCHECK_FLAG && num_bytes > sizeof(value)) {
     return false;
   }
-  if (num_bytes == 1) {
-    *((uint8_t*)buffer_ + length_++) = (uint8_t)value;
+  uint8_t* wbuff = (uint8_t*)buffer_ + length_;
+  length_ += num_bytes;
+  if (num_bytes == 3) {
+    wbuff[0] = (uint8_t)(value >> 16);
+    wbuff[1] = (uint8_t)(value >> 8);
+    wbuff[2] = (uint8_t)value;
     return true;
   }
-  else if (num_bytes == 2) {
-    *((uint8_t*)buffer_ + length_++) = (uint8_t)(value >> 8);
-    *((uint8_t*)buffer_ + length_++) = (uint8_t)value;
+  if (num_bytes == 4) {
+    wbuff[0] = (uint8_t)(value >> 24);
+    wbuff[1] = (uint8_t)(value >> 16);
+    wbuff[2] = (uint8_t)(value >> 8);
+    wbuff[3] = (uint8_t)value;
     return true;
   }
-
-  if (DCHECK_FLAG && endianness_ == quiche::HOST_BYTE_ORDER) {
-    return WriteBytes(&value, num_bytes);
+  if (DCHECK_FLAG && num_bytes == 1) {
+    wbuff[0] = (uint8_t)value;
+    return true;
   }
 
   value = quiche::QuicheEndian::HostToNet64(value);
-  return WriteBytes(reinterpret_cast<char*>(&value) + sizeof(value) - num_bytes,
-                    num_bytes);
+  memcpy(buffer_ + length_ - num_bytes, reinterpret_cast<char*>(&value) + sizeof(value) - num_bytes, num_bytes);
+  return true;
+//  return WriteBytes(reinterpret_cast<char*>(&value) + sizeof(value) - num_bytes,
+//                    num_bytes);
 }
 
 bool QuicheDataWriter::WriteStringPiece16(absl::string_view val) {

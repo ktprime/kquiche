@@ -273,7 +273,6 @@ bool QuicUnackedPacketMap::IsPacketUsefulForMeasuringRtt(
   QUICHE_DCHECK(info.state != NOT_CONTRIBUTING_RTT);
   if (packet_number > largest_acked_ + 1) {
     QUICHE_DCHECK(info.state <= OUTSTANDING);
-    //printf("%lld %lld %d\n", packet_number - largest_acked_, largest_acked_.ToUint64(), info.state);
   }
   return packet_number > largest_acked_ &&
          QuicUtils::IsAckable(info.state) &&

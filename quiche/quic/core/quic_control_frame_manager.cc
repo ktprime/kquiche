@@ -205,7 +205,7 @@ bool QuicControlFrameManager::OnControlFrameAcked(const QuicFrame& frame) {
   auto acked = OnControlFrameIdAcked(id);
   if (frame.type == WINDOW_UPDATE_FRAME && acked) {
     QuicStreamId stream_id = frame.window_update_frame.stream_id;
-    QUICHE_DCHECK(window_update_frames_.at(stream_id) == id); 
+    QUICHE_DCHECK(window_update_frames_.at(stream_id) == id);
     {
       window_update_frames_.erase(stream_id);
     }

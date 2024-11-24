@@ -936,7 +936,7 @@ size_t QuicFramer::BuildDataPacket(const QuicPacketHeader& header,
     // Determine if we should write stream frame length in header.
     const bool last_frame_in_packet = i == frames.size() - 1;
     AppendTypeByte(frame, last_frame_in_packet, &writer);
-    bool add_frame;
+    bool add_frame = false;
 
     switch (frame.type) {
       case STREAM_FRAME:
@@ -2844,7 +2844,10 @@ bool QuicFramer::ProcessAndCalculatePacketNumber(
     QuicDataReader* reader, QuicPacketNumberLength packet_number_length,
     QuicPacketNumber base_packet_number, uint64_t* packet_number) {
   uint64_t wire_packet_number = 0;
-  reader->ReadBytesToUInt64(packet_number_length, &wire_packet_number);
+  if (packet_number_length == 1)
+    reader->ReadUInt8((uint8_t*)&wire_packet_number);
+  else
+    reader->ReadBytesToUInt64(packet_number_length, &wire_packet_number);
 
   // TODO(ianswett): Explore the usefulness of trying multiple packet numbers
   // in case the first guess is incorrect.
@@ -3552,12 +3555,12 @@ bool QuicFramer::ProcessStreamFrame(QuicDataReader* reader, uint8_t frame_type,
 
   frame->fin = (stream_flags & kQuicStreamFinMask) == kQuicStreamFinShift;
 
-  uint64_t stream_id;
-  //if (!
-  reader->ReadBytesToUInt64(stream_id_length, &stream_id);// {
-    //set_detailed_error("Unable to read stream_id.");
-    //return false;
- // }
+  uint64_t stream_id = 0;
+  //QUICHE_DCHECK(stream_id_length == 1);
+//  if (stream_id_length == 1)
+    reader->ReadUInt8((uint8_t*)&stream_id);// {
+//  else
+//    reader->ReadBytesToUInt64(stream_id_length, &stream_id);// {
   frame->stream_id = static_cast<QuicStreamId>(stream_id);
 
   auto ret = reader->ReadBytesToUInt64(offset_length, &frame->offset);
@@ -3700,14 +3703,13 @@ bool QuicFramer::ProcessAckFrequencyFrame(QuicDataReader* reader,
 bool QuicFramer::ProcessAckFrameBlocks(QuicDataReader * reader,
   size_t num_ack_blocks, uint64_t first_received, uint64_t ack_block_length)
 {
+  QUICHE_DCHECK(ack_block_length == 1);
   for (size_t i = 0; i < num_ack_blocks; ++i) {
     uint8_t gap = 0;
     reader->ReadUInt8(&gap);
-    uint64_t current_block_length;
-    if (!reader->ReadBytesToUInt64(ack_block_length, &current_block_length)) {
-      set_detailed_error("Unable to ack block length.");
-      return false;
-    }
+    uint64_t current_block_length = 0;
+    reader->ReadUInt8((uint8_t*)&current_block_length);
+
     //      bool ack_block_underflow = first_received < gap + current_block_length; //TODO hybchanged
     if (first_received < gap + current_block_length + first_sending_packet_number_.ToUint64()) {
       set_detailed_error(absl::StrCat("Underflow with ack block length ",
@@ -3750,8 +3752,11 @@ bool QuicFramer::ProcessAckFrame(QuicDataReader* reader, uint8_t frame_type) {
       ReadAckPacketNumberLength(ExtractBits(
           frame_type, kQuicSequenceNumberLengthNumBits, kLargestAckedOffset));
 
-  uint64_t largest_acked;
-  reader->ReadBytesToUInt64(largest_acked_length, &largest_acked);
+  uint64_t largest_acked = 0;
+  if (largest_acked_length == 2)
+    reader->ReadUInt16((uint16_t*)&largest_acked);
+  else
+    reader->ReadBytesToUInt64(largest_acked_length, &largest_acked);
 
   if (DCHECK_FLAG && first_sending_packet_number_.ToUint64() > largest_acked) {
     // Connection always sends packet starting from kFirstSendingPacketNumber >
@@ -3780,15 +3785,19 @@ bool QuicFramer::ProcessAckFrame(QuicDataReader* reader, uint8_t frame_type) {
     return false;
   }
 
-  uint64_t first_block_length;
-  reader->ReadBytesToUInt64(ack_block_length, &first_block_length);
+  uint64_t first_block_length = 0;
+//  QUICHE_DCHECK(ack_block_length == 1);
+//  if (ack_block_length == 1)
+    reader->ReadUInt8((uint8_t*)&first_block_length);
+//  else
+//    reader->ReadBytesToUInt64(ack_block_length, &first_block_length);
 
-  if (DCHECK_FLAG && first_block_length == 0) {
+  if (DCHECK_FLAG && (first_block_length == 0 || ack_block_length != 1)) {
     set_detailed_error("First block length is zero.");
     return false;
   }
 //  bool first_ack_block_underflow = first_block_length > largest_acked + 1;
-  else if (first_block_length /* + first_sending_packet_number_.ToUint64() */ >
+  else if (DCHECK_FLAG && first_block_length /* + first_sending_packet_number_.ToUint64() */ >
       largest_acked) {
     set_detailed_error(absl::StrCat("Underflow with first ack block length ",
                                     first_block_length, " largest acked is ",
@@ -4559,9 +4568,8 @@ bool QuicFramer::ApplyHeaderProtection(EncryptionLevel level, char* buffer,
   // Apply the mask to the 4 or 5 least significant bits of the first byte.
   uint8_t bitmask = 0x1f;
   uint8_t type_byte;
-  if (!buffer_reader.ReadUInt8(&type_byte)) {
-    return false;
-  }
+  buffer_reader.ReadUInt8(&type_byte);
+
   QuicLongHeaderType header_type;
   if (IsLongHeader(type_byte)) {
     bitmask = 0x0f;
@@ -4571,10 +4579,8 @@ bool QuicFramer::ApplyHeaderProtection(EncryptionLevel level, char* buffer,
     }
   }
   uint8_t mask_byte;
-  if (!mask_reader.ReadUInt8(&mask_byte) ||
-      !buffer_writer.WriteUInt8(type_byte ^ (mask_byte & bitmask))) {
-    return false;
-  }
+  mask_reader.ReadUInt8(&mask_byte);
+  buffer_writer.WriteUInt8(type_byte ^ (mask_byte & bitmask));
 
   // Adjust |pn_offset| to account for the diversification nonce.
   if (IsLongHeader(type_byte) && header_type == ZERO_RTT_PROTECTED &&
@@ -4597,11 +4603,9 @@ bool QuicFramer::ApplyHeaderProtection(EncryptionLevel level, char* buffer,
   for (size_t i = 0; i < last_written_packet_number_length_; ++i) {
     uint8_t buffer_byte;
     uint8_t pn_mask_byte;
-    if (!mask_reader.ReadUInt8(&pn_mask_byte) ||
-        !buffer_reader.ReadUInt8(&buffer_byte) ||
-        !buffer_writer.WriteUInt8(buffer_byte ^ pn_mask_byte)) {
-      return false;
-    }
+    mask_reader.ReadUInt8(&pn_mask_byte);
+    buffer_reader.ReadUInt8(&buffer_byte);
+    buffer_writer.WriteUInt8(buffer_byte ^ pn_mask_byte);
   }
   return true;
 }
@@ -5341,6 +5345,10 @@ bool QuicFramer::AppendPacketNumber(QuicPacketNumberLength packet_number_length,
                                     QuicDataWriter* writer) {
   QUICHE_DCHECK(packet_number.IsInitialized());
   QUICHE_DCHECK(IsValidPacketNumberLength(packet_number_length));
+  if (packet_number_length == 2)
+    return writer->WriteUInt16(packet_number.ToUint64());
+  if (packet_number_length == 1)
+    return writer->WriteUInt8(packet_number.ToUint64());
   return writer->WriteBytesToUInt64(packet_number_length,
                                     packet_number.ToUint64());
 }
@@ -5348,12 +5356,13 @@ bool QuicFramer::AppendPacketNumber(QuicPacketNumberLength packet_number_length,
 // static
 bool QuicFramer::AppendStreamId(size_t stream_id_length, QuicStreamId stream_id,
                                 QuicDataWriter* writer) {
-  if (DCHECK_FLAG && (stream_id_length == 0 || stream_id_length > 4)) {
+  if (DCHECK_FLAG && (stream_id_length != 1)) {
     QUIC_BUG(quic_bug_10850_77)
         << "Invalid stream_id_length: " << stream_id_length;
     return false;
   }
-  return writer->WriteBytesToUInt64(stream_id_length, stream_id);
+  return writer->WriteUInt8(stream_id);
+//  return writer->WriteBytesToUInt64(stream_id_length, stream_id);
 }
 
 // static

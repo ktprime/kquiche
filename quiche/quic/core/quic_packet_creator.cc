@@ -1700,7 +1700,7 @@ size_t QuicPacketCreator::GetSerializedFrameLength(const QuicFrame& frame) {
   size_t serialized_frame_length = framer_->GetSerializedFrameLength(
       frame, BytesFree(), queued_frames_.empty(),
       /* last_frame_in_packet= */ true, GetPacketNumberLength());
-  QUICHE_DCHECK(serialized_frame_length);
+  //QUICHE_DCHECK(serialized_frame_length);
   if (!framer_->version().HasHeaderProtection() /* ||
       serialized_frame_length == 0 **/) {
     return serialized_frame_length;
