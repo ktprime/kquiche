@@ -136,15 +136,16 @@ void QuicFlowController::MaybeIncreaseMaxWindowSize() {
   QuicTime prev = prev_window_update_time_;
   prev_window_update_time_ = now;
   if (!prev.IsInitialized()) {
+    QUICHE_DCHECK(false);
     QUIC_DVLOG(1) << ENDPOINT << "first window update for " << LogLabel();
     return;
   }
-
 
   // Get outbound RTT.
   QuicTime::Delta rtt =
       connection_->sent_packet_manager().GetRttStats()->smoothed_rtt();
   if (rtt.IsZero()) {
+    QUICHE_DCHECK(false);
     QUIC_DVLOG(1) << ENDPOINT << "rtt zero for " << LogLabel();
     return;
   }
@@ -186,16 +187,22 @@ void QuicFlowController::IncreaseWindowSize() {
 }
 
 QuicByteCount QuicFlowController::WindowUpdateThreshold() const {
-  return receive_window_size_ * 2 / 4;
+  return receive_window_size_ / 2;
 }
 
 void QuicFlowController::MaybeSendWindowUpdate() {
   // Send WindowUpdate to increase receive window if
   // (receive window offset - consumed bytes) < (max window / 2).
   // This is behaviour copied from SPDY.
-  //QUICHE_DCHECK_LE(bytes_consumed_, receive_window_offset_);
+  QUICHE_DCHECK_LE(bytes_consumed_, receive_window_offset_);
   QuicStreamOffset available_window = receive_window_offset_ - bytes_consumed_;
   QuicByteCount threshold = WindowUpdateThreshold();
+
+  if (DCHECK_FLAG && !prev_window_update_time_.IsInitialized()) {
+    // Treat the initial window as if it is a window update, so if 1/2 the
+    // window is used in less than 2 RTTs, the window is increased.
+    prev_window_update_time_ = connection_->clock()->ApproximateNow();
+  }
 
   if (available_window >= threshold) {
     QUIC_DVLOG(1) << ENDPOINT << "Not sending WindowUpdate for " << LogLabel()
@@ -203,19 +210,8 @@ void QuicFlowController::MaybeSendWindowUpdate() {
                   << " >= threshold: " << threshold;
     return;
   }
-
-  if (false && !session_->connection()->connected()) {
-    return;
-  }
-
-  if (!prev_window_update_time_.IsInitialized()) {
-    // Treat the initial window as if it is a window update, so if 1/2 the
-    // window is used in less than 2 RTTs, the window is increased.
-    prev_window_update_time_ = connection_->clock()->ApproximateNow();
-  }
-
-  if (auto_tune_receive_window_)
-    MaybeIncreaseMaxWindowSize();
+  if (DCHECK_FLAG && auto_tune_receive_window_)
+  MaybeIncreaseMaxWindowSize();
   UpdateReceiveWindowOffsetAndSendWindowUpdate(available_window);
 }
 
@@ -285,8 +281,8 @@ void QuicFlowController::EnsureWindowAtLeast(QuicByteCount window_size) {
 bool QuicFlowController::IsBlocked() const { return bytes_sent_ > send_window_offset_; }
 
 uint64_t QuicFlowController::SendWindowSize() const {
-  return (bytes_sent_ > send_window_offset_) ?
-          0 : send_window_offset_ - bytes_sent_;
+  return /*(bytes_sent_ > send_window_offset_) ?
+          0 :*/ send_window_offset_ - bytes_sent_;
 }
 
 void QuicFlowController::UpdateReceiveWindowSize(QuicStreamOffset size) {

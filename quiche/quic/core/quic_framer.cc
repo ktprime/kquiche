@@ -2328,7 +2328,7 @@ const QuicTime::Delta QuicFramer::CalculateTimestampFromWire(
 
 uint64_t QuicFramer::CalculatePacketNumberFromWire(
     QuicPacketNumberLength packet_number_length,
-    QuicPacketNumber base_packet_number, uint64_t packet_number) const {
+    QuicPacketNumber base_packet_number, uint64_t packet_number) {
   // The new packet number might have wrapped to the next epoch, or
   // it might have reverse wrapped to the previous epoch, or it might
   // remain in the same epoch.  Select the packet number closest to the
@@ -5102,6 +5102,7 @@ size_t QuicFramer::GetAckFrameSize(
     ack_size += std::min(ack_info.num_ack_blocks, kMaxAckBlocks) *
                 (ack_block_length + PACKET_1BYTE_PACKET_NUMBER);
   }
+
   // Include timestamps.
   if (process_timestamps_) {
     ack_size += GetAckFrameTimeStampSize(ack);
@@ -5640,7 +5641,7 @@ bool QuicFramer::AppendAckFrameAndTypeByte(const QuicAckFrame& frame,
           (total_gap + std::numeric_limits<uint8_t>::max() - 1) /
           std::numeric_limits<uint8_t>::max();
 
-      QUICHE_DCHECK(num_encoded_gaps == 1);
+//      QUICHE_DCHECK(num_encoded_gaps == 1);
 #if DCHECK_FLAG //can not >= 256  ACK blocks. TODO2
       // Append empty ACK blocks because the gap is longer than a single gap.
       for (size_t i = 1;

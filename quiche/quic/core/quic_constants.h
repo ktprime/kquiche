@@ -286,7 +286,7 @@ inline constexpr size_t kMaxNewTokenTokenLength = 0xffff;
 inline constexpr uint8_t kAddressTokenPrefix = 0;
 
 // Default initial rtt used before any samples are received.
-inline constexpr int kInitialRttMs = 50;
+inline constexpr int kInitialRttMs = 100;
 
 // Default threshold of packet reordering before a packet is declared lost.
 inline constexpr QuicPacketCount kDefaultPacketReorderingThreshold = 3;

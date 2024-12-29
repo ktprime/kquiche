@@ -10,10 +10,13 @@
 namespace quic {
 
 QuicWriteBlockedList::QuicWriteBlockedList()
-    : last_priority_popped_(0),
+    : last_priority_popped_(0)
+#if 0
       respect_incremental_(
           GetQuicReloadableFlag(quic_priority_respect_incremental)),
-      disable_batch_write_(GetQuicReloadableFlag(quic_disable_batch_write)) {
+      disable_batch_write_(GetQuicReloadableFlag(quic_disable_batch_write))
+#endif
+{
   memset(batch_write_stream_id_, 0, sizeof(batch_write_stream_id_));
   memset(bytes_left_for_batch_write_, 0, sizeof(bytes_left_for_batch_write_));
 }

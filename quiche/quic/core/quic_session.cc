@@ -732,6 +732,7 @@ void QuicSession::OnCanWrite() {
       QUICHE_DCHECK(CheckStreamNotBusyLooping(stream, previous_bytes_written,
                                               previous_fin_sent));
     }
+    if (stream_map_.size() > 1)
     currently_writing_stream_id_ = 0;
   }
 }

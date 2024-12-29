@@ -906,9 +906,9 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
 
   // Returns the full packet number from the truncated
   // wire format version and the last seen packet number.
-  uint64_t CalculatePacketNumberFromWire(
+  static uint64_t CalculatePacketNumberFromWire(
       QuicPacketNumberLength packet_number_length,
-      QuicPacketNumber base_packet_number, uint64_t packet_number) const;
+      QuicPacketNumber base_packet_number, uint64_t packet_number);
 
   // Returns the QuicTime::Delta corresponding to the time from when the framer
   // was created.

@@ -299,7 +299,7 @@ class QUICHE_EXPORT PriorityWriteScheduler {
     if (!stream_info->ready) {
       return;
     }
-#if QUICHE_DCHECK
+#if DCHECK_FLAG
     bool erased =
 #endif
         Erase(&priority_infos_[PriorityTypeToInt()(stream_info->priority)].ready_list,

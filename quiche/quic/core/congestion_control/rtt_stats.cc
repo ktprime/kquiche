@@ -14,7 +14,7 @@ namespace quic {
 
 namespace {
 
-constexpr int kAlpha = 1;
+constexpr int kAlpha = 2;
 constexpr int kOneMinusAlpha = 8 - kAlpha;
 constexpr int kBeta = 1;
 constexpr int kOneMinusBeta = 4 - kBeta;// (1 - kBeta);
@@ -101,7 +101,7 @@ bool RttStats::UpdateRtt(QuicTime::Delta send_delta, QuicTime::Delta ack_delay,
 void RttStats::OnConnectionMigration() {
   latest_rtt_ = QuicTime::Delta::Zero();
   min_rtt_ = QuicTime::Delta::FromSeconds(10),
-  smoothed_rtt_ = QuicTime::Delta::Zero();
+  smoothed_rtt_ = QuicTime::Delta::FromMilliseconds(kInitialRttMs);
   mean_deviation_ = QuicTime::Delta::Zero();
   initial_rtt_ = QuicTime::Delta::FromMilliseconds(kInitialRttMs);
 }

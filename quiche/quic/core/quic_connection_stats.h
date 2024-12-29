@@ -25,6 +25,7 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   QuicPacketCount packets_sent = 0;
   QuicPacketCount stream_packets_sent = 0;
   QuicPacketCount stream_packets_recv = 0;
+  QuicPacketCount ack_packets_recv = 0;
   // Non-retransmitted bytes sent in a stream frame.
   //QuicByteCount stream_bytes_sent = 0;
   // Packets serialized and discarded before sending.
@@ -64,6 +65,7 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   // |packets_lost|. Smaller result means detection is faster.
   float total_loss_detection_response_time = 0.0;
 
+  uint32_t control_packets_sent = 0;
   // Number of times this connection went through the slow start phase.
   QuicPacketCount slowstart_count = 0;
 
@@ -109,8 +111,7 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   // The maximum |long_term_mtu_| the connection ever used.
   uint32_t max_egress_mtu = 0;
   // Size of the largest packet received from the peer, populated by
-  // QuicConnection::GetStats().
-  uint32_t ingress_mtu = 0;
+
   QuicBandwidth estimated_bandwidth = QuicBandwidth::Zero();
 
   // Reordering stats for received packets.
@@ -122,10 +123,10 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   int64_t max_time_reordering_us = 0;
 
   // Maximum sequence reordering observed from acked packets.
-  uint32_t sent_packets_max_sequence_reordering = 0;
+  uint16_t sent_packets_max_sequence_reordering = 0;
   // Number of times that a packet is not detected as lost per reordering_shift,
   // but would have been if the reordering_shift increases by one.
-  uint32_t sent_packets_num_borderline_time_reorderings = 0;
+  uint16_t sent_packets_num_borderline_time_reorderings = 0;
 
   // The following stats are used only in TcpCubicSender.
   // The number of loss events from TCP's perspective.  Each loss event includes
@@ -137,7 +138,7 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
 
   // Handshake completion time.
   QuicTime handshake_completion_time = QuicTime::Zero();
-
+  uint32_t ingress_mtu = 0;
   uint32_t blocked_frames_received = 0;
   uint32_t blocked_frames_sent = 0;
 

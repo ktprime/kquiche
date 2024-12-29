@@ -1457,12 +1457,11 @@ bool QuicConnection::OnCryptoFrame(const QuicCryptoFrame& frame) {
 
 bool QuicConnection::OnAckFrameStart(QuicPacketNumber largest_acked,
                                      QuicTime::Delta ack_delay_time) {
-#if 1
   QUIC_BUG_IF(quic_bug_12714_5, !connected_)
       << "Processing ACK frame start when connection is closed. Received "
          "packet info: "
       << last_received_packet_info_;
-#endif
+  stats_.ack_packets_recv++;
   if (processing_ack_frame_) {
     CloseConnection(QUIC_INVALID_ACK_DATA,
                     "Received a new ack while processing an ack frame.",
@@ -2577,6 +2576,7 @@ bool QuicConnection::SendControlFrame(const QuicFrame& frame) {
   if (frame.type == BLOCKED_FRAME) {
     stats_.blocked_frames_sent++;
   }
+  stats_.control_packets_sent++;
   return consumed;
 }
 
@@ -2846,7 +2846,7 @@ void QuicConnection::ProcessUdpPacket(const QuicSocketAddress& self_address,
   {
     OnCanWrite();
 
-    if (false && !retransmission_alarm_->IsSet()) //TODO2 hybchanged
+    if (perspective_ == Perspective::IS_CLIENT && !retransmission_alarm_->IsSet()) //TODO2 hybchanged
       SetPingAlarm();
   }
   if (connection_migration_use_new_cid_)
@@ -3667,7 +3667,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
 
   if (in_flight || !retransmission_alarm_->IsSet()) {
     SetRetransmissionAlarm();
-  } else if (DCHECK_FLAG)
+  } else if (DCHECK_FLAG && perspective_ == Perspective::IS_CLIENT)
     SetPingAlarm(); //TODO3
 #if QUIC_TLS_SESSION
   if (connection_migration_use_new_cid_)
@@ -3681,7 +3681,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
       sent_packet_manager_.EstimateMaxPacketsInFlight(max_packet_length()));
 
   stats_.bytes_sent += encrypted_length;
-  ++stats_.packets_sent;
+  stats_.packets_sent++;
   stats_.stream_packets_sent += has_retransmittable_data;
 
   if (packet->transmission_type != NOT_RETRANSMISSION) {
@@ -4792,14 +4792,14 @@ QuicConnection::ScopedPacketFlusher::~ScopedPacketFlusher() {
     return;
   }
 
+#if 0
     const QuicTime ack_timeout = connection_->uber_received_packet_manager_.GetEarliestAckTimeout();
     auto& ack_alarm = connection_->ack_alarm_;
-#if 1
-    if (ack_timeout.IsInitialized()) {
-      if (ack_timeout < ack_alarm->deadline())
+    if (ack_timeout < ack_alarm->deadline() /* && ack_timeout.IsInitialized()***/) {
+//      if (ack_timeout < ack_alarm->deadline())
         ack_alarm->Update(ack_timeout, kAlarmGranularity);
     }
-#elif 1 //TODO3
+#elif 0 //TODO3
     if (ack_timeout.IsInitialized()) {
       const auto now_time = connection_->clock_->ApproximateNow();
       if (ack_timeout <= now_time && !connection_->CanWrite(NO_RETRANSMITTABLE_DATA)) {

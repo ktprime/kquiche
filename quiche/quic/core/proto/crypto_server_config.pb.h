@@ -29,7 +29,7 @@
 #include <google/protobuf/repeated_field.h>  // IWYU pragma: export
 #include <google/protobuf/extension_set.h>  // IWYU pragma: export
 // @@protoc_insertion_point(includes)
-#include "base/component_export.h"
+#include "quiche/quic/core/proto/component_export.h"
 #include <google/protobuf/port_def.inc>
 #define PROTOBUF_INTERNAL_EXPORT_quiche_2fquic_2fcore_2fproto_2fcrypto_5fserver_5fconfig_2eproto COMPONENT_EXPORT(QUICHE)
 PROTOBUF_NAMESPACE_OPEN

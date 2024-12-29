@@ -67,7 +67,7 @@ class QUIC_EXPORT_PRIVATE QuicStreamSendBuffer {
   // Choose 8K to make block large enough to hold multiple frames, each of
   // which could be up to 1.5 KB.
   inline static constexpr uint32_t kBlockSizeBytes = 16 * 1024;  // 8KB
-  inline static constexpr uint32_t kSmallBlocks = 128 * 1024 / kBlockSizeBytes;
+  inline static constexpr uint32_t kSmallBlocks = 64 * 1024 / kBlockSizeBytes;
 public:
 
   static_assert(kBlockSizeBytes > kMaxIncomingPacketSize);

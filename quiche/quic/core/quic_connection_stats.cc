@@ -13,6 +13,8 @@ std::ostream& operator<<(std::ostream& os, const QuicConnectionStats& s) {
   os << " packets_received: " << s.packets_received;
   os << " stream_packets_sent: " << s.stream_packets_sent;
   os << " stream_packets_recv: " << s.stream_packets_recv;
+  os << " ack_packets_recv: " << s.ack_packets_recv;
+  os << " control_packets_sent: " << s.control_packets_sent;
   //if (s.stream_bytes_sent > 0)
   //os << " stream_bytes_sent: " << s.stream_bytes_sent;
   if (s.packets_discarded > 0)

@@ -30,7 +30,7 @@
 #include <google/protobuf/extension_set.h>  // IWYU pragma: export
 #include <google/protobuf/generated_enum_util.h>
 // @@protoc_insertion_point(includes)
-#include "base/component_export.h"
+#include "quiche/quic/core/proto/component_export.h"
 #include <google/protobuf/port_def.inc>
 #define PROTOBUF_INTERNAL_EXPORT_quiche_2fquic_2fcore_2fproto_2fcached_5fnetwork_5fparameters_2eproto COMPONENT_EXPORT(QUICHE)
 PROTOBUF_NAMESPACE_OPEN

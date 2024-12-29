@@ -220,9 +220,9 @@ class QUIC_EXPORT_PRIVATE QuicWriteBlockedList final
 #endif
 
   // Latched value of reloadable_flag_quic_priority_respect_incremental.
-  const bool respect_incremental_;
+  constexpr static bool respect_incremental_ = false;
   // Latched value of reloadable_flag_quic_disable_batch_write.
-  const bool disable_batch_write_;
+  constexpr static bool disable_batch_write_ = true;
 };
 
 }  // namespace quic
