@@ -24,8 +24,8 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   QuicByteCount bytes_sent = 0;  // Includes retransmissions.
   QuicPacketCount packets_sent = 0;
   QuicPacketCount stream_packets_sent = 0;
-  QuicPacketCount stream_packets_recv = 0;
-  QuicPacketCount ack_packets_recv = 0;
+  QuicPacketCount notrans_packets_sent = 0;
+
   // Non-retransmitted bytes sent in a stream frame.
   //QuicByteCount stream_bytes_sent = 0;
   // Packets serialized and discarded before sending.
@@ -36,6 +36,8 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   QuicByteCount bytes_received = 0;  // Includes duplicate data for a stream.
   // Includes packets which were not processable.
   QuicPacketCount packets_received = 0;
+  QuicPacketCount stream_packets_recv = 0;
+  QuicPacketCount ack_packets_recv = 0;
   // Excludes packets which were not processable.
   QuicPacketCount packets_processed = 0;
   QuicByteCount stream_bytes_received = 0;  // Bytes received in a stream frame.
@@ -139,14 +141,14 @@ struct QUIC_EXPORT_PRIVATE QuicConnectionStats {
   // Handshake completion time.
   QuicTime handshake_completion_time = QuicTime::Zero();
   uint32_t ingress_mtu = 0;
-  uint32_t blocked_frames_received = 0;
-  uint32_t blocked_frames_sent = 0;
+  uint16_t blocked_frames_received = 0;
+  uint16_t blocked_frames_sent = 0;
 
   // Number of connectivity probing packets received by this connection.
-  uint32_t num_connectivity_probing_received = 0;
+  uint16_t num_connectivity_probing_received = 0;
 
   // Number of PATH_RESPONSE frame received by this connection.
-  uint32_t num_path_response_received = 0;
+  uint16_t num_path_response_received = 0;
 
   // Whether a RETRY packet was successfully processed.
   bool retry_packet_processed = false;

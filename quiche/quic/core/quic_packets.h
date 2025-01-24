@@ -307,6 +307,7 @@ class QUIC_EXPORT_PRIVATE QuicReceivedPacket : public QuicEncryptedPacket {
 
   // Returns the time at which the packet was received.
   QuicTime receipt_time() const { return receipt_time_; }
+  QuicTime& receipt_time() { return receipt_time_; }
 
   // This is the TTL of the packet, assuming ttl_vaild_ is true.
   int ttl() const { return ttl_; }
@@ -325,7 +326,7 @@ class QUIC_EXPORT_PRIVATE QuicReceivedPacket : public QuicEncryptedPacket {
       std::ostream& os, const QuicReceivedPacket& s);
 
  private:
-  const QuicTime receipt_time_;
+  QuicTime receipt_time_;
   // Points to the start of packet headers.
   char* packet_headers_;
   int ttl_;

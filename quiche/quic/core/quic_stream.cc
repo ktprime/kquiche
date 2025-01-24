@@ -1164,6 +1164,7 @@ bool QuicStream::OnStreamFrameAcked(QuicStreamOffset offset,
 void QuicStream::OnStreamFrameRetransmitted(QuicStreamOffset offset,
                                             QuicByteCount data_length,
                                             bool fin_retransmitted) {
+  if (data_length)
   send_buffer_.OnStreamDataRetransmitted(offset, data_length);
   if (fin_retransmitted) {
     fin_lost_ = false;

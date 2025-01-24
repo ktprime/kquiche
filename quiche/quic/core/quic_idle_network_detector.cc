@@ -87,13 +87,13 @@ void QuicIdleNetworkDetector::OnPacketSent(QuicTime now,
     MaybeSetAlarmOnSentPacket(pto_delay);
     return;
   }
-  if (false && !alarm_->IsSet()) //TODO3 hybchanged. follow is set if receive packet.
+  if (!alarm_->IsSet()) //TODO3 hybchanged. follow is set if receive packet.
   SetAlarm();
 }
 
 void QuicIdleNetworkDetector::OnPacketReceived(QuicTime now) {
-  //QUICHE_DCHECK(time_of_last_received_packet_ <= now);
-  if(time_of_last_received_packet_ < now)
+  QUICHE_DCHECK(time_of_last_received_packet_ <= now);
+  //if (time_of_last_received_packet_ < now)
   time_of_last_received_packet_ = now;
   SetAlarm();
 }
@@ -109,14 +109,14 @@ void QuicIdleNetworkDetector::SetAlarm() {
   }
   // Set alarm to the nearer deadline.
   QuicTime new_deadline = QuicTime::Zero();
-  if (!handshake_timeout_.IsInfinite()) {
+  if (false && !handshake_timeout_.IsInfinite()) {
     new_deadline = start_time_ + handshake_timeout_;
   }
   //QUICHE_DCHECK(!idle_network_timeout_.IsInfinite());
   if (true || !idle_network_timeout_.IsInfinite()) {
     const QuicTime idle_network_deadline = GetIdleNetworkDeadline();
-    if (new_deadline.IsInitialized()) {
-      new_deadline = std::min(new_deadline, idle_network_deadline);
+    if (!handshake_timeout_.IsInfinite()) {
+      new_deadline = start_time_ + handshake_timeout_;
     } else {
       new_deadline = idle_network_deadline;
     }

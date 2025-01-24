@@ -766,7 +766,7 @@ size_t QuicFramer::GetStreamOffsetSize(uint64_t offset) {
     return offset == 0 ? 0 : 2;
   }
   // 2 through 8 are the remaining sizes.
-#if __linux__ && 0
+#ifdef __linux__ && 0
   int bitPosition = 63 - __builtin_clzll(offset >> 16);
   int size = bitPosition / 8 + 3;
   return size;

@@ -3592,9 +3592,9 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
                                            GetNetworkBlackholeDeadline(),
                                            GetPathMtuReductionDeadline());
     }
-    idle_network_detector_.OnPacketSent(packet_send_time, QuicTime::Delta::FromMilliseconds(0) /*
-                                        sent_packet_manager_.GetPtoDelay()***/);
+    idle_network_detector_.OnPacketSent(packet_send_time, QuicTime::Delta::FromMilliseconds(0));//TODO2 stop it.
   } else {
+    stats_.notrans_packets_sent++;
     QUICHE_DCHECK(packet->transmission_type == NOT_RETRANSMISSION);
     has_retransmittable_data = NO_RETRANSMITTABLE_DATA;// packet->transmission_type != NOT_RETRANSMISSION ?
     //      HAS_RETRANSMITTABLE_DATA : NO_RETRANSMITTABLE_DATA;
@@ -3667,12 +3667,12 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
 
   if (in_flight || !retransmission_alarm_->IsSet()) {
     SetRetransmissionAlarm();
-  } else if (DCHECK_FLAG && perspective_ == Perspective::IS_CLIENT)
+  } else if (false && perspective_ == Perspective::IS_CLIENT) {
     SetPingAlarm(); //TODO3
-#if QUIC_TLS_SESSION
+  }
+
   if (connection_migration_use_new_cid_)
   RetirePeerIssuedConnectionIdsNoLongerOnPath();
-#endif
 
   // The packet number length must be updated after OnPacketSent, because it
   // may change the packet number length in packet.
@@ -3682,7 +3682,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
 
   stats_.bytes_sent += encrypted_length;
   stats_.packets_sent++;
-  stats_.stream_packets_sent += has_retransmittable_data;
+  stats_.stream_packets_sent += (packet->frame_types & (1 << STREAM_FRAME)) != 0;
 
   if (packet->transmission_type != NOT_RETRANSMISSION) {
     QuicByteCount bytes_not_retransmitted =
@@ -4170,7 +4170,7 @@ void QuicConnection::OnRetransmissionTimeout() {
       sent_packet_manager_.OnRetransmissionTimeout();
   if (retransmission_mode == QuicSentPacketManager::PTO_MODE) {
     // Skip a packet number when PTO fires to elicit an immediate ACK.
-    const QuicPacketCount num_packet_numbers_to_skip = 1; //TODO2, why add onc hole
+    const QuicPacketCount num_packet_numbers_to_skip = 1; //TODO2, why add one hole
     packet_creator_.SkipNPacketNumbers(
         num_packet_numbers_to_skip,
         sent_packet_manager_.GetLeastPacketAwaitedByPeer(encryption_level_),
@@ -4187,6 +4187,7 @@ void QuicConnection::OnRetransmissionTimeout() {
     }
   }
   if (!sent_packet_manager_.HasInFlightPackets() &&
+      kConsecutivePtoCount == 0 &&
       blackhole_detector_.IsDetectionInProgress() &&
       default_enable_5rto_blackhole_detection_) {
     // Stop detection in quiescence.

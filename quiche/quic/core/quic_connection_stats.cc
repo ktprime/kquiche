@@ -10,15 +10,19 @@ std::ostream& operator<<(std::ostream& os, const QuicConnectionStats& s) {
   //hybchanged simplicity
   //os << "{ bytes_sent: " << s.bytes_sent;
   os << " packets_sent: " << s.packets_sent;
-  os << " packets_received: " << s.packets_received;
   os << " stream_packets_sent: " << s.stream_packets_sent;
+  os << " notrans_packets_sent: " << s.notrans_packets_sent;
+  os << " control_packets_sent: " << s.control_packets_sent;
+  os << " packets_recv: " << s.packets_received;
   os << " stream_packets_recv: " << s.stream_packets_recv;
   os << " ack_packets_recv: " << s.ack_packets_recv;
-  os << " control_packets_sent: " << s.control_packets_sent;
   //if (s.stream_bytes_sent > 0)
   //os << " stream_bytes_sent: " << s.stream_bytes_sent;
   if (s.packets_discarded > 0)
   os << " packets_discarded: " << s.packets_discarded;
+  if (s.max_consecutive_rto_with_forward_progress > 0)
+  os << " max_consecutive_rto_with_forward_progress: " << s.max_consecutive_rto_with_forward_progress;
+
   //os << " bytes_received: " << s.bytes_received;
 
 //  if (s.packets_processed != s.packets_received)

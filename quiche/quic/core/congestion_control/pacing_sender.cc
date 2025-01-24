@@ -138,8 +138,7 @@ QuicTime::Delta PacingSender::TimeUntilSend(
   //TODO3: move form line 136 to here
   if (!sender_->CanSend(bytes_in_flight)) {
     // The underlying sender prevents sending.
-    return QuicTime::Delta::FromMilliseconds(1000);
-    //return PacingRate(bytes_in_flight).TransferTime(bytes_in_flight - sender_->GetCongestionWindow());
+    return QuicTime::Delta::FromMilliseconds(5000);
   }
 
   if (remove_non_initial_burst_) {

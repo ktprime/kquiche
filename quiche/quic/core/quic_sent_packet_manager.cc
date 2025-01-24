@@ -86,7 +86,9 @@ QuicSentPacketManager::QuicSentPacketManager(
       rtt_updated_(false),
       acked_packets_iter_(last_ack_frame_.packets.rbegin()),
       consecutive_pto_count_(0),
+#if QUIC_TLS_SESSION
       handshake_mode_disabled_(false),
+#endif
       rtt_packet_state_(0),
       ignore_pings_(false),
       ignore_ack_delay_(false),
@@ -513,7 +515,7 @@ void QuicSentPacketManager::MarkForRetransmission(
     auto has_lost = unacked_packets_.NotifyFramesLost(*transmission_info, transmission_type);
     if (!has_lost) {
       printf("\n%s\n", transmission_info->DebugString().data());
-      //transmission_info->state = ACKED;
+      transmission_info->state = ACKED;
       return;
     }
 
@@ -666,7 +668,7 @@ bool QuicSentPacketManager::OnPacketSent(
 
   // Deallocate message data in QuicMessageFrame immediately after packet
   // sent.
-  if (packet.frame_types & (1 << MESSAGE_FRAME)) { //TODO3 reopen it if msg is OK
+  if (DCHECK_FLAG && packet.frame_types & (1 << MESSAGE_FRAME)) { //TODO3 reopen it if msg is OK
     for (const auto& frame : mutable_packet->retransmittable_frames) {
       if (frame.type == MESSAGE_FRAME) {
         frame.message_frame->message_data.clear();
@@ -832,8 +834,10 @@ void QuicSentPacketManager::MaybeSendProbePacket() {
 }
 
 void QuicSentPacketManager::EnableIetfPtoAndLossDetection() {
-  // Disable handshake mode.
+  // Disable handshake mode
+#if QUIC_TLS_SESSION
   handshake_mode_disabled_ = true;
+#endif
 }
 
 void QuicSentPacketManager::RetransmitDataOfSpaceIfAny(
@@ -970,7 +974,7 @@ QuicTime::Delta QuicSentPacketManager::TimeUntilSend(QuicTime now) const {
   return send_algorithm_->CanSend(unacked_packets_.bytes_in_flight())
     ? QuicTime::Delta::Zero()
     //: send_algorithm_->PacingRate(unacked_packets_.bytes_in_flight()).TransferTime(unacked_packets_.bytes_in_flight() - send_algorithm_->GetCongestionWindow());
-    : QuicTime::Delta::FromSeconds(1);// QuicTime::Delta::Infinite();
+    : QuicTime::Delta::FromSeconds(5);// QuicTime::Delta::Infinite();
 }
 
 const QuicTime QuicSentPacketManager::GetRetransmissionTime() const {
@@ -997,7 +1001,7 @@ const QuicTime QuicSentPacketManager::GetRetransmissionTime() const {
       // Arm 1st PTO with earliest in flight sent time, and make sure at
       // least kFirstPtoSrttMultiplier * RTT has been passed since last
       // in flight packet.
-      if (unacked_packets_.packets_in_flight() <= 2) {
+      if (false && unacked_packets_.packets_in_flight() <= 2) {
         return unacked_packets_.GetLastInFlightPacketSentTime()
             + rtt_stats_.smoothed_rtt() * kFirstPtoSrttMultiplier / 2
             + rtt_stats_.mean_deviation() * kPtoRttvarMultiplier;

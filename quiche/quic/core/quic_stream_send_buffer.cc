@@ -259,7 +259,8 @@ void QuicStreamSendBuffer::OnStreamDataLost(QuicStreamOffset offset,
 
 void QuicStreamSendBuffer::OnStreamDataRetransmitted(
     QuicStreamOffset offset, QuicByteCount data_length) {
-  if (pending_retransmissions_.Empty() || data_length == 0)
+  QUICHE_DCHECK_IMPL(data_length > 0);
+  if (pending_retransmissions_.Empty())
     return;
 
   QuicInterval<QuicStreamOffset> off(offset, offset + data_length);
@@ -269,7 +270,9 @@ void QuicStreamSendBuffer::OnStreamDataRetransmitted(
     return;
   }
   QUICHE_DCHECK (!bytes_acked_.Contains(off));
-  pending_retransmissions_.Difference(off);
+  if (pending_retransmissions_.SpanningInterval().Intersects(off)) {
+    pending_retransmissions_.Difference(QuicIntervalSet<QuicStreamOffset>(off));
+  }
 }
 
 bool QuicStreamSendBuffer::HasPendingRetransmission() const {

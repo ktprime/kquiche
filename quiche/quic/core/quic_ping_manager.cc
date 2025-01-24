@@ -52,7 +52,7 @@ void QuicPingManager::SetAlarm(QuicTime now, bool should_keep_alive,
     alarm_->Update(earliest_deadline, QuicTime::Delta::FromSeconds(1));
     return;
   }
-  alarm_->Update(earliest_deadline, QuicTime::Delta::FromMilliseconds(100));
+  alarm_->Update(earliest_deadline, QuicTime::Delta::FromSeconds(1));
 }
 
 void QuicPingManager::OnAlarm() {
@@ -147,12 +147,14 @@ void QuicPingManager::UpdateDeadlines(QuicTime now, bool should_keep_alive,
 }
 
 QuicTime QuicPingManager::GetEarliestDeadline() const {
-  QuicTime earliest_deadline = keep_alive_deadline_;
+  QuicTime earliest_deadline = std::max(keep_alive_deadline_, retransmittable_on_wire_deadline_);
+#if 0
   if (QuicTime t = retransmittable_on_wire_deadline_; t.IsInitialized()) {
     if (!earliest_deadline.IsInitialized() || t < earliest_deadline) {
       earliest_deadline = t;
     }
   }
+#endif
   return earliest_deadline;
 }
 

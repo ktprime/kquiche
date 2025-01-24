@@ -2217,8 +2217,8 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
 
   bool blackhole_detection_disabled_ = false;
 
-  const bool default_enable_5rto_blackhole_detection_ =
-      GetQuicReloadableFlag(quic_default_enable_5rto_blackhole_detection2);
+  constexpr static bool default_enable_5rto_blackhole_detection_ = true;
+//      GetQuicReloadableFlag(quic_default_enable_5rto_blackhole_detection2);
 
   // True if next packet is intended to consume remaining space in the
   // coalescer.

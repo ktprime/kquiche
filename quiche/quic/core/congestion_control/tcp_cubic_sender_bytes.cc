@@ -171,7 +171,8 @@ QuicBandwidth TcpCubicSenderBytes::PacingRate(
   QuicTime::Delta srtt = rtt_stats_->SmoothedOrInitialRtt();
   const QuicBandwidth bandwidth =
       QuicBandwidth::FromBytesAndTimeDelta(GetCongestionWindow(), srtt);
-  return bandwidth * (InSlowStart() ? 2 : (no_prr_ && InRecovery() ? 1 : 1.25));
+//  return bandwidth * (InSlowStart() ? 2 : (no_prr_ && InRecovery() ? 1 : 1.25));
+  return bandwidth * (InSlowStart() ? 8 : (no_prr_ && InRecovery() ? 4 : 5)) / 4;
 }
 
 QuicBandwidth TcpCubicSenderBytes::BandwidthEstimate() const {

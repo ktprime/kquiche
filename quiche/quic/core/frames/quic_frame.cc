@@ -175,6 +175,7 @@ void DeleteFrame(QuicFrame* frame) {
     case NUM_FRAME_TYPES:
     case ACK_FRAME_COPY:
       QUICHE_DCHECK(false);//<< "Cannot delete type: " << frame->type;
+    default: break;
   }
 }
 

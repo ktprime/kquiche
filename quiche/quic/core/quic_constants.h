@@ -140,7 +140,7 @@ QUIC_EXPORT_PRIVATE extern const char* const kFinalOffsetHeaderKey;
 // Default maximum delayed ack time, in ms.
 // Uses a 25ms delayed ack timer. Helps with better signaling
 // in low-bandwidth (< ~384 kbps), where an ack is sent per packet.
-inline constexpr int64_t kDefaultDelayedAckTimeMs = 15;
+inline constexpr uint32_t kDefaultDelayedAckTimeMs = 15;
 
 // Default minimum delayed ack time, in ms (used only for sender control of ack
 // frequency).
@@ -201,7 +201,7 @@ inline constexpr int kMaxPromisedStreamsMultiplier =
 inline constexpr int kFirstPtoSrttMultiplier = 3;
 
 // The multiplier of RTT variation when calculating PTO timeout.
-inline constexpr int kPtoRttvarMultiplier = 2;
+inline constexpr int kPtoRttvarMultiplier = 4;
 
 // TCP RFC calls for 1 second RTO however Linux differs from this default and
 // define the minimum RTO to 200ms, we will use the same until we have data to

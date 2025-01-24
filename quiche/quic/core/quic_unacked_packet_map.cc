@@ -149,7 +149,7 @@ void QuicUnackedPacketMap::AddSentPacket(SerializedPacket* mutable_packet,
       << ", packet_number: " << packet_number;
   QUICHE_DCHECK_GE(packet_number, least_unacked_ + unacked_packets_.size());
   while (least_unacked_ + unacked_packets_.size() < packet_number) {
-    unacked_packets_.emplace_back(QuicTransmissionInfo());
+    unacked_packets_.emplace_back(QuicTransmissionInfo()); // TODO only pto happend
   }
 
   const bool has_crypto_handshake = packet.frame_types & (1 << CRYPTO_FRAME);
@@ -250,7 +250,21 @@ void QuicUnackedPacketMap::MaybeUpdateLargestAckedOfPacketNumberSpace(
     PacketNumberSpace packet_number_space, QuicPacketNumber packet_number) {
   largest_acked_packets_[packet_number_space].UpdateMax(packet_number);
 }
+
 #if 0
+bool QuicUnackedPacketMap::IsPacketUsefulForMeasuringRtt(
+  QuicPacketNumber packet_number, const QuicTransmissionInfo& info) const {
+  // Packet can be used for RTT measurement if it may yet be acked as the
+  // largest observed packet by the receiver.
+  QUICHE_DCHECK(info.state != NOT_CONTRIBUTING_RTT);
+  if (packet_number > largest_acked_ + 1) {
+    QUICHE_DCHECK(info.state <= OUTSTANDING);
+  }
+  return packet_number > largest_acked_ &&
+    QuicUtils::IsAckable(info.state) &&
+    info.state != NOT_CONTRIBUTING_RTT;
+}
+
 bool QuicUnackedPacketMap::IsPacketUsefulForCongestionControl(
   const QuicTransmissionInfo& info) const {
   // Packet contributes to congestion control if it is considered inflight.
@@ -266,21 +280,16 @@ bool QuicUnackedPacketMap::IsPacketUsefulForRetransmittableData(
 }
 #endif
 
-bool QuicUnackedPacketMap::IsPacketUsefulForMeasuringRtt(
-    QuicPacketNumber packet_number, const QuicTransmissionInfo& info) const {
-  // Packet can be used for RTT measurement if it may yet be acked as the
-  // largest observed packet by the receiver.
-  QUICHE_DCHECK(info.state != NOT_CONTRIBUTING_RTT);
-  if (packet_number > largest_acked_ + 1) {
-    QUICHE_DCHECK(info.state <= OUTSTANDING);
-  }
-  return packet_number > largest_acked_ &&
-         QuicUtils::IsAckable(info.state) &&
-         info.state != NOT_CONTRIBUTING_RTT;
-}
-
 bool QuicUnackedPacketMap::IsPacketUseless(
     QuicPacketNumber packet_number, const QuicTransmissionInfo& info) const {
+#if 0
+  if (info.in_flight)
+    return true;
+  if (packet_number > largest_acked_ && QuicUtils::IsAckable(info.state))
+    return true;
+  if (largest_acked_ < info.first_sent_after_loss)
+    return true;
+#endif
   return info.in_flight ||
          //IsPacketUsefulForMeasuringRtt(packet_number, info) ||
         (packet_number > largest_acked_ && QuicUtils::IsAckable(info.state)) ||

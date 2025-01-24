@@ -657,8 +657,11 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
   size_t consecutive_pto_count_;
 
   // True if HANDSHAKE mode has been disabled.
-  bool handshake_mode_disabled_;
-
+#if QUIC_TLS_SESSION
+  bool handshake_mode_disabled_ = false;
+#else
+  static constexpr bool handshake_mode_disabled_ = false;
+#endif
   //combine state of zero/hand/forward packet
   uint8_t rtt_packet_state_;
 

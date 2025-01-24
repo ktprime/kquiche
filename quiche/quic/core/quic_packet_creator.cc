@@ -671,7 +671,7 @@ void QuicPacketCreator::CreateAndSerializeStreamFrame(
 
   packet_buffer.buffer = nullptr;
   packet_.release_encrypted_buffer = std::move(packet_buffer).release_buffer;
-
+  packet_.frame_types |= 1 << STREAM_FRAME;
   packet_.retransmittable_frames.emplace_back(frame);
   OnSerializedPacket();
 }
