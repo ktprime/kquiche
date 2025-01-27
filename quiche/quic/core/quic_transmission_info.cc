@@ -44,11 +44,10 @@ std::string QuicTransmissionInfo::DebugString() const {
       ", transmission_type: ", TransmissionTypeToString(transmission_type),
       ", in_flight: ", in_flight, ", state: ", state,
 //      ", has_crypto_handshake: ", has_crypto_handshake,
-      //", has_ack_frequency: ", has_ack_frequency,
-      ", first_sent_after_loss: ", first_sent_after_loss.ToString(),
-      ", largest_acked: ", largest_acked.ToString(),
-      ", retransmittable_frames: ", QuicFramesToString(retransmittable_frames),
-      "}");
+//      ", has_ack_frequency: ", has_ack_frequency,
+//      ", first_sent_after_loss: ", first_sent_after_loss.ToInt64(),
+      ", largest_acked: ", largest_acked.ToInt64(),
+      ", retransmittable_frames: ", QuicFramesToString(retransmittable_frames));
 }
 
 }  // namespace quic

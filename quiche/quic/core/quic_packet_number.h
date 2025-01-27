@@ -48,6 +48,7 @@ class QUIC_EXPORT_PRIVATE QuicPacketNumber {
   // Converts packet number to uint64_t.
   // REQUIRES: IsInitialized() == true.
   uint64_t ToUint64() const;
+  int64_t ToInt64() const;
 
   // Returns true if packet number is considered initialized.
   bool IsInitialized() const;

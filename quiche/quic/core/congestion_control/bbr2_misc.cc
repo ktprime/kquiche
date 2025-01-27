@@ -219,7 +219,7 @@ void Bbr2NetworkModel::AdaptLowerBounds(
         bandwidth_lo_ = MaxBandwidth();
       }
       bandwidth_lo_ =
-          std::max(bandwidth_latest_, bandwidth_lo_ * (float)(1.0f - Params().beta));
+          std::max(bandwidth_latest_, bandwidth_lo_ * (1.0 - Params().beta));
       QUIC_DVLOG(3) << "bandwidth_lo_ updated to " << bandwidth_lo_
                     << ", bandwidth_latest_ is " << bandwidth_latest_;
 

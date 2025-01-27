@@ -34,6 +34,10 @@ uint64_t QuicPacketNumber::ToUint64() const {
   return packet_number_;
 }
 
+int64_t QuicPacketNumber::ToInt64() const {
+  return packet_number_;
+}
+
 bool QuicPacketNumber::IsInitialized() const {
   return packet_number_ != UninitializedPacketNumber();
 }

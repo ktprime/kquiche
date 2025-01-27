@@ -459,6 +459,10 @@ QuicFrames CopyQuicFrames(quiche::QuicheBufferAllocator* allocator,
 
 std::ostream& operator<<(std::ostream& os, const QuicFrame& frame) {
   switch (frame.type) {
+    case STREAM_FRAME: {
+      os << "type { STREAM_FRAME } " << frame.stream_frame;
+      break;
+    }
     case PADDING_FRAME: {
       os << "type { PADDING_FRAME } " << frame.padding_frame;
       break;
@@ -482,10 +486,6 @@ std::ostream& operator<<(std::ostream& os, const QuicFrame& frame) {
     }
     case BLOCKED_FRAME: {
       os << "type { BLOCKED_FRAME } " << frame.blocked_frame;
-      break;
-    }
-    case STREAM_FRAME: {
-      os << "type { STREAM_FRAME } " << frame.stream_frame;
       break;
     }
     case ACK_FRAME: {
@@ -545,7 +545,7 @@ std::ostream& operator<<(std::ostream& os, const QuicFrame& frame) {
       os << "type { HANDSHAKE_DONE_FRAME } " << frame.handshake_done_frame;
       break;
     default: {
-      QUIC_LOG(ERROR) << "Unknown frame type: " << frame.type;
+      QUIC_LOG(FATAL) << "Unknown frame type: " << frame.type;
       break;
     }
   }

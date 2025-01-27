@@ -1138,17 +1138,18 @@ bool QuicStream::OnStreamFrameAcked(QuicStreamOffset offset,
     OnUnrecoverableError(QUIC_INTERNAL_ERROR, "Trying to ack unsent data.");
     return false;
   }
-  if (fin_acked && !fin_sent_) {
-    OnUnrecoverableError(QUIC_INTERNAL_ERROR, "Trying to ack unsent fin.");
-    return false;
-  }
   // Indicates whether ack listener's OnPacketAcked should be called.
   const bool new_data_acked =
-      *newly_acked_length > 0 || (fin_acked && fin_outstanding_);
+    *newly_acked_length > 0 || (fin_acked && fin_outstanding_);
   if (fin_acked) {
+    if (!fin_sent_) {
+      OnUnrecoverableError(QUIC_INTERNAL_ERROR, "Trying to ack unsent fin.");
+      return false;
+    }
     fin_outstanding_ = false;
     fin_lost_ = false;
   }
+
   if (write_side_closed_ && !IsWaitingForAcks()) {
     if (!write_side_data_recvd_state_notified_) {
       OnWriteSideInDataRecvdState();

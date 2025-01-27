@@ -14,7 +14,7 @@ namespace {
 
 // Configured maximum size of the burst coming out of quiescence.  The burst
 // is never larger than the current CWND in packets.
-constexpr uint32_t kInitialUnpacedBurst = 10;
+static const uint32_t kInitialUnpacedBurst = 10;
 
 }  // namespace
 
@@ -22,11 +22,11 @@ PacingSender::PacingSender()
     : sender_(nullptr),
       max_pacing_rate_(QuicBandwidth::Zero()),
       burst_tokens_(kInitialUnpacedBurst),
-      lumpy_tokens_(0),
       initial_burst_size_(kInitialUnpacedBurst),
-      ideal_next_packet_send_time_(QuicTime::Zero()),
-      alarm_granularity_(kAlarmGranularity),
-      pacing_limited_(false) {}
+      lumpy_tokens_(0),
+      pacing_limited_(false),
+      ideal_next_packet_send_time_(QuicTime::Zero())
+      {}
 
 PacingSender::~PacingSender() {}
 
@@ -72,7 +72,7 @@ void PacingSender::OnPacketSent(
       // limit it to the equivalent of a single bulk write, not exceeding the
       // current CWND in packets.
       burst_tokens_ =
-          std::min(initial_burst_size_,
+          std::min((uint32_t)initial_burst_size_,
                    static_cast<uint32_t>(sender_->GetCongestionWindow() /
                                          kDefaultTCPMSS));
     }
@@ -127,7 +127,7 @@ void PacingSender::OnApplicationLimited() {
 void PacingSender::SetBurstTokens(uint32_t burst_tokens) {
   initial_burst_size_ = burst_tokens;
   burst_tokens_ = std::min(
-      initial_burst_size_,
+      (uint32_t)initial_burst_size_,
       static_cast<uint32_t>(sender_->GetCongestionWindow() / kDefaultTCPMSS));
 }
 

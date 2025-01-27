@@ -3556,7 +3556,7 @@ bool QuicFramer::ProcessStreamFrame(QuicDataReader* reader, uint8_t frame_type,
   frame->fin = (stream_flags & kQuicStreamFinMask) == kQuicStreamFinShift;
 
   uint64_t stream_id = 0;
-  //QUICHE_DCHECK(stream_id_length == 1);
+  QUICHE_DCHECK(stream_id_length == 1);
 //  if (stream_id_length == 1)
     reader->ReadUInt8((uint8_t*)&stream_id);// {
 //  else

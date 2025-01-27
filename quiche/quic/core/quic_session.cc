@@ -34,6 +34,8 @@
 namespace quic {
 constexpr static bool enable_stream_erase_alarm = false;
 constexpr static bool enable_stream_erase_queue = false;
+constexpr static bool enable_frame_message = false; //TODO3 hybb remove now
+
 namespace {
 
 class ClosedStreamsCleanUpDelegate : public QuicAlarm::Delegate {
@@ -649,9 +651,9 @@ void QuicSession::OnCanWrite() {
   size_t num_writes = false && flow_controller_.IsBlocked()
                           ? write_blocked_streams_.NumBlockedSpecialStreams()
                           : write_blocked_streams_.NumBlockedStreams();
-  if (num_writes == 0 && !control_frame_manager_.WillingToWrite()
+  if (num_writes == 0 && !control_frame_manager_.WillingToWrite() && datagram_queue_.empty()  
 #if QUIC_TLS_SESSION
-      && datagram_queue_.empty()  &&
+    &&
       (!QuicVersionUsesCryptoFrames(transport_version()) ||
        !GetCryptoStream()->HasBufferedCryptoFrames())
 #endif
@@ -678,17 +680,17 @@ void QuicSession::OnCanWrite() {
     // Do not PTO stream data before handshake gets confirmed.
     return;
   }
+#endif
 
   // TODO(b/147146815): this makes all datagrams go before stream data.  We
   // should have a better priority scheme for this. TODO3.remove it before use
-  if (!datagram_queue_.empty()) { //TODO3 need reopen it if datagram_queue_ is OK
+  if (enable_frame_message && !datagram_queue_.empty()) {
     size_t written = datagram_queue_.SendDatagrams();
     QUIC_DVLOG(1) << ENDPOINT << "Sent " << written << " datagrams";
     if (!datagram_queue_.empty()) {
       return;
     }
   }
-#endif
 
   absl::InlinedVector<QuicStreamId, 8> last_writing_stream_ids;
   for (size_t i = 0; i < num_writes; ++i) {
@@ -2280,7 +2282,7 @@ bool QuicSession::OnFrameAcked(const QuicFrame& frame,
                                QuicTime::Delta ack_delay_time,
                                QuicTime receive_timestamp) {
   if (frame.type != STREAM_FRAME) {
-    if (frame.type == MESSAGE_FRAME) {
+    if (enable_frame_message && frame.type == MESSAGE_FRAME) { //TODO3 remmove it
       OnMessageAcked(frame.message_frame->message_id, receive_timestamp);
       return true;
     }
@@ -2325,7 +2327,7 @@ void QuicSession::OnStreamFrameRetransmitted(const QuicStreamFrame& frame) {
 
 void QuicSession::OnFrameLost(const QuicFrame& frame) {
   if (frame.type != STREAM_FRAME) {
-    if (frame.type == MESSAGE_FRAME) {
+    if (enable_frame_message && frame.type == MESSAGE_FRAME) {
       //++total_datagrams_lost_;
       OnMessageLost(frame.message_frame->message_id);
       return;
@@ -2338,7 +2340,7 @@ void QuicSession::OnFrameLost(const QuicFrame& frame) {
     return;
   }
   QuicStream* stream = GetStream(frame.stream_frame.stream_id);
-  if (false && stream == nullptr) {
+  if (stream == nullptr) {
     return;
   }
   stream->OnStreamFrameLost(frame.stream_frame.offset,
@@ -2355,7 +2357,7 @@ bool QuicSession::RetransmitFrames(const QuicFrames& frames,
   QuicConnection::ScopedPacketFlusher retransmission_flusher(connection_);
   for (const QuicFrame& frame : frames) {
     if (frame.type != STREAM_FRAME) {
-      if (frame.type == MESSAGE_FRAME) {
+      if (enable_frame_message && frame.type == MESSAGE_FRAME) {
         // Do not retransmit MESSAGE frames.
         continue;
       }
@@ -2371,7 +2373,7 @@ bool QuicSession::RetransmitFrames(const QuicFrames& frames,
       continue;
     }
     QuicStream* stream = GetStream(frame.stream_frame.stream_id);
-    if (//stream != nullptr &&
+    if (stream != nullptr &&
         !stream->RetransmitStreamData(frame.stream_frame.offset,
                                       frame.stream_frame.data_length,
                                       frame.stream_frame.fin, type)) {
@@ -2383,7 +2385,7 @@ bool QuicSession::RetransmitFrames(const QuicFrames& frames,
 
 bool QuicSession::IsFrameOutstanding(const QuicFrame& frame) const {
   if (frame.type != STREAM_FRAME) {
-    if (frame.type == MESSAGE_FRAME) {
+    if (enable_frame_message && frame.type == MESSAGE_FRAME) {
       return false;
     }
     if (frame.type == CRYPTO_FRAME) {
@@ -2394,7 +2396,7 @@ bool QuicSession::IsFrameOutstanding(const QuicFrame& frame) const {
     return control_frame_manager_.IsControlFrameOutstanding(frame);
   }
   QuicStream* stream = GetStream(frame.stream_frame.stream_id);
-  return //stream != nullptr &&
+  return stream != nullptr &&
          stream->IsStreamFrameOutstanding(frame.stream_frame.offset,
                                           frame.stream_frame.data_length,
                                           frame.stream_frame.fin);
@@ -2415,7 +2417,7 @@ bool QuicSession::HasUnackedStreamData() const {
 }
 
 bool QuicSession::HasLostStreamData() const {
-  return streams_with_pending_retransmission_.size() > 0 ||
+  return !streams_with_pending_retransmission_.empty() ||
          control_frame_manager_.HasPendingRetransmission();
 }
 

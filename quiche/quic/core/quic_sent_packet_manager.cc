@@ -334,7 +334,7 @@ void QuicSentPacketManager::PostProcessNewlyAckedPackets(
 #endif
   // Anytime we are making forward progress and have a new RTT estimate, reset
   // the backoff counters.
-  if (consecutive_pto_count_ && rtt_updated) {
+  if (consecutive_pto_count_) {
     // Records the max consecutive PTO before forward progress has been made.
     if (consecutive_pto_count_ >
         stats_->max_consecutive_rto_with_forward_progress) {
@@ -342,7 +342,10 @@ void QuicSentPacketManager::PostProcessNewlyAckedPackets(
           consecutive_pto_count_;
     }
     // Reset all retransmit counters any time a new packet is acked.
-    consecutive_pto_count_ = 0;
+    if (rtt_updated)
+      consecutive_pto_count_ = 0; //TODO3. on fixed output bandwidth, it's easy closed by 5rto blackhole detected. 
+    else
+      consecutive_pto_count_ -= 1;
     consecutive_crypto_retransmission_count_ = 0;
   }
 
@@ -514,24 +517,24 @@ void QuicSentPacketManager::MarkForRetransmission(
   } else {
     auto has_lost = unacked_packets_.NotifyFramesLost(*transmission_info, transmission_type);
     if (!has_lost) {
-      printf("\n%s\n", transmission_info->DebugString().data());
+      --stats_->packets_lost;
+      printf("pn_id=%ld %s", (long)packet_number.ToInt64(), transmission_info->DebugString().data());
+      //transmission_info->state = QuicUtils::RetransmissionTypeToPacketState(transmission_type);
       transmission_info->state = ACKED;
       return;
     }
 
     if (!transmission_info->retransmittable_frames.empty()) {
-      //if (transmission_type == LOSS_RETRANSMISSION) { //TODO3 need check?
+      if (transmission_type == LOSS_RETRANSMISSION) { //TODO3 need check?
         // Record the first packet sent after loss, which allows to wait 1
         // more RTT before giving up on this lost packet.
         transmission_info->first_sent_after_loss =
             unacked_packets_.largest_sent_packet() + 1;
-      //} else {
+      } else {
         // Clear the recorded first packet sent after loss when version or
         // encryption changes.
-        // transmission_info->first_sent_after_loss.Clear(); //TODO3
-        //printf("%s\n", transmission_info->DebugString().data());
-        //return ;
-      //}
+        transmission_info->first_sent_after_loss.Clear(); //TODO3
+      }
     }
   }
 
@@ -572,7 +575,6 @@ void QuicSentPacketManager::MarkPacketHandled(QuicPacketNumber packet_number,
     const bool new_data_acked = unacked_packets_.NotifyFramesAcked(
         *info, ack_delay_time, receive_timestamp);
     if (!new_data_acked) {
-      QUICHE_DCHECK(info->transmission_type != NOT_RETRANSMISSION);
       // Record as a spurious retransmission if this packet is a
       // retransmission and no new data gets acked.
       QUIC_DVLOG(1) << "Detect spurious retransmitted packet " << packet_number
@@ -598,14 +600,15 @@ void QuicSentPacketManager::MarkPacketHandled(QuicPacketNumber packet_number,
                                           ack_receive_time, packet_number,
                                           previous_largest_acked);
     ++stats_->packet_spuriously_detected_lost;
-    --stats_->packets_lost;
+    //--stats_->packets_lost;
   }
 
-  if (//network_change_visitor_ != nullptr &&
+  if (false && //network_change_visitor_ != nullptr &&
       info->bytes_sent > largest_mtu_acked_) {
     largest_mtu_acked_ = info->bytes_sent;
     network_change_visitor_->OnPathMtuIncreased(largest_mtu_acked_);
   }
+  if (info->in_flight)
   unacked_packets_.RemoveFromInFlight(info);
   unacked_packets_.RemoveRetransmittability(info);
   info->state = ACKED;
@@ -943,7 +946,7 @@ bool QuicSentPacketManager::MaybeUpdateRTT(QuicPacketNumber largest_acked,
   if (DCHECK_FLAG && transmission_info.state == NOT_CONTRIBUTING_RTT) {
     return false;
   }
-  if (DCHECK_FLAG && transmission_info.sent_time >= ack_receive_time) {
+  if (transmission_info.sent_time >= ack_receive_time) {
     return false;
   }
 
@@ -1194,12 +1197,12 @@ void QuicSentPacketManager::OnAckRange(QuicPacketNumber start,
   // Drop ack ranges which ack packets below least_unacked.
   QuicPacketNumber least_unacked = unacked_packets_.GetLeastUnacked();
   if (//!last_ack_frame_.largest_acked.IsInitialized() ||
-      end - 1 > last_ack_frame_.largest_acked) {
+      end.ToInt64() > last_ack_frame_.largest_acked.ToInt64() + 1) {
     // Largest acked increases.
     unacked_packets_.IncreaseLargestAcked(last_ack_frame_.largest_acked = end - 1);
     //last_ack_frame_.largest_acked = end - 1;
   }
-  else if (/*least_unacked.IsInitialized() &&**/ end <= least_unacked) {
+  else if (end.ToInt64() <= least_unacked.ToInt64()) {
     return;
   }
 

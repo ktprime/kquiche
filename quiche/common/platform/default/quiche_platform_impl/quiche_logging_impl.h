@@ -60,17 +60,14 @@ class QUICHE_EXPORT NoopLogSink {
 // to compile due to the "failed to return value from non-void function" error.
 class QUICHE_EXPORT FatalLogSink : public NoopLogSink {
  public:
-#if DCHECK_FLAG
   ABSL_ATTRIBUTE_NORETURN ~FatalLogSink() {
     std::cerr << str() << std::endl;
     abort();
   }
-#endif
 };
 
 class QUICHE_EXPORT CheckLogSink : public NoopLogSink {
 public:
-#if DCHECK_FLAG
   CheckLogSink(bool condition) : condition_(condition) {}
   ~CheckLogSink() {
     if (!condition_) {
@@ -81,11 +78,7 @@ public:
 
 private:
   const bool condition_;
-#else
-  CheckLogSink(bool) {}
-#endif
 };
-
 }  // namespace quiche
 
 // This is necessary because we sometimes call QUICHE_DCHECK inside constexpr
@@ -115,7 +108,7 @@ private:
 
 #define QUICHE_LOG_IMPL(severity) QUICHE_LOG_IMPL_##severity()
 #define QUICHE_LOG_IMPL_FATAL() ::quiche::FatalLogSink().stream()
-#define QUICHE_LOG_IMPL_ERROR() ::quiche::NoopLogSink().stream()
+//#define QUICHE_LOG_IMPL_ERROR() ::quiche::FatalLogSink().stream()
 #define QUICHE_LOG_IMPL_WARNING() ::quiche::NoopLogSink().stream()
 #define QUICHE_LOG_IMPL_INFO() ::quiche::NoopLogSink().stream()
 

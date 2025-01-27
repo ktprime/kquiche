@@ -417,11 +417,6 @@ QuicConnection::QuicConnection(
   // TODO(ianswett): Supply the NetworkChangeVisitor as a constructor argument
   // and make it required non-null, because it's always used.
   sent_packet_manager_.SetNetworkChangeVisitor(this);
-  if (GetQuicRestartFlag(quic_offload_pacing_to_usps2)) {
-    sent_packet_manager_.SetPacingAlarmGranularity(QuicTime::Delta::Zero());
-    release_time_into_future_ =
-        QuicTime::Delta::FromMilliseconds(kMinReleaseTimeIntoFutureMs);
-  }
   // Allow the packet writer to potentially reduce the packet size to a value
   // even smaller than kDefaultMaxPacketSize.
   SetMaxPacketLength(perspective_ == Perspective::IS_SERVER
@@ -2316,7 +2311,7 @@ void QuicConnection::OnPacketComplete() {
   }
 
   ClearLastFrames();
-  CloseIfTooManyOutstandingSentPackets(); //TODO hybchanged check on send
+  //CloseIfTooManyOutstandingSentPackets(); //TODO3 hybchanged check on send
 }
 
 void QuicConnection::MaybeRespondToConnectivityProbingOrMigration() {

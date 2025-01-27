@@ -342,10 +342,6 @@ class QUIC_EXPORT_PRIVATE QuicSentPacketManager {
 
   void SetDebugDelegate(DebugDelegate* debug_delegate);
 
-  void SetPacingAlarmGranularity(QuicTime::Delta alarm_granularity) {
-    pacing_sender_.set_alarm_granularity(alarm_granularity);
-  }
-
   QuicPacketNumber GetLargestObserved() const {
     return unacked_packets_.largest_acked();
   }

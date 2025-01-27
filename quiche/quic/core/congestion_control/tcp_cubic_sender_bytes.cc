@@ -168,7 +168,7 @@ QuicBandwidth TcpCubicSenderBytes::PacingRate(
   // We pace at twice the rate of the underlying sender's bandwidth estimate
   // during slow start and 1.25x during congestion avoidance to ensure pacing
   // doesn't prevent us from filling the window.
-  QuicTime::Delta srtt = rtt_stats_->SmoothedOrInitialRtt();
+  QuicTime::Delta srtt = rtt_stats_->smoothed_rtt();
   const QuicBandwidth bandwidth =
       QuicBandwidth::FromBytesAndTimeDelta(GetCongestionWindow(), srtt);
 //  return bandwidth * (InSlowStart() ? 2 : (no_prr_ && InRecovery() ? 1 : 1.25));
@@ -177,7 +177,7 @@ QuicBandwidth TcpCubicSenderBytes::PacingRate(
 
 QuicBandwidth TcpCubicSenderBytes::BandwidthEstimate() const {
   QuicTime::Delta srtt = rtt_stats_->smoothed_rtt();
-  if (srtt.IsZero()) {
+  if (false && srtt.IsZero()) {
     // If we haven't measured an rtt, the bandwidth estimate is unknown.
     return QuicBandwidth::Zero();
   }
