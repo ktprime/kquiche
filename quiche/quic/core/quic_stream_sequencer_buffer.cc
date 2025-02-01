@@ -61,6 +61,7 @@ QuicStreamSequencerBuffer::~QuicStreamSequencerBuffer() { Clear(); }
 
 void QuicStreamSequencerBuffer::Clear() {
   for (uint32_t i = 0; i < current_blocks_count_; ++i) {
+    if (blocks_[i])
     delete blocks_[i];
     blocks_[i] = nullptr;
   }

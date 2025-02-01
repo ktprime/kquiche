@@ -111,14 +111,14 @@ private:
 #else
   #define QUICHE_LOG_IMPL_FATAL() ::quiche::NoopLogSink().stream()
 #endif
-//#define QUICHE_LOG_IMPL_ERROR() ::quiche::FatalLogSink().stream()
+#define QUICHE_LOG_IMPL_ERROR() ::quiche::FatalLogSink().stream()
 #define QUICHE_LOG_IMPL_WARNING() ::quiche::NoopLogSink().stream()
 #define QUICHE_LOG_IMPL_INFO() ::quiche::NoopLogSink().stream()
 
 #define QUICHE_LOG_IF_IMPL(severity, condition) \
   QUICHE_CONDITIONAL_LOG_STREAM(QUICHE_LOG_IMPL_##severity(), condition)
 
-#if NDEBUG || DCHECK_FLAG == 0
+#if DCHECK_FLAG == 0
 #define QUICHE_LOG_IMPL_DFATAL() ::quiche::NoopLogSink().stream()
 #define QUICHE_DLOG_IF_IMPL(severity, condition) \
   QUICHE_NOOP_STREAM_WITH_CONDITION(false)
@@ -135,7 +135,7 @@ private:
 #define QUICHE_LOG_WARNING_IS_ON_IMPL() false
 #define QUICHE_LOG_ERROR_IS_ON_IMPL() false
 
-#if NDEBUG || DCHECK_FLAG == 0
+#if DCHECK_FLAG == 0
 #define QUICHE_CHECK_IMPL(condition) \
 //  ::quiche::CheckLogSink(static_cast<bool>(false)).stream()
 #else
@@ -150,7 +150,7 @@ private:
 #define QUICHE_CHECK_GT_IMPL(val1, val2) QUICHE_CHECK_IMPL((val1) > (val2))
 #define QUICHE_CHECK_OK_IMPL(status)     QUICHE_CHECK_IMPL(absl::OkStatus() == (status))
 
-#if NDEBUG || DCHECK_FLAG == 0
+#if DCHECK_FLAG == 0
 #define QUICHE_DCHECK_IMPL(condition) \
 //  QUICHE_NOOP_STREAM_WITH_CONDITION((false))
 #else
