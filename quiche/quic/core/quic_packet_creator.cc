@@ -355,13 +355,16 @@ bool QuicPacketCreator::HasRoomForStreamFrame(QuicStreamId id,
   const size_t min_stream_frame_size = QuicFramer::GetMinStreamFrameSize(
       framer_->transport_version(), id, offset, /*last_frame_in_packet=*/true,
       data_size);
-  if (BytesFree() > min_stream_frame_size) {
+  return (BytesFree() > min_stream_frame_size);
+#if 0 
+  {
     return true;
   }
   if (latched_hard_max_packet_length_ == 0 || !RemoveSoftMaxPacketLength()) {
     return false;
   }
   return BytesFree() > min_stream_frame_size;
+#endif
 }
 
 bool QuicPacketCreator::HasRoomForMessageFrame(QuicByteCount length) {
@@ -1305,63 +1308,39 @@ bool QuicPacketCreator::ConsumeRetransmittableControlFrame(
   return success;
 }
 
-QuicConsumedData QuicPacketCreator::ConsumeData(QuicStreamId id,
-                                                size_t write_length,
-                                                QuicStreamOffset offset,
-                                                StreamSendingState state) {
+QuicConsumedData QuicPacketCreator::ConsumeDataHand(QuicStreamId id,
+                                                    size_t write_length,
+                                                    QuicStreamOffset offset,
+                                                    StreamSendingState state) {
   QUIC_BUG_IF(quic_bug_10752_21, !flusher_attached_)
-      << ENDPOINT
-      << "Packet flusher is not attached when "
-         "generator tries to write stream data.";
-  const bool has_handshake = QuicUtils::IsCryptoStreamId(transport_version(), id);
-  MaybeBundleAckOpportunistically(); //TODO2 hybchanged!!!.
+    << ENDPOINT
+    << "Packet flusher is not attached when "
+    "generator tries to write stream data.";
+  MaybeBundleAckOpportunistically();
   bool fin = state != NO_FIN;
-  QUIC_BUG_IF(quic_bug_12398_17, has_handshake && fin)
-      << ENDPOINT << "Handshake packets should never send a fin";
-  // To make reasoning about crypto frames easier, we don't combine them with
-  // other retransmittable frames in a single packet.
-  if (false && has_handshake && HasPendingRetransmittableFrames()) {
-    FlushCurrentPacket();
-  }
+  QUICHE_DCHECK(!fin);
 
   size_t total_bytes_consumed = 0;
   bool fin_consumed = false;
 
-  if (false && !HasRoomForStreamFrame(id, offset, write_length)) {
-    FlushCurrentPacket(); //TODO2 hybchanged
+  if (!HasRoomForStreamFrame(id, offset, write_length)) {
+    FlushCurrentPacket();
   }
 
-  if (DCHECK_FLAG && (write_length == 0) && !fin) {
-    QUIC_BUG(quic_bug_10752_22)
-        << ENDPOINT << "Attempt to consume empty data without FIN.";
-    return QuicConsumedData(0, false);
-  }
-  // We determine if we can enter the fast path before executing
-  // the slow path loop.
-  bool run_fast_path =
-      write_length - total_bytes_consumed > kMaxOutgoingPacketSize && !HasPendingFrames() &&
-      !has_handshake && state != FIN_AND_PADDING &&
-      latched_hard_max_packet_length_ == 0;
+  constexpr bool run_fast_path = false;
 
-  if (!run_fast_path && !HasRoomForStreamFrame(id, offset, write_length)) {
-    FlushCurrentPacket(); //TODO2 hybchanged
-  }
-
-  while (!run_fast_path &&
-         (has_handshake || delegate_->ShouldGeneratePacket(
-                               HAS_RETRANSMITTABLE_DATA, NOT_HANDSHAKE))) {
+  while (!run_fast_path) {
     QuicFrame frame;
-    bool needs_full_padding =
-        has_handshake && fully_pad_crypto_handshake_packets_;
+    bool needs_full_padding = fully_pad_crypto_handshake_packets_;
 
     if (!ConsumeDataToFillCurrentPacket(id, write_length - total_bytes_consumed,
-                                        offset + total_bytes_consumed, fin,
-                                        needs_full_padding,
-                                        next_transmission_type_, &frame)) {
+      offset + total_bytes_consumed, fin,
+      needs_full_padding,
+      next_transmission_type_, &frame)) {
       // The creator is always flushed if there's not enough room for a new
       // stream frame before ConsumeData, so ConsumeData should always succeed.
       QUIC_BUG(quic_bug_10752_23)
-          << ENDPOINT << "Failed to ConsumeData, stream:" << id;
+        << ENDPOINT << "Failed to ConsumeData, stream:" << id;
       return QuicConsumedData(0, false);
     }
 
@@ -1370,11 +1349,75 @@ QuicConsumedData QuicPacketCreator::ConsumeData(QuicStreamId id,
     total_bytes_consumed += bytes_consumed;
     fin_consumed = fin && total_bytes_consumed == write_length;
     if (fin_consumed && state == FIN_AND_PADDING) {
+      QUICHE_BUG("can not set");
       AddRandomPadding();
     }
-    QUICHE_DCHECK(total_bytes_consumed == write_length ||
-                  (bytes_consumed > 0 && HasPendingFrames()))
-        ;//<< ENDPOINT;
+    if (total_bytes_consumed == write_length) {
+      // We're done writing the data. Exit the loop.
+      // We don't make this a precondition because we could have 0 bytes of data
+      // if we're simply writing a fin.
+      break;
+    }
+    QUICHE_DCHECK(bytes_consumed > 0 && HasPendingFrames());
+    FlushCurrentPacket();
+  }
+
+// Don't allow the handshake to be bundled with other retransmittable frames.
+  FlushCurrentPacket();
+
+  return QuicConsumedData(total_bytes_consumed, fin_consumed);
+}
+
+QuicConsumedData QuicPacketCreator::ConsumeData(QuicStreamId id,
+                                                size_t write_length,
+                                                QuicStreamOffset offset,
+                                                StreamSendingState state) {
+  QUIC_BUG_IF(quic_bug_10752_21, !flusher_attached_)
+      << ENDPOINT
+      << "Packet flusher is not attached when "
+         "generator tries to write stream data.";
+  QUICHE_DCHECK(write_length != 0);
+  const bool has_handshake = QuicUtils::IsCryptoStreamId(transport_version(), id);
+  if (has_handshake) {
+    return ConsumeDataHand(id, write_length, offset, state);
+  }
+
+  const bool fin_consumed = false;
+  const bool fin = state != NO_FIN;
+  QUICHE_DCHECK(!fin);
+  size_t total_bytes_consumed = 0;
+
+  MaybeBundleAckOpportunistically(); //TODO2 hybchanged!!!.
+
+  // We determine if we can enter the fast path before executing
+  // the slow path loop.
+  bool run_fast_path =
+      write_length - total_bytes_consumed > kMaxOutgoingPacketSize && !HasPendingFrames();
+
+  if (!run_fast_path && !HasRoomForStreamFrame(id, offset, write_length)) {
+    FlushCurrentPacket(); //TODO2 hybchanged
+  }
+
+  while (!run_fast_path /*&&
+         (delegate_->ShouldGeneratePacket(
+                               HAS_RETRANSMITTABLE_DATA, NOT_HANDSHAKE))*/) {
+    QuicFrame frame;
+    bool needs_full_padding = false;
+
+    if (!ConsumeDataToFillCurrentPacket(id, write_length - total_bytes_consumed,
+                                        offset + total_bytes_consumed, fin,
+                                        needs_full_padding,
+                                        next_transmission_type_, &frame)) {
+      // The creator is always flushed if there's not enough room for a new
+      // stream frame before ConsumeData, so ConsumeData should always succeed.
+      //QUIC_BUG(quic_bug_10752_23)
+      //    << ENDPOINT << "Failed to ConsumeData, stream:" << id;
+      return QuicConsumedData(0, false);
+    }
+
+    // A stream frame is created and added.
+    size_t bytes_consumed = frame.stream_frame.data_length;
+    total_bytes_consumed += bytes_consumed;
 
     if (total_bytes_consumed == write_length) {
       // We're done writing the data. Exit the loop.
@@ -1382,22 +1425,14 @@ QuicConsumedData QuicPacketCreator::ConsumeData(QuicStreamId id,
       // if we're simply writing a fin.
       break;
     }
+    QUICHE_DCHECK(bytes_consumed > 0 && HasPendingFrames());
     FlushCurrentPacket();
-
     run_fast_path =
-        write_length - total_bytes_consumed > kMaxOutgoingPacketSize && !HasPendingFrames() &&
-        !has_handshake && state != FIN_AND_PADDING &&
-        latched_hard_max_packet_length_ == 0;
+        write_length - total_bytes_consumed > kMaxOutgoingPacketSize && !HasPendingFrames();
   }
 
   if (run_fast_path) {
-    return ConsumeDataFastPath(id, write_length, offset, state != NO_FIN,
-                               total_bytes_consumed);
-  }
-
-  // Don't allow the handshake to be bundled with other retransmittable frames.
-  if (has_handshake) {
-    FlushCurrentPacket();
+    return ConsumeDataFastPath(id, write_length, offset, state != NO_FIN, total_bytes_consumed);
   }
 
   return QuicConsumedData(total_bytes_consumed, fin_consumed);
@@ -1587,9 +1622,8 @@ void QuicPacketCreator::AttachPacketFlusher() {
 }
 
 void QuicPacketCreator::Flush() {
-  if (HasPendingFrames())
-    FlushCurrentPacket();
-  else if (pending_padding_bytes_ > 0)
+  FlushCurrentPacket();
+  if (pending_padding_bytes_ > 0)
     SendRemainingPendingPadding();
   flusher_attached_ = false;
   if (DCHECK_FLAG /* && GetQuicFlag(quic_export_write_path_stats_at_server)***/) {

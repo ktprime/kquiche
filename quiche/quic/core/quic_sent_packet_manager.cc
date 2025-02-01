@@ -518,7 +518,7 @@ void QuicSentPacketManager::MarkForRetransmission(
     auto has_lost = unacked_packets_.NotifyFramesLost(*transmission_info, transmission_type);
     if (!has_lost) {
       --stats_->packets_lost;
-      printf("pn_id=%ld %s", (long)packet_number.ToInt64(), transmission_info->DebugString().data());
+      printf("pn_id = %5ld %s", (long)packet_number.ToInt64(), transmission_info->DebugString().data());
       //transmission_info->state = QuicUtils::RetransmissionTypeToPacketState(transmission_type);
       transmission_info->state = ACKED;
       return;
@@ -991,16 +991,17 @@ const QuicTime QuicSentPacketManager::GetRetransmissionTime() const {
     return QuicTime::Zero();
   }
 
-  //switch (GetRetransmissionMode()) {
-  if (!handshake_finished_ && unacked_packets_.HasPendingCryptoPackets() && !handshake_mode_disabled_) {
-    return unacked_packets_.GetLastCryptoPacketSentTime() + GetCryptoRetransmissionDelay();
-  } else if (loss_algorithm_->GetLossTimeout() != QuicTime::Zero()) { //LOSS_MODE
+  if (loss_algorithm_->GetLossTimeout() != QuicTime::Zero()) { //LOSS_MODE
     return loss_algorithm_->GetLossTimeout();
+  }
+  if (DCHECK_FLAG && !handshake_finished_ && unacked_packets_.HasPendingCryptoPackets() && !handshake_mode_disabled_) {
+    return unacked_packets_.GetLastCryptoPacketSentTime() + GetCryptoRetransmissionDelay();
   }
 
   //PTO_MODE mode
   if (!supports_multiple_packet_number_spaces()) {
-    if (consecutive_pto_count_ == 0 && unacked_packets_.HasInFlightPackets()) {
+    QUICHE_DCHECK(unacked_packets_.HasInFlightPackets());
+    if (consecutive_pto_count_ == 0) {
       // Arm 1st PTO with earliest in flight sent time, and make sure at
       // least kFirstPtoSrttMultiplier * RTT has been passed since last
       // in flight packet.
@@ -1254,6 +1255,7 @@ AckResult QuicSentPacketManager::OnAckFrameEnd(
     QuicTransmissionInfo* info =
         unacked_packets_.GetMutableTransmissionInfo(acked_packet.packet_number);
     if (!QuicUtils::IsAckable(info->state)) {
+      continue;
       if (info->state == ACKED) {
         QUIC_BUG(quic_bug_10750_5)
             << "Trying to ack an already acked packet: "

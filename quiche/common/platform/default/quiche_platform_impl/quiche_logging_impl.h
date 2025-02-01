@@ -18,7 +18,6 @@
 
 #include "absl/base/attributes.h"
 #include "quiche/common/platform/api/quiche_export.h"
-//#include "quiche_platform_impl/quiche_stack_trace_impl.h"
 
 #ifdef _DEBUG
   #define DCHECK_FLAG 1
@@ -107,7 +106,11 @@ private:
 #define QUICHE_LOG_EVERY_N_SEC_IMPL(severity, seconds) QUICHE_NOOP_STREAM()
 
 #define QUICHE_LOG_IMPL(severity) QUICHE_LOG_IMPL_##severity()
-#define QUICHE_LOG_IMPL_FATAL() ::quiche::FatalLogSink().stream()
+#if DCHECK_FLAG > 1
+  #define QUICHE_LOG_IMPL_FATAL() ::quiche::FatalLogSink().stream()
+#else
+  #define QUICHE_LOG_IMPL_FATAL() ::quiche::NoopLogSink().stream()
+#endif
 //#define QUICHE_LOG_IMPL_ERROR() ::quiche::FatalLogSink().stream()
 #define QUICHE_LOG_IMPL_WARNING() ::quiche::NoopLogSink().stream()
 #define QUICHE_LOG_IMPL_INFO() ::quiche::NoopLogSink().stream()

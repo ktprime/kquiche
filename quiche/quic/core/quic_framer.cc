@@ -766,7 +766,7 @@ size_t QuicFramer::GetStreamOffsetSize(uint64_t offset) {
     return offset == 0 ? 0 : 2;
   }
   // 2 through 8 are the remaining sizes.
-#ifdef __linux__ && 0
+#if 0
   int bitPosition = 63 - __builtin_clzll(offset >> 16);
   int size = bitPosition / 8 + 3;
   return size;
@@ -2285,7 +2285,10 @@ bool QuicFramer::AppendIetfPacketHeader(const QuicPacketHeader& header,
   }
 
   // Append packet number.
-  AppendPacketNumber(header.packet_number_length, header.packet_number, writer);
+  if (header.packet_number_length == 2)
+    writer->WriteUInt16((uint16_t)header.packet_number.ToUint64());
+  else
+    AppendPacketNumber(header.packet_number_length, header.packet_number, writer);
 
   last_written_packet_number_length_ = header.packet_number_length;
 
@@ -3556,7 +3559,7 @@ bool QuicFramer::ProcessStreamFrame(QuicDataReader* reader, uint8_t frame_type,
   frame->fin = (stream_flags & kQuicStreamFinMask) == kQuicStreamFinShift;
 
   uint64_t stream_id = 0;
-  QUICHE_DCHECK(stream_id_length == 1);
+  //QUICHE_DCHECK(stream_id_length == 1);
 //  if (stream_id_length == 1)
     reader->ReadUInt8((uint8_t*)&stream_id);// {
 //  else
@@ -3703,7 +3706,7 @@ bool QuicFramer::ProcessAckFrequencyFrame(QuicDataReader* reader,
 bool QuicFramer::ProcessAckFrameBlocks(QuicDataReader * reader,
   size_t num_ack_blocks, uint64_t first_received, uint64_t ack_block_length)
 {
-  QUICHE_DCHECK(ack_block_length == 1);
+  //QUICHE_DCHECK(ack_block_length == 1);
   for (size_t i = 0; i < num_ack_blocks; ++i) {
     uint8_t gap = 0;
     reader->ReadUInt8(&gap);
@@ -3792,7 +3795,7 @@ bool QuicFramer::ProcessAckFrame(QuicDataReader* reader, uint8_t frame_type) {
 //  else
 //    reader->ReadBytesToUInt64(ack_block_length, &first_block_length);
 
-  if (DCHECK_FLAG && (first_block_length == 0 || ack_block_length != 1)) {
+  if (DCHECK_FLAG && first_block_length == 0) {
     set_detailed_error("First block length is zero.");
     return false;
   }
@@ -5346,10 +5349,6 @@ bool QuicFramer::AppendPacketNumber(QuicPacketNumberLength packet_number_length,
                                     QuicDataWriter* writer) {
   QUICHE_DCHECK(packet_number.IsInitialized());
   QUICHE_DCHECK(IsValidPacketNumberLength(packet_number_length));
-  if (packet_number_length == 2)
-    return writer->WriteUInt16(packet_number.ToUint64());
-  if (packet_number_length == 1)
-    return writer->WriteUInt8(packet_number.ToUint64());
   return writer->WriteBytesToUInt64(packet_number_length,
                                     packet_number.ToUint64());
 }
@@ -5613,9 +5612,11 @@ bool QuicFramer::AppendAckFrameAndTypeByte(const QuicAckFrame& frame,
   }
 
   // First ack block length.
-  AppendPacketNumber(ack_block_length,
-    QuicPacketNumber(new_ack_info.first_block_length),
-    writer);
+  QUICHE_DCHECK(ack_block_length);
+  if (true || ack_block_length == 1)
+    writer->WriteUInt8(new_ack_info.first_block_length);
+  else
+    AppendPacketNumber(ack_block_length, QuicPacketNumber(new_ack_info.first_block_length), writer);
 
   // Ack blocks.
   if (num_ack_blocks > 0) {

@@ -34,7 +34,7 @@
 namespace quic {
 constexpr static bool enable_stream_erase_alarm = false;
 constexpr static bool enable_stream_erase_queue = false;
-constexpr static bool enable_frame_message = false; //TODO3 hybb remove now
+constexpr static bool enable_frame_message = false; //TODO3 hyb remove now
 
 namespace {
 
@@ -626,11 +626,6 @@ void QuicSession::OnCanWrite() {
     return;
   }
 
-  if (!IsEncryptionEstablished()) {
-    RetransmitCryptoData(); //TODO3. zero rtt maybe some bugs
-    //return;
-  }
-
   if (!streams_with_pending_retransmission_.empty() ||
       control_frame_manager_.HasPendingRetransmission()) {
     if (!RetransmitLostData()) {
@@ -641,6 +636,11 @@ void QuicSession::OnCanWrite() {
       return;
     }
   }
+  else if (!IsEncryptionEstablished()) {
+    RetransmitCryptoData(); //TODO3. zero rtt maybe some bugs
+    //return;
+  }
+
   // We limit the number of writes to the number of pending streams. If more
   // streams become pending, WillingAndAbleToWrite will be true, which will
   // cause the connection to request resumption before yielding to other
@@ -663,7 +663,7 @@ void QuicSession::OnCanWrite() {
 
   // Sending queued packets may have caused the socket to become write blocked,
   // or the congestion manager to prohibit sending.
-  if (!connection_->CanWrite(HAS_RETRANSMITTABLE_DATA)) {
+  if (false && !connection_->CanWrite(HAS_RETRANSMITTABLE_DATA)) {
     return;
   }
 
@@ -2472,6 +2472,18 @@ bool QuicSession::RetransmitCryptoData()
     QuicCryptoStream* crypto_stream = GetMutableCryptoStream();
     if (crypto_stream->HasPendingCryptoRetransmission())
       crypto_stream->WritePendingCryptoRetransmission();
+
+    if (crypto_stream->HasBufferedCryptoFrames()) {
+      crypto_stream->WriteBufferedCryptoFrames();
+    }
+    if ((GetQuicReloadableFlag(
+      quic_no_write_control_frame_upon_connection_close) &&
+      !connection_->connected()) ||
+      crypto_stream->HasBufferedCryptoFrames()) {
+      // Cannot finish writing buffered crypto frames, connection is either
+      // write blocked or closed.
+      return true;
+    }
   }
   else if (auto cid = QuicUtils::GetCryptoStreamId(transport_version());
     streams_with_pending_retransmission_.contains(cid)) {
@@ -2488,20 +2500,6 @@ bool QuicSession::RetransmitCryptoData()
     }
   }
 
-  if (uses_crypto_frames) {
-    QuicCryptoStream* crypto_stream = GetMutableCryptoStream();
-    if (crypto_stream->HasBufferedCryptoFrames()) {
-      crypto_stream->WriteBufferedCryptoFrames();
-    }
-    if ((GetQuicReloadableFlag(
-      quic_no_write_control_frame_upon_connection_close) &&
-      !connection_->connected()) ||
-      crypto_stream->HasBufferedCryptoFrames()) {
-      // Cannot finish writing buffered crypto frames, connection is either
-      // write blocked or closed.
-      return true;
-    }
-  }
   return false;
 }
 

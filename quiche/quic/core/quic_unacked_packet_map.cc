@@ -397,10 +397,6 @@ QuicUnackedPacketMap::NeuterHandshakePackets() {
   return neutered_packets;
 }
 
-bool QuicUnackedPacketMap::HasInFlightPackets() const {
-  return bytes_in_flight_ > 0;
-}
-
 const QuicTransmissionInfo& QuicUnackedPacketMap::GetTransmissionInfo(
     QuicPacketNumber packet_number) const {
   return unacked_packets_[packet_number - least_unacked_];

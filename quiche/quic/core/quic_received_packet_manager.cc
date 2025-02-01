@@ -90,7 +90,7 @@ void QuicReceivedPacketManager::RecordPacketReceived(
 
   was_last_packet_missing_ = false;
   // Whether |packet_number| is received out of order.
-  //bool packet_reordered = false;
+  bool packet_reordered = false;
   if (//!LargestAcked(ack_frame_).IsInitialized() ||
     packet_number > LargestAcked(ack_frame_)) {
     ack_frame_.largest_acked = packet_number;
@@ -257,7 +257,7 @@ void QuicReceivedPacketManager::MaybeUpdateAckTimeout(
     QuicTime last_packet_receipt_time, QuicTime now,
     const RttStats* rtt_stats) {
 
-  if (false && !ack_frame_updated_) {
+  if (DCHECK_FLAG && !ack_frame_updated_) {
     // ACK frame has not been updated, nothing to do.
     return;
   }
@@ -272,7 +272,7 @@ void QuicReceivedPacketManager::MaybeUpdateAckTimeout(
     return;
   }
 
-  if (!should_last_packet_instigate_acks) {
+  if (DCHECK_FLAG && !should_last_packet_instigate_acks) {
     return;
   }
 

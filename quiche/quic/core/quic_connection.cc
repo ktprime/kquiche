@@ -1269,8 +1269,8 @@ bool QuicConnection::OnPacketHeader(const QuicPacketHeader& header) {
   current_effective_peer_migration_type_ = NO_CHANGE;
 
   if (perspective_ == Perspective::IS_CLIENT) {
-    if (//!GetLargestReceivedPacket().IsInitialized() ||
-        header.packet_number > GetLargestReceivedPacket()) {
+    if (true ||
+      header.packet_number > GetLargestReceivedPacket()) {
 #if QUIC_TLS_SESSION
       if (version().HasIetfQuicFrames()) {
         // Client processes packets from any known server address, but only
@@ -2830,10 +2830,11 @@ void QuicConnection::ProcessUdpPacket(const QuicSocketAddress& self_address,
 #if QUIC_TLS_SESSION
   if (!received_coalesced_packets_.empty())
     MaybeProcessCoalescedPackets();
+#endif
 
   if (!undecryptable_packets_.empty())
     MaybeProcessUndecryptablePackets();
-#endif
+
 
   //MaybeSendInResponseToPacket();
   //if (!HandleWriteBlocked())
@@ -2857,7 +2858,7 @@ void QuicConnection::OnBlockedWriterCanWrite() {
 
 void QuicConnection::OnCanWrite() {
   if (!connected_) {
-    return;
+    //return;
   }
   if (false && writer_->IsWriteBlocked()) {
     const std::string error_details =
@@ -2888,7 +2889,7 @@ void QuicConnection::OnCanWrite() {
 
   // Sending queued packets may have caused the socket to become write blocked,
   // or the congestion manager to prohibit sending.
-  if (false && !CanWrite(HAS_RETRANSMITTABLE_DATA)) {
+  if (!CanWrite(HAS_RETRANSMITTABLE_DATA)) {
     return;
   }
 
@@ -2897,7 +2898,7 @@ void QuicConnection::OnCanWrite() {
 
   // After the visitor writes, it may have caused the socket to become write
   // blocked or the congestion manager to prohibit sending, so check again.
-  if (DCHECK_FLAG && visitor_->WillingAndAbleToWrite() && !send_alarm_->IsSet() &&
+  if (DCHECK_FLAG && !send_alarm_->IsSet() && visitor_->WillingAndAbleToWrite() &&
       CanWrite(HAS_RETRANSMITTABLE_DATA)) {
     // We're not write blocked, but some data wasn't written. Register for
     // 'immediate' resumption so we'll keep writing after other connections.
@@ -3332,9 +3333,10 @@ bool QuicConnection::CanWrite(HasRetransmittableData retransmittable) {
     return false;
   }
 
+  const float loss_rate = 0.25f * 4;// 1.0f - (float)(stats_.packets_retransmitted) / (stats_.stream_packets_sent + 1);
 // Scheduler requires a delay.
   // Cannot send packet now because delay is too far in the future.
-  send_alarm_->Update(now + delay, kAlarmGranularity);
+  send_alarm_->Update(now + delay * (1 + 0), kAlarmGranularity);
   QUIC_DVLOG(1) << ENDPOINT << "Delaying sending " << delay.ToMilliseconds()
                 << "ms";
   return false;
@@ -4051,6 +4053,8 @@ void QuicConnection::OnHandshakeComplete() {
     }
     return;
   }
+
+#if QUIC_TLS_SESSION
   // Stop sending ack of handshake packet number space.
   uber_received_packet_manager_.ResetAckStates(ENCRYPTION_HANDSHAKE);
   // Re-arm ack alarm.
@@ -4066,6 +4070,7 @@ void QuicConnection::OnHandshakeComplete() {
         std::make_unique<ServerPreferredAddressResultDelegate>(this);
     ValidatePath(std::move(context), std::move(result_delegate));
   }
+#endif
 }
 
 void QuicConnection::MaybeCreateMultiPortPath() {
@@ -4165,7 +4170,7 @@ void QuicConnection::OnRetransmissionTimeout() {
       sent_packet_manager_.OnRetransmissionTimeout();
   if (retransmission_mode == QuicSentPacketManager::PTO_MODE) {
     // Skip a packet number when PTO fires to elicit an immediate ACK.
-    const QuicPacketCount num_packet_numbers_to_skip = 1; //TODO2, why add one hole
+    const QuicPacketCount num_packet_numbers_to_skip = 1; //TODO3, why add one hole
     packet_creator_.SkipNPacketNumbers(
         num_packet_numbers_to_skip,
         sent_packet_manager_.GetLeastPacketAwaitedByPeer(encryption_level_),

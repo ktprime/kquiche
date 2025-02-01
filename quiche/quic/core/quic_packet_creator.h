@@ -359,6 +359,9 @@ class QUIC_EXPORT_PRIVATE QuicPacketCreator {
                                QuicStreamOffset offset,
                                StreamSendingState state);
 
+  QuicConsumedData ConsumeDataHand(QuicStreamId id, size_t write_length,
+                               QuicStreamOffset offset,
+                               StreamSendingState state);
   // Sends as many data only packets as allowed by the send algorithm and the
   // available iov.
   // This path does not support padding, or bundling pending frames.

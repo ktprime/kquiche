@@ -53,34 +53,27 @@ bool QuicheDataWriter::WriteUInt64(uint64_t value) {
 
 bool QuicheDataWriter::WriteBytesToUInt64(size_t num_bytes, uint64_t value) {
   QUICHE_DCHECK(num_bytes <= sizeof(value) && endianness_ == quiche::NETWORK_BYTE_ORDER);
-  if (DCHECK_FLAG && num_bytes > sizeof(value)) {
-    return false;
-  }
   uint8_t* wbuff = (uint8_t*)buffer_ + length_;
   length_ += num_bytes;
   if (num_bytes == 3) {
-    wbuff[0] = (uint8_t)(value >> 16);
-    wbuff[1] = (uint8_t)(value >> 8);
-    wbuff[2] = (uint8_t)value;
+    *(uint32_t*)wbuff = quiche::QuicheEndian::HostToNet32(uint32_t(value)) >> 8;
+//    wbuff[0] = (uint8_t)(value >> 16);
+//    wbuff[1] = (uint8_t)(value >> 8);
+//    wbuff[2] = (uint8_t)value;
     return true;
   }
   if (num_bytes == 4) {
-    wbuff[0] = (uint8_t)(value >> 24);
-    wbuff[1] = (uint8_t)(value >> 16);
-    wbuff[2] = (uint8_t)(value >> 8);
-    wbuff[3] = (uint8_t)value;
-    return true;
-  }
-  if (DCHECK_FLAG && num_bytes == 1) {
-    wbuff[0] = (uint8_t)value;
+    *(uint32_t*)wbuff = quiche::QuicheEndian::HostToNet32(uint32_t(value));
+//    wbuff[0] = (uint8_t)(value >> 24);
+//    wbuff[1] = (uint8_t)(value >> 16);
+//    wbuff[2] = (uint8_t)(value >> 8);
+//    wbuff[3] = (uint8_t)value;
     return true;
   }
 
   value = quiche::QuicheEndian::HostToNet64(value);
   memcpy(buffer_ + length_ - num_bytes, reinterpret_cast<char*>(&value) + sizeof(value) - num_bytes, num_bytes);
   return true;
-//  return WriteBytes(reinterpret_cast<char*>(&value) + sizeof(value) - num_bytes,
-//                    num_bytes);
 }
 
 bool QuicheDataWriter::WriteStringPiece16(absl::string_view val) {
@@ -97,14 +90,6 @@ bool QuicheDataWriter::WriteStringPiece(absl::string_view val) {
 
 char* QuicheDataWriter::BeginWrite(size_t length) {
   QUICHE_DCHECK(capacity_ >= length + length_);
-  if (false && length_ > capacity_) {
-    return nullptr;
-  }
-
-  if (DCHECK_FLAG && capacity_ < length + length_) {
-    return nullptr;
-  }
-
 #ifdef ARCH_CPU_64_BITS
   QUICHE_DCHECK_LE(length, std::numeric_limits<uint32_t>::max());
 #endif

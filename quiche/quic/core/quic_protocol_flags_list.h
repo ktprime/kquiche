@@ -83,7 +83,7 @@ QUIC_PROTOCOL_FLAG(
     "during pacing.")
 
 QUIC_PROTOCOL_FLAG(
-    int32_t, quic_lumpy_pacing_min_bandwidth_kbps, 1200,
+    int32_t, quic_lumpy_pacing_min_bandwidth_kbps, 3000,
     "The minimum estimated client bandwidth below which the pacing sender will "
     "not allow bursts.")
 

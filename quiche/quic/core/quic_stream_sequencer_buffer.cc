@@ -61,10 +61,8 @@ QuicStreamSequencerBuffer::~QuicStreamSequencerBuffer() { Clear(); }
 
 void QuicStreamSequencerBuffer::Clear() {
   for (uint32_t i = 0; i < current_blocks_count_; ++i) {
-    if (blocks_[i] != nullptr) {
-      delete blocks_[i];
-      blocks_[i] = nullptr;
-    }
+    delete blocks_[i];
+    blocks_[i] = nullptr;
   }
   for (uint32_t i = 0; i < empty_blocks_count_; ++i) {
     delete empty_blocks[i];
@@ -267,7 +265,7 @@ bool QuicStreamSequencerBuffer::CopyStreamData(QuicStreamOffset offset,
       if (empty_blocks_count_)
         blocks_[write_block_num] = empty_blocks[--empty_blocks_count_];
       else
-        blocks_[write_block_num] = new BufferBlock();
+        blocks_[write_block_num] = new BufferBlock;
     }
 
     const size_t bytes_to_copy =

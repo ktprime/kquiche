@@ -205,7 +205,7 @@ const char* QuicUtils::AckResultToString(AckResult result) {
 AddressChangeType QuicUtils::DetermineAddressChangeType(
     const QuicSocketAddress& old_address,
     const QuicSocketAddress& new_address) {
-  if (!old_address.IsInitialized() || !new_address.IsInitialized() ||
+  if (//!old_address.IsInitialized() || !new_address.IsInitialized() ||
       old_address == new_address) {
     return NO_CHANGE;
   }

@@ -124,7 +124,7 @@ class QUIC_EXPORT_PRIVATE QuicUnackedPacketMap {
   iterator end() { return unacked_packets_.end(); }
 
   // Returns true if there are unacked packets that are in flight.
-  bool HasInFlightPackets() const;
+  bool HasInFlightPackets() const { return bytes_in_flight_ > 0; }
 
   // Returns the QuicTransmissionInfo associated with |packet_number|, which
   // must be unacked.

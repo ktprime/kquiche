@@ -441,8 +441,8 @@ enum CongestionControlType {
   kBBR,
   kPCC,
   kGoogCC,
-  kBBRv2,
-  kPragueCubic
+  kBBRv2
+  //kPragueCubic
 };
 
 QUIC_EXPORT_PRIVATE std::string CongestionControlTypeToString(
@@ -578,7 +578,7 @@ struct QUIC_EXPORT_PRIVATE AckedPacket {
 };
 
 // A vector of acked packets.
-using AckedPacketVector = absl::InlinedVector<AckedPacket, 64>;
+using AckedPacketVector = absl::InlinedVector<AckedPacket, 128>;
 
 // Information about a newly lost packet.
 struct QUIC_EXPORT_PRIVATE LostPacket {
