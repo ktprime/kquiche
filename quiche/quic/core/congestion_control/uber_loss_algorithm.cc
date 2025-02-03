@@ -62,7 +62,7 @@ LossDetectionInterface::DetectionStats UberLossAlgorithm::DetectLosses(
 
 QuicTime UberLossAlgorithm::GetLossTimeout() const {
   return general_loss_algorithms_[APPLICATION_DATA].GetLossTimeout();
-#if 0
+#if 0 //TODO3 hybchanged
   QuicTime loss_timeout = QuicTime::Zero();
   // Returns the earliest non-zero loss timeout.
   for (int8_t i = INITIAL_DATA; i < NUM_PACKET_NUMBER_SPACES; ++i) {

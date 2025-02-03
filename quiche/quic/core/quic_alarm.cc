@@ -53,7 +53,7 @@ bool QuicAlarm::IsPermanentlyCancelled() const { return delegate_ == nullptr; }
 void QuicAlarm::Update(QuicTime new_deadline, QuicTime::Delta granularity) {
   const auto delta = (new_deadline - deadline_).ToMicroseconds();
   if (std::abs(delta) <= granularity.ToMicroseconds()) {
-    deadline_ = new_deadline;
+    //deadline_ = new_deadline;
   }
   else if (!new_deadline.IsInitialized()) {
     CancelImpl();

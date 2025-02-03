@@ -212,11 +212,11 @@ bool QuicUnackedPacketMap::HasRetransmittableFrames(
 
 bool QuicUnackedPacketMap::HasRetransmittableFrames(
     const QuicTransmissionInfo& info) const {
-  if (!QuicUtils::IsAckable(info.state)) {
-    return false;
-  }
 
   for (const auto& frame : info.retransmittable_frames) {
+    if (!QuicUtils::IsAckable(info.state)) {
+      return false;
+    }
     if (session_notifier_->IsFrameOutstanding(frame)) {
       return true;
     }
@@ -285,7 +285,7 @@ bool QuicUnackedPacketMap::IsPacketUseless(
 #if 0
   if (info.in_flight)
     return true;
-  if (packet_number > largest_acked_ && QuicUtils::IsAckable(info.state))
+  if (packet_number > largest_acked_ && QuicUtils::IsAckable(info.state)) //measuring rtt
     return true;
   if (largest_acked_ < info.first_sent_after_loss)
     return true;

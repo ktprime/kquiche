@@ -730,7 +730,7 @@ QuicSentPacketManager::OnRetransmissionTimeout() {
   }
   QUIC_BUG(quic_bug_10750_3)
       << "Unknown retransmission mode " << GetRetransmissionMode();
-  return GetRetransmissionMode();
+  return PTO_MODE;
 }
 
 void QuicSentPacketManager::RetransmitCryptoPackets() {
@@ -876,12 +876,12 @@ QuicSentPacketManager::RetransmissionTimeoutMode
 QuicSentPacketManager::GetRetransmissionMode() const {
   QUICHE_DCHECK(unacked_packets_.HasInFlightPackets() ||
                 (handshake_mode_disabled_ && !handshake_finished_));
+  if (loss_algorithm_->GetLossTimeout() != QuicTime::Zero()) {
+    return LOSS_MODE;
+  }
   if (!handshake_finished_ && !handshake_mode_disabled_ &&
       unacked_packets_.HasPendingCryptoPackets()) {
     return HANDSHAKE_MODE;
-  }
-  if (loss_algorithm_->GetLossTimeout() != QuicTime::Zero()) {
-    return LOSS_MODE;
   }
   return PTO_MODE;
 }

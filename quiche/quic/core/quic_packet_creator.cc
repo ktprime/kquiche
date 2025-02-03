@@ -713,7 +713,7 @@ size_t QuicPacketCreator::ExpansionOnNewFrame() const {
 // static
 size_t QuicPacketCreator::ExpansionOnNewFrameWithLastFrame(
     const QuicFrame& last_frame, QuicTransportVersion version) {
-  if (last_frame.type == MESSAGE_FRAME) {
+  if (DCHECK_FLAG && last_frame.type == MESSAGE_FRAME) { //TODO3
     return QuicDataWriter::GetVarInt62Len(
         last_frame.message_frame->message_length);
   }
@@ -1395,7 +1395,7 @@ QuicConsumedData QuicPacketCreator::ConsumeData(QuicStreamId id,
       write_length - total_bytes_consumed > kMaxOutgoingPacketSize && !HasPendingFrames();
 
   if (!run_fast_path && !HasRoomForStreamFrame(id, offset, write_length)) {
-    FlushCurrentPacket(); //TODO2 hybchanged
+    FlushCurrentPacket();
   }
 
   while (!run_fast_path /*&&

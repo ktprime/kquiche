@@ -626,6 +626,13 @@ void QuicSession::OnCanWrite() {
     return;
   }
 
+#if QUIC_TLS_SESSION || DCHECK_FLAG
+  if (!IsEncryptionEstablished()) {
+    RetransmitCryptoData(); //TODO3. zero rtt maybe some bugs
+    //return;
+  }
+#endif
+
   if (!streams_with_pending_retransmission_.empty() ||
       control_frame_manager_.HasPendingRetransmission()) {
     if (!RetransmitLostData()) {
@@ -635,10 +642,6 @@ void QuicSession::OnCanWrite() {
         "write blocked.";
       return;
     }
-  }
-  else if (!IsEncryptionEstablished()) {
-    RetransmitCryptoData(); //TODO3. zero rtt maybe some bugs
-    //return;
   }
 
   // We limit the number of writes to the number of pending streams. If more
@@ -835,7 +838,7 @@ QuicConsumedData QuicSession::WritevData(QuicStreamId id, size_t write_length,
   QUIC_BUG_IF(session writevdata when disconnected, !connection_->connected())
       << ENDPOINT << "Try to write stream data when connection is closed: "
       << on_closed_frame_string();
-  if (!IsEncryptionEstablished() &&
+  if (DCHECK_FLAG && !IsEncryptionEstablished() &&
       !QuicUtils::IsCryptoStreamId(transport_version(), id)) {
     // Do not let streams write without encryption. The calling stream will end
     // up write blocked until OnCanWrite is next called.
