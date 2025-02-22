@@ -518,7 +518,7 @@ void QuicSentPacketManager::MarkForRetransmission(
     auto has_lost = unacked_packets_.NotifyFramesLost(*transmission_info, transmission_type);
     if (!has_lost) {
       --stats_->packets_lost;
-      printf("pn_id = %5ld %s", (long)packet_number.ToInt64(), transmission_info->DebugString().data());
+      //printf("pn_id = %5ld %s", (long)packet_number.ToInt64(), transmission_info->DebugString().data());
       //transmission_info->state = QuicUtils::RetransmissionTypeToPacketState(transmission_type);
       transmission_info->state = ACKED;
       return;

@@ -1484,7 +1484,8 @@ bool QuicFramer::ProcessPacketInternal(const QuicEncryptedPacket& packet) {
     return true;
   }
 
-  if (IsVersionNegotiation(header, packet_has_ietf_packet_header)) {
+  //TODO3
+  if (DCHECK_FLAG && IsVersionNegotiation(header, packet_has_ietf_packet_header)) {
     if (perspective_ == Perspective::IS_CLIENT) {
       QUIC_DVLOG(1) << "Client received version negotiation packet";
       return ProcessVersionNegotiationPacket(&reader, header);
@@ -1495,7 +1496,8 @@ bool QuicFramer::ProcessPacketInternal(const QuicEncryptedPacket& packet) {
     }
   }
 
-  if (header.version_flag && header.version != version_) {
+  //TODO3
+  if (DCHECK_FLAG && header.version_flag && header.version != version_) {
     if (perspective_ == Perspective::IS_SERVER) {
       if (!visitor_->OnProtocolVersionMismatch(header.version)) {
         RecordDroppedPacketReason(DroppedPacketReason::VERSION_MISMATCH);

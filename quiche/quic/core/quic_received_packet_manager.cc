@@ -163,9 +163,9 @@ const QuicFrame QuicReceivedPacketManager::GetUpdatedAckFrame(
     ack_frame_.ack_delay_time = approximate_now - time_largest_observed_;
   }
   //QUICHE_DCHECK(ack_frame_.ack_delay_time.ToMilliseconds() < 30'000);
-  QUICHE_DCHECK(ack_frame_.packets.NumIntervals() < max_ack_ranges_ / 2);
+  QUICHE_DCHECK(ack_frame_.packets.NumIntervals() <= max_ack_ranges_);
 
-  while (DCHECK_FLAG && ack_frame_.packets.NumIntervals() > max_ack_ranges_) {
+  if (ack_frame_.packets.NumIntervals() >= max_ack_ranges_) {
     ack_frame_.packets.RemoveSmallestInterval();
   }
 #if QUIC_TLS_SESSION

@@ -78,30 +78,11 @@ void QuicStreamSequencerBuffer::Clear() {
 
 bool QuicStreamSequencerBuffer::RetireBlock(size_t index) {
   QUICHE_DCHECK(blocks_[index]);
-#if 0
-  auto empty_block = (index + 1) & (current_blocks_count_ - 1);
-  static int cn1 = 0, cn2 = 0, cn3 = 0;
-  if (blocks_[empty_block] != nullptr) {
-      empty_block = (empty_block + 1) & (current_blocks_count_ - 1);
-      if (blocks_[empty_block] != nullptr)
-          empty_block = (empty_block + 1) & (current_blocks_count_ - 1);
-  }
-
-  if (blocks_[empty_block] == nullptr) {
-    blocks_[empty_block] = blocks_[index];
-    blocks_[index] = nullptr;
-    if (++cn1 % 1000 == 0) printf("-------  blk,2,3 = %d:%d:%d\n", cn1, cn2, cn3);
-    return true;
-  }
-  else
-#endif
   if (empty_blocks_count_ < kEmptyBlocks) {
-    //cn2 += 1;
     empty_blocks[empty_blocks_count_++] = blocks_[index];
     blocks_[index] = nullptr;
     return true;
   }
-  //cn3 += 1;
 
   delete (blocks_[index]);
   blocks_[index] = nullptr;

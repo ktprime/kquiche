@@ -276,7 +276,8 @@ void QuicStreamSendBuffer::OnStreamDataRetransmitted(
 }
 
 bool QuicStreamSendBuffer::HasPendingRetransmission() const {
-  return !pending_retransmissions_.Empty();
+  const auto pending = pending_retransmissions_.begin();
+  return !pending_retransmissions_.Empty() && pending->max() > pending->min();
 }
 
 StreamPendingRetransmission QuicStreamSendBuffer::NextPendingRetransmission()
