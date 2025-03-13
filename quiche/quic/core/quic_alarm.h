@@ -85,7 +85,7 @@ class QUIC_EXPORT_PRIVATE QuicAlarm {
   void Update(QuicTime new_deadline, QuicTime::Delta granularity);
 
   // Returns true if |deadline_| has been set to a non-zero time.
-  bool IsSet() const;
+  bool IsSet() const { return deadline_.IsInitialized(); }
 
   QuicTime deadline() const { return deadline_; }
 

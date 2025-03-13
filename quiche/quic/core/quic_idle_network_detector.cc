@@ -114,11 +114,10 @@ void QuicIdleNetworkDetector::SetAlarm() {
   }
   //QUICHE_DCHECK(!idle_network_timeout_.IsInfinite());
   if (true || !idle_network_timeout_.IsInfinite()) {
-    const QuicTime idle_network_deadline = GetIdleNetworkDeadline();
     if (!handshake_timeout_.IsInfinite()) {
       new_deadline = start_time_ + handshake_timeout_;
     } else {
-      new_deadline = idle_network_deadline;
+      new_deadline = GetIdleNetworkDeadline();
     }
   }
   alarm_->Update(new_deadline, QuicTime::Delta::FromSeconds(1));

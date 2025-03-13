@@ -23,7 +23,7 @@ constexpr int kOneMinusBeta = 4 - kBeta;// (1 - kBeta);
 
 RttStats::RttStats()
     : latest_rtt_(QuicTime::Delta::Zero()),
-      min_rtt_(QuicTime::Delta::FromSeconds(10)),
+      min_rtt_(QuicTime::Delta::FromSeconds(1)),
       smoothed_rtt_(QuicTime::Delta::FromMilliseconds(kInitialRttMs)),
       previous_srtt_(QuicTime::Delta::Zero()),
       mean_deviation_(QuicTime::Delta::Zero()),
@@ -100,7 +100,7 @@ bool RttStats::UpdateRtt(QuicTime::Delta send_delta, QuicTime::Delta ack_delay,
 
 void RttStats::OnConnectionMigration() {
   latest_rtt_ = QuicTime::Delta::Zero();
-  min_rtt_ = QuicTime::Delta::FromSeconds(10),
+  min_rtt_ = QuicTime::Delta::FromSeconds(1),
   smoothed_rtt_ = QuicTime::Delta::FromMilliseconds(kInitialRttMs);
   mean_deviation_ = QuicTime::Delta::Zero();
   initial_rtt_ = QuicTime::Delta::FromMilliseconds(kInitialRttMs);

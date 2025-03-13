@@ -1832,8 +1832,7 @@ bool QuicPacketCreator::AddFrame(const QuicFrame& frame,
     packet_.largest_acked = LargestAcked(*frame.ack_frame);
   } else if (QuicUtils::IsRetransmittableFrame(frame.type)) {
     packet_.retransmittable_frames.emplace_back(frame);
-    auto is_handshake_frame = QuicUtils::IsHandshakeFrame(frame, framer_->transport_version());
-    if (is_handshake_frame)
+    if (QuicUtils::IsHandshakeFrame(frame, framer_->transport_version()))
       packet_.frame_types |= 1u << CRYPTO_FRAME;
   } else {
     if (frame.type == PADDING_FRAME &&

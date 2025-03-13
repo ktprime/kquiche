@@ -20,13 +20,15 @@ std::ostream& operator<<(std::ostream& os, const QuicConnectionStats& s) {
   //os << " stream_bytes_sent: " << s.stream_bytes_sent;
   if (s.packets_discarded > 0)
   os << " packets_discarded: " << s.packets_discarded;
+  if (s.ping_frames_sent > 0)
+    os << " ping_frames_sent: " << s.ping_frames_sent;
   if (s.max_consecutive_rto_with_forward_progress > 0)
   os << " max_consecutive_rto_with_forward_progress: " << s.max_consecutive_rto_with_forward_progress;
 
   //os << " bytes_received: " << s.bytes_received;
 
-//  if (s.packets_processed != s.packets_received)
-//  os << " packets_processed: " << s.packets_processed;
+  if (s.packets_processed != s.packets_received)
+  os << " packets_processed: " << s.packets_processed;
 
   if (s.packets_retransmitted > 0) {
     os << " stream_bytes_received: " << s.stream_bytes_received;

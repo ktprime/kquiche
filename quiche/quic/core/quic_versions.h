@@ -12,7 +12,7 @@
 // We currently support two kinds of QUIC versions, GoogleQUIC and IETF QUIC.
 //
 // All GoogleQUIC versions use a wire encoding that matches the following regex
-// when converted to ASCII: "[QT]0\d\d" (e.g. Q050). Q or T distinguishes the
+// when converted to ASCII: "[QT]0\d\d" (e.g. Q046). Q or T distinguishes the
 // type of handshake used (Q for the QUIC_CRYPTO handshake, T for the QUIC+TLS
 // handshake), and the two digits at the end contain the numeric value of
 // the transport version used.
@@ -106,8 +106,7 @@ enum QuicTransportVersion {
   //            or v41 are present in subsequent versions.
   // Version 42 allowed receiving overlapping stream data.
 
-  QUIC_VERSION_43 = 43,  // PRIORITY frames are sent by client and accepted by
-                         // server.
+  QUIC_VERSION_43 = 43,  // PRIORITY frames are sent by client and accepted by server.
   // Version 44 used IETF header format from draft-ietf-quic-invariants-05.
 
   // Version 45 added MESSAGE frame.
@@ -583,7 +582,7 @@ QUIC_EXPORT_PRIVATE constexpr bool VersionSupportsMessageFrames(
 // * GOAWAY is moved to HTTP layer.
 QUIC_EXPORT_PRIVATE constexpr bool VersionUsesHttp3(
     QuicTransportVersion transport_version) {
-  return false;//&& transport_version >= QUIC_VERSION_IETF_DRAFT_29; //TODO hybchanged
+  return false;//&& transport_version >= QUIC_VERSION_IETF_DRAFT_29; //TODO3 hybchanged
 }
 
 // Returns whether the transport_version supports the variable length integer

@@ -1469,7 +1469,7 @@ bool QuicFramer::ProcessPacketInternal(const QuicEncryptedPacket& packet) {
 
   visitor_->OnPacket();
 
-  QuicPacketHeader header;
+  QuicPacketHeader header(true);//TODO3 
   if (!ProcessPublicHeader(&reader, packet_has_ietf_packet_header, &header)) {
     QUICHE_DCHECK_NE("", detailed_error_);
     QUIC_DVLOG(1) << ENDPOINT << "Unable to process public header. Error: "

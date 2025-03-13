@@ -1351,7 +1351,8 @@ bool QuicConnection::OnPacketHeader(const QuicPacketHeader& header) {
   }
 
   QUIC_DVLOG(1) << ENDPOINT << "Received packet header: " << header;
-  last_received_packet_info_.header = header;
+//  last_received_packet_info_.header = header;
+  last_received_packet_info_.header.packet_number = header.packet_number; //TODO3
   if (DCHECK_FLAG && !stats_.first_decrypted_packet.IsInitialized()) { //debug only
     stats_.first_decrypted_packet =
         last_received_packet_info_.header.packet_number;
@@ -1365,7 +1366,7 @@ bool QuicConnection::OnPacketHeader(const QuicPacketHeader& header) {
   }
   uber_received_packet_manager_.RecordPacketReceived(
       last_received_packet_info_.decrypted_level,
-      last_received_packet_info_.header, receipt_time);
+      header, receipt_time);
 #if QUIC_TLS_SESSION
   if (EnforceAntiAmplificationLimit() && !IsHandshakeConfirmed() &&
       !header.retry_token.empty() &&
@@ -2723,7 +2724,7 @@ std::string QuicConnection::UndecryptablePacketsInfo() const {
 void QuicConnection::ProcessUdpPacket(const QuicSocketAddress& self_address,
                                       const QuicSocketAddress& peer_address,
                                       const QuicReceivedPacket& packet) {
-  if (!connected_) {
+  if (!connected_ && DCHECK_FLAG) {
     return;
   }
   QUIC_DVLOG(2) << ENDPOINT << "Received encrypted " << packet.length()
@@ -2736,7 +2737,7 @@ void QuicConnection::ProcessUdpPacket(const QuicSocketAddress& self_address,
     debug_visitor_->OnPacketReceived(self_address, peer_address, packet);
   }
 
-#if 1
+#if 1 //TODO3
   last_received_packet_info_.destination_address = self_address;
   last_received_packet_info_.source_address = peer_address;
   last_received_packet_info_.receipt_time = packet.receipt_time();
@@ -2750,6 +2751,7 @@ void QuicConnection::ProcessUdpPacket(const QuicSocketAddress& self_address,
 
   current_packet_data_ = packet.data();
 
+#if QUIC_SERVER_SESSION != 2 //only for client
   if (!default_path_.self_address.IsInitialized()) {
     default_path_.self_address = self_address;
   //if (!direct_peer_address_.IsInitialized()) {
@@ -2771,6 +2773,7 @@ void QuicConnection::ProcessUdpPacket(const QuicSocketAddress& self_address,
                                      ? peer_address
                                      : direct_peer_address_;
   }
+#endif
 
   stats_.bytes_received += packet.length();
   ++stats_.packets_received;
@@ -2838,7 +2841,7 @@ void QuicConnection::ProcessUdpPacket(const QuicSocketAddress& self_address,
 
   //MaybeSendInResponseToPacket();
   //if (!HandleWriteBlocked())
-  //if (connected_)
+  if (connected_)
   {
     OnCanWrite();
 
@@ -3589,7 +3592,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
                                            GetNetworkBlackholeDeadline(),
                                            GetPathMtuReductionDeadline());
     }
-    idle_network_detector_.OnPacketSent(packet_send_time, QuicTime::Delta::FromMilliseconds(0));//TODO2 stop it.
+    idle_network_detector_.OnPacketSent(packet_send_time, QuicTime::Delta::FromMilliseconds(0));//TODO3 stop it.
   } else {
     stats_.notrans_packets_sent++;
     QUICHE_DCHECK(packet->transmission_type == NOT_RETRANSMISSION);
@@ -3665,7 +3668,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
   if (in_flight || !retransmission_alarm_->IsSet()) {
     SetRetransmissionAlarm();
   } else if (false && perspective_ == Perspective::IS_CLIENT) {
-    SetPingAlarm(); //TODO3
+    SetPingAlarm(); //TODO3 no need set for send, each ping has ack
   }
 
   if (connection_migration_use_new_cid_)
@@ -6222,7 +6225,7 @@ void QuicConnection::OnPathDegradingDetected() {
 }
 
 void QuicConnection::OnBlackholeDetected() {
-  if (DCHECK_FLAG && default_enable_5rto_blackhole_detection_ &&
+  if (default_enable_5rto_blackhole_detection_ &&
       !sent_packet_manager_.HasInFlightPackets()) {
     QUIC_BUG(quic_bug_10511_41)
         << ENDPOINT

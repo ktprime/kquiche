@@ -53,12 +53,12 @@ void UberReceivedPacketManager::RecordPacketReceived(
     EncryptionLevel decrypted_packet_level, const QuicPacketHeader& header,
     QuicTime receipt_time) {
   if (!supports_multiple_packet_number_spaces_) {
-    received_packet_managers_[0].RecordPacketReceived(header, receipt_time);
+    received_packet_managers_[0].RecordPacketReceived(header.packet_number, receipt_time);
     return;
   }
   received_packet_managers_[QuicUtils::GetPacketNumberSpace(
                                 decrypted_packet_level)]
-      .RecordPacketReceived(header, receipt_time);
+      .RecordPacketReceived(header.packet_number, receipt_time);
 }
 
 void UberReceivedPacketManager::DontWaitForPacketsBefore(

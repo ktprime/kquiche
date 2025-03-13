@@ -66,7 +66,7 @@ void QuicAlarm::Update(QuicTime new_deadline, QuicTime::Delta granularity) {
   }
 }
 
-bool QuicAlarm::IsSet() const { return deadline_.IsInitialized(); }
+//bool QuicAlarm::IsSet() const { return deadline_.IsInitialized(); }
 
 void QuicAlarm::Fire() {
   QUICHE_DCHECK(IsSet()/* && !IsPermanentlyCancelled()***/);

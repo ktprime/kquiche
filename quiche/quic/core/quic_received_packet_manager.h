@@ -41,7 +41,7 @@ class QUIC_EXPORT_PRIVATE QuicReceivedPacketManager {
   // Updates the internal state concerning which packets have been received.
   // header: the packet header.
   // timestamp: the arrival time of the packet.
-  void RecordPacketReceived(const QuicPacketHeader& header,
+  void RecordPacketReceived(const QuicPacketNumber packet_number,
                                     QuicTime receipt_time);
 
   // Checks whether |packet_number| is missing and less than largest observed.

@@ -72,8 +72,7 @@ void QuicReceivedPacketManager::SetFromConfig(const QuicConfig& config,
 }
 
 void QuicReceivedPacketManager::RecordPacketReceived(
-    const QuicPacketHeader& header, QuicTime receipt_time) {
-  const QuicPacketNumber packet_number = header.packet_number;
+     const QuicPacketNumber packet_number, QuicTime receipt_time) {
   QUICHE_DCHECK(IsAwaitingPacket(packet_number))
     ;//<< " packet_number:" << packet_number;
 #if 0

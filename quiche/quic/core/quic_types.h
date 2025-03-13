@@ -578,7 +578,7 @@ struct QUIC_EXPORT_PRIVATE AckedPacket {
 };
 
 // A vector of acked packets.
-using AckedPacketVector = absl::InlinedVector<AckedPacket, 128>;
+using AckedPacketVector = absl::InlinedVector<AckedPacket, 32>;
 
 // Information about a newly lost packet.
 struct QUIC_EXPORT_PRIVATE LostPacket {
