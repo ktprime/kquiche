@@ -44,6 +44,11 @@ QuicIdleNetworkDetector::QuicIdleNetworkDetector(
 
 void QuicIdleNetworkDetector::OnAlarm() {
   if (handshake_timeout_.IsInfinite()) {
+    const QuicTime::Delta duration = delegate_->ApproximateNow() - last_network_activity_time();
+    if (duration < idle_network_timeout_) {
+      SetAlarm();
+      return;
+    }
     delegate_->OnIdleNetworkDetected();
     return;
   }
@@ -88,14 +93,15 @@ void QuicIdleNetworkDetector::OnPacketSent(QuicTime now,
     return;
   }
   if (!alarm_->IsSet()) //TODO3 hybchanged. follow is set if receive packet.
-  SetAlarm();
+    SetAlarm();
 }
 
 void QuicIdleNetworkDetector::OnPacketReceived(QuicTime now) {
   QUICHE_DCHECK(time_of_last_received_packet_ <= now);
   //if (time_of_last_received_packet_ < now)
   time_of_last_received_packet_ = now;
-  SetAlarm();
+  if (!alarm_->IsSet())
+    SetAlarm();
 }
 
 void QuicIdleNetworkDetector::SetAlarm() {
@@ -120,7 +126,7 @@ void QuicIdleNetworkDetector::SetAlarm() {
       new_deadline = GetIdleNetworkDeadline();
     }
   }
-  alarm_->Update(new_deadline, QuicTime::Delta::FromSeconds(1));
+  alarm_->Update(new_deadline, QuicTime::Delta::FromMilliseconds(300));
 }
 
 void QuicIdleNetworkDetector::MaybeSetAlarmOnSentPacket(

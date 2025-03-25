@@ -169,7 +169,7 @@ void GeneralLossAlgorithm::SpuriousLossDetected(
     // Increase reordering_threshold_ such that packet_number would not have
     // been declared lost.
     reordering_threshold_ = std::max(
-        reordering_threshold_, previous_largest_acked - packet_number + 1);
+        reordering_threshold_, (previous_largest_acked - packet_number) / 2 + 1);
   }
 }
 

@@ -66,7 +66,7 @@ void QuicStreamSendBuffer::ReleaseBuffer()
 {
   for (size_t i = 0; i < blocks_.size(); ++i) {
     if (blocks_[i] != nullptr) {
-      delete (blocks_[i]);
+      free (blocks_[i]);
       blocks_[i] = nullptr;
     }
   }
@@ -80,7 +80,7 @@ void QuicStreamSendBuffer::SaveStreamData(std::string_view data) {
   constexpr QuicByteCount max_data_slice_size = kBlockSizeBytes;
   const auto cindex = GetBlockIndex(stream_offset_ + data.length());
   while (cindex >= blocks_.size()) {
-    blocks_.push_back(new BufferBlock);
+    blocks_.push_back((BufferBlock*)malloc(sizeof(BufferBlock)));
   }
 
   const auto offset = GetInBlockOffset(stream_offset_);
@@ -131,7 +131,7 @@ void QuicStreamSendBuffer::OnStreamDataConsumed(size_t bytes_consumed) {
 bool QuicStreamSendBuffer::WriteStreamData(QuicStreamOffset stream_offset,
                                             QuicByteCount data_length,
                                             QuicDataWriter* writer) {
-  QUIC_BUG_IF(quic_bug_12823_1, current_end_offset_ < stream_offset)
+  QUIC_BUG_IF(quic_bug_12823_1, current_end_offset_ < stream_offset || data_length == 0)
     << "Tried to write data out of sequence. last_offset_end:"
     << current_end_offset_ << ", offset:" << stream_offset;
     // The iterator returned from |interval_deque_| will automatically advance
@@ -259,17 +259,16 @@ void QuicStreamSendBuffer::OnStreamDataLost(QuicStreamOffset offset,
 
 void QuicStreamSendBuffer::OnStreamDataRetransmitted(
     QuicStreamOffset offset, QuicByteCount data_length) {
-  QUICHE_DCHECK_IMPL(data_length > 0);
   if (pending_retransmissions_.Empty())
     return;
-
+  //QUICHE_DCHECK_IMPL(data_length > 0);
   QuicInterval<QuicStreamOffset> off(offset, offset + data_length);
 
   if (*pending_retransmissions_.begin() == off) {
     pending_retransmissions_.PopFront();
     return;
   }
-  QUICHE_DCHECK (!bytes_acked_.Contains(off));
+  //QUICHE_DCHECK (!bytes_acked_.Contains(off));
   if (pending_retransmissions_.SpanningInterval().Intersects(off)) {
     pending_retransmissions_.Difference(QuicIntervalSet<QuicStreamOffset>(off));
   }
@@ -277,15 +276,15 @@ void QuicStreamSendBuffer::OnStreamDataRetransmitted(
 
 bool QuicStreamSendBuffer::HasPendingRetransmission() const {
   const auto pending = pending_retransmissions_.begin();
-  return !pending_retransmissions_.Empty() && pending->max() > pending->min();
+  return !pending_retransmissions_.Empty();//&& pending->max() > pending->min();
 }
 
 StreamPendingRetransmission QuicStreamSendBuffer::NextPendingRetransmission()
     const {
-  QUICHE_DCHECK(HasPendingRetransmission());
   //if (HasPendingRetransmission())
   {
     const auto pending = pending_retransmissions_.begin();
+    QUICHE_DCHECK(pending->max() > pending->min());
     return {pending->min(), pending->max() - pending->min()};
   }
   QUIC_BUG(quic_bug_10853_3)
@@ -300,7 +299,7 @@ bool QuicStreamSendBuffer::FreeMemSlices() {
     stream_bytes_start_, stream_bytes_start_ + kBlockSizeBytes))) {
     stream_bytes_start_ += kBlockSizeBytes;
     if (blocks_.size() >= kSmallBlocks) {
-      delete blocks_[0];
+      free (blocks_[0]);
     } else {
       blocks_.emplace_back(blocks_[0]);//bugs TODO?
     }

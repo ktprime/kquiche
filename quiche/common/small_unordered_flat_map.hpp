@@ -1318,7 +1318,7 @@ public:
         SFL_ASSERT(cbegin() <= pos && pos < cend());
 
         if (pos + 1 == data_.last_) {
-            SFL_DTL::destroy_at(data_.ref_to_alloc(), data_.last_ - 1);
+            SFL_DTL::destroy_at(data_.ref_to_alloc(), pos);
             return --data_.last_;
         }
 

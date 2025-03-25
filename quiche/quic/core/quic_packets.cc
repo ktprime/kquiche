@@ -161,23 +161,49 @@ size_t GetStartOfEncryptedData(
 }
 
 QuicPacketHeader::QuicPacketHeader()
-    : destination_connection_id(EmptyQuicConnectionId()),
-      source_connection_id(EmptyQuicConnectionId()),
-      destination_connection_id_included(CONNECTION_ID_PRESENT),
-      source_connection_id_included(CONNECTION_ID_ABSENT),
-      reset_flag(false),
-      version_flag(false),
-      has_possible_stateless_reset_token(false),
-      packet_number_length(PACKET_4BYTE_PACKET_NUMBER),
-      version(UnsupportedQuicVersion()),
-      form(GOOGLE_QUIC_PACKET),
-      long_packet_type(INITIAL),
-      length_length(quiche::VARIABLE_LENGTH_INTEGER_LENGTH_0),
-      possible_stateless_reset_token({}),
-      retry_token_length_length(quiche::VARIABLE_LENGTH_INTEGER_LENGTH_0),
-      retry_token(absl::string_view()),
-      remaining_packet_length(0),
-      nonce(nullptr) {}
+  :
+#if 0
+    destination_connection_id(EmptyQuicConnectionId()),
+    source_connection_id(EmptyQuicConnectionId()),
+    destination_connection_id_included(CONNECTION_ID_PRESENT),
+    source_connection_id_included(CONNECTION_ID_ABSENT),
+    reset_flag(false),
+    version_flag(false),
+    has_possible_stateless_reset_token(false),
+    packet_number_length(PACKET_4BYTE_PACKET_NUMBER),
+#endif
+    version(UnsupportedQuicVersion()),
+#if 0
+    form(GOOGLE_QUIC_PACKET),
+    long_packet_type(INITIAL),
+    length_length(quiche::VARIABLE_LENGTH_INTEGER_LENGTH_0),
+    possible_stateless_reset_token({}),
+    retry_token_length_length(quiche::VARIABLE_LENGTH_INTEGER_LENGTH_0),
+    retry_token(absl::string_view()),
+    remaining_packet_length(0),
+#endif
+    nonce(nullptr) {}
+
+QuicPacketHeader::QuicPacketHeader(bool read)
+  :
+//  : destination_connection_id(EmptyQuicConnectionId()),
+//  source_connection_id(EmptyQuicConnectionId()),
+  destination_connection_id_included(CONNECTION_ID_PRESENT),
+  source_connection_id_included(CONNECTION_ID_ABSENT),
+  reset_flag(false),
+  version_flag(false),
+  has_possible_stateless_reset_token(false),
+  packet_number_length(PACKET_4BYTE_PACKET_NUMBER),
+  version(UnsupportedQuicVersion()),
+  form(GOOGLE_QUIC_PACKET),
+  long_packet_type(INITIAL),
+  length_length(quiche::VARIABLE_LENGTH_INTEGER_LENGTH_0),
+  //possible_stateless_reset_token({}),
+  retry_token_length_length(quiche::VARIABLE_LENGTH_INTEGER_LENGTH_0),
+  //retry_token(absl::string_view()),
+  remaining_packet_length(0),
+  nonce(nullptr) {
+}
 
 QuicPacketHeader::QuicPacketHeader(const QuicPacketHeader& other) = default;
 

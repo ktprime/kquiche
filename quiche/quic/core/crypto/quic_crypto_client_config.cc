@@ -465,7 +465,7 @@ void QuicCryptoClientConfig::FillInchoateClientHello(
     out->SetValue(kCCRT, (uint64_t)QuicUtils::FNV1a_64_Hash(certs[0]));
   }
   else if (!certs.empty()) {
-    absl::InlinedVector<uint64_t, 8> hashes;
+    absl::InlinedVector<uint64_t, 10> hashes;
     hashes.reserve(certs.size());
     for (auto i = certs.begin(); i != certs.end(); ++i) {
       hashes.push_back(QuicUtils::FNV1a_64_Hash(*i));

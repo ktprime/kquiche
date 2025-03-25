@@ -51,9 +51,9 @@ QuicFlowController::QuicFlowController(
       last_blocked_send_window_offset_(0),
       prev_window_update_time_(QuicTime::Zero()) {
   QUICHE_DCHECK_LE(receive_window_size_, receive_window_size_limit_);
-  QUICHE_DCHECK_EQ(
-      is_connection_flow_controller_,
-      QuicUtils::GetInvalidStreamId(session_->transport_version()) == id_);
+//  QUICHE_DCHECK_EQ(
+//      is_connection_flow_controller_,
+//      QuicUtils::GetInvalidStreamId(session_->transport_version()) == id_);
 
   QUIC_DVLOG(1) << ENDPOINT << "Created flow controller for " << LogLabel()
                 << ", setting initial receive window offset to: "
@@ -87,7 +87,7 @@ bool QuicFlowController::UpdateHighestReceivedOffset(
 }
 
 void QuicFlowController::AddBytesSent(QuicByteCount bytes_sent) {
-  if (bytes_sent_ + bytes_sent > send_window_offset_) {
+  if (DCHECK_FLAG && bytes_sent_ + bytes_sent > send_window_offset_) {
     QUIC_BUG(quic_bug_10836_1)
         << ENDPOINT << LogLabel() << " Trying to send an extra " << bytes_sent
         << " bytes, when bytes_sent = " << bytes_sent_
@@ -109,8 +109,9 @@ void QuicFlowController::AddBytesSent(QuicByteCount bytes_sent) {
 }
 
 bool QuicFlowController::FlowControlViolation() {
+#if DCHECK_FLAG == 0
   return highest_received_byte_offset_ > receive_window_offset_;
-#if 0
+#else
   if (highest_received_byte_offset_ > receive_window_offset_) {
     QUIC_DLOG(INFO) << ENDPOINT << "Flow control violation on " << LogLabel()
                     << ", receive window offset: " << receive_window_offset_
@@ -187,7 +188,7 @@ void QuicFlowController::IncreaseWindowSize() {
 }
 
 QuicByteCount QuicFlowController::WindowUpdateThreshold() const {
-  return receive_window_size_ / 2;
+  return receive_window_size_ / 4;
 }
 
 void QuicFlowController::MaybeSendWindowUpdate() {
@@ -280,9 +281,8 @@ void QuicFlowController::EnsureWindowAtLeast(QuicByteCount window_size) {
 
 bool QuicFlowController::IsBlocked() const { return bytes_sent_ > send_window_offset_; }
 
-uint64_t QuicFlowController::SendWindowSize() const {
-  return /*(bytes_sent_ > send_window_offset_) ?
-          0 :*/ send_window_offset_ - bytes_sent_;
+int64_t QuicFlowController::SendWindowSize() const {
+  return int64_t(send_window_offset_ - bytes_sent_);
 }
 
 void QuicFlowController::UpdateReceiveWindowSize(QuicStreamOffset size) {

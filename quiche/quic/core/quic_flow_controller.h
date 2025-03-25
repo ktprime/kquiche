@@ -74,7 +74,7 @@ class QUIC_EXPORT_PRIVATE QuicFlowController
   void EnsureWindowAtLeast(QuicByteCount window_size) override;
 
   // Returns the current available send window.
-  QuicByteCount SendWindowSize() const;
+  int64_t SendWindowSize() const;
 
   QuicByteCount receive_window_size() const { return receive_window_size_; }
 

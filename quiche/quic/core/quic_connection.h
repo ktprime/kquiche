@@ -732,6 +732,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // QuicIdleNetworkDetector::Delegate
   void OnHandshakeTimeout() final;
   void OnIdleNetworkDetected() final;
+  quic::QuicTime ApproximateNow() final { return clock_->ApproximateNow(); };
 
   // QuicPingManager::Delegate
   void OnKeepAliveTimeout() final;

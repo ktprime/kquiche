@@ -875,8 +875,8 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
                           QuicStreamFrame* frame);
   bool ProcessAckFrame(QuicDataReader* reader, uint8_t frame_type);
   bool ProcessAckFrameBlocks(QuicDataReader* reader,
-    size_t num_ack_blocks, uint64_t first_received,
-    uint64_t ack_block_length);
+    size_t num_ack_blocks, uint64_t& first_received,
+    QuicPacketNumberLength ack_block_length);
   bool ProcessTimestampsInAckFrame(uint8_t num_received_packets,
                                    QuicPacketNumber largest_acked,
                                    QuicDataReader* reader);
@@ -1094,8 +1094,7 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
   // Determine whether the given QuicAckFrame should be serialized with a
   // IETF_ACK_RECEIVE_TIMESTAMPS frame type.
   bool UseIetfAckWithReceiveTimestamp(const QuicAckFrame& frame) const {
-    return VersionHasIetfQuicFrames(version_.transport_version) &&
-           process_timestamps_ &&
+    return process_timestamps_ && VersionHasIetfQuicFrames(version_.transport_version) &&           
            std::min<uint64_t>(max_receive_timestamps_per_ack_,
                               frame.received_packet_times.size()) > 0;
   }

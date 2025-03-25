@@ -28,7 +28,7 @@ namespace quic {
 using QuicTag = uint32_t;
 //using QuicTagValueMap = std::map<QuicTag, std::string>;
 using QuicTagValueMap = absl::btree_map<QuicTag, std::string>;
-using QuicTagVector = absl::InlinedVector<QuicTag, 8>;// std::vector<QuicTag>;
+using QuicTagVector = absl::InlinedVector<QuicTag, 10>;// std::vector<QuicTag>;
 
 // MakeQuicTag returns a value given the four bytes. For example:
 //   MakeQuicTag('C', 'H', 'L', 'O');

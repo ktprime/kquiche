@@ -1067,7 +1067,7 @@ bool QuicConnection::OnUnauthenticatedPublicHeader(
   // If last packet destination connection ID is the original server
   // connection ID chosen by client, replaces it with the connection ID chosen
   // by server.
-  if (perspective_ == Perspective::IS_SERVER &&
+  if (DCHECK_FLAG && perspective_ == Perspective::IS_SERVER &&
       original_destination_connection_id_.has_value() &&
       last_received_packet_info_.destination_connection_id ==
           *original_destination_connection_id_) {
@@ -1269,8 +1269,7 @@ bool QuicConnection::OnPacketHeader(const QuicPacketHeader& header) {
   current_effective_peer_migration_type_ = NO_CHANGE;
 
   if (perspective_ == Perspective::IS_CLIENT) {
-    if (true ||
-      header.packet_number > GetLargestReceivedPacket()) {
+    if (true || header.packet_number > GetLargestReceivedPacket()) {
 #if QUIC_TLS_SESSION
       if (version().HasIetfQuicFrames()) {
         // Client processes packets from any known server address, but only
@@ -1278,7 +1277,7 @@ bool QuicConnection::OnPacketHeader(const QuicPacketHeader& header) {
         // preferred address.
       } else
 #endif
-        if (direct_peer_address_ != last_received_packet_info_.source_address) {
+      if (direct_peer_address_ != last_received_packet_info_.source_address) {
         // Update direct_peer_address_ and default path peer_address immediately
         // for client connections.
         // TODO(fayang): only change peer addresses in application data packet
@@ -2569,7 +2568,7 @@ bool QuicConnection::SendControlFrame(const QuicFrame& frame) {
       debug_visitor_->OnPingSent();
     }
   }
-  if (frame.type == BLOCKED_FRAME) {
+  if (DCHECK_FLAG && frame.type == BLOCKED_FRAME) {
     stats_.blocked_frames_sent++;
   }
   stats_.control_packets_sent++;
@@ -3065,9 +3064,9 @@ bool QuicConnection::ProcessValidatedPacket(const QuicPacketHeader& header) {
     }
     default_path_.self_address = last_received_packet_info_.destination_address;
   }
-  else if (perspective_ == Perspective::IS_CLIENT &&
-      PacketCanReplaceServerConnectionId(header, perspective_) &&
-      default_path_.server_connection_id != header.source_connection_id) {
+  else if (header.form == IETF_QUIC_LONG_HEADER_PACKET &&
+      default_path_.server_connection_id != header.source_connection_id &&
+      PacketCanReplaceServerConnectionId(header, perspective_)) {
     QUICHE_DCHECK_EQ(header.long_packet_type, INITIAL);
     if (server_connection_id_replaced_by_initial_) {
       QUIC_DLOG(ERROR) << ENDPOINT << "Refusing to replace connection ID "

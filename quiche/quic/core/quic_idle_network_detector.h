@@ -31,7 +31,7 @@ class QUIC_EXPORT_PRIVATE QuicIdleNetworkDetector {
 
     // Called when handshake times out.
     virtual void OnHandshakeTimeout() = 0;
-
+    virtual quic::QuicTime ApproximateNow() = 0;
     // Called when idle network has been detected.
     virtual void OnIdleNetworkDetected() = 0;
   };

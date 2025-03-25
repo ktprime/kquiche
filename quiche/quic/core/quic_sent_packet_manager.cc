@@ -704,32 +704,29 @@ QuicSentPacketManager::OnRetransmissionTimeout() {
   // handshake has not completed, the loss alarm is set when the loss detection
   // algorithm says to, and the TLP and  RTO alarms are set after that.
   // The TLP alarm is always set to run for under an RTO.
-  switch (GetRetransmissionMode()) {
-    case HANDSHAKE_MODE:
-      QUICHE_DCHECK(!handshake_mode_disabled_);
+  QUICHE_DCHECK(unacked_packets_.HasInFlightPackets() ||
+    (handshake_mode_disabled_ && !handshake_finished_));
+  if (loss_algorithm_->GetLossTimeout() != QuicTime::Zero()) {
+    ++stats_->loss_timeout_count;
+    QuicByteCount prior_in_flight = unacked_packets_.bytes_in_flight();
+    const QuicTime now = clock_->Now();
+    InvokeLossDetection(now);
+    MaybeInvokeCongestionEvent(false, prior_in_flight, now);
+    return LOSS_MODE;
+  } else if (!handshake_finished_ && !handshake_mode_disabled_ && unacked_packets_.HasPendingCryptoPackets()) {
+    QUICHE_DCHECK(!handshake_mode_disabled_);
+    ++stats_->crypto_retransmit_count;
+    RetransmitCryptoPackets();
+    return HANDSHAKE_MODE;
+  } else {
+    ++stats_->pto_count;
+    if (handshake_mode_disabled_ && !handshake_finished_) {
       ++stats_->crypto_retransmit_count;
-      RetransmitCryptoPackets();
-      return HANDSHAKE_MODE;
-    case LOSS_MODE: {
-      ++stats_->loss_timeout_count;
-      QuicByteCount prior_in_flight = unacked_packets_.bytes_in_flight();
-      const QuicTime now = clock_->Now();
-      InvokeLossDetection(now);
-      MaybeInvokeCongestionEvent(false, prior_in_flight, now);
-      return LOSS_MODE;
     }
-    case PTO_MODE:
-      QUIC_DVLOG(1) << ENDPOINT << "PTO mode";
-      ++stats_->pto_count;
-      if (handshake_mode_disabled_ && !handshake_finished_) {
-        ++stats_->crypto_retransmit_count;
-      }
-      ++consecutive_pto_count_;
-      pending_timer_transmission_count_ = 1;
-      return PTO_MODE;
+    ++consecutive_pto_count_;
+    pending_timer_transmission_count_ = 1;
+    return PTO_MODE;
   }
-  QUIC_BUG(quic_bug_10750_3)
-      << "Unknown retransmission mode " << GetRetransmissionMode();
   return PTO_MODE;
 }
 

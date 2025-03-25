@@ -108,6 +108,7 @@ QUIC_EXPORT_PRIVATE size_t GetStartOfEncryptedData(
 
 struct QUIC_EXPORT_PRIVATE QuicPacketHeader {
   QuicPacketHeader();
+  QuicPacketHeader(bool read);
   QuicPacketHeader(const QuicPacketHeader& other);
   ~QuicPacketHeader();
 

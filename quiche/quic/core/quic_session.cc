@@ -616,7 +616,7 @@ bool QuicSession::CheckStreamWriteBlocked(QuicStream* stream) const {
 }
 
 void QuicSession::OnCanWrite() {
-  if (false && connection_->framer().is_processing_packet()) {
+  if (DCHECK_FLAG && connection_->framer().is_processing_packet()) {
     // Do not write data in the middle of packet processing because rest
     // frames in the packet may change the data to write. For example, lost
     // data could be acknowledged. Also, connection is going to emit
@@ -695,7 +695,7 @@ void QuicSession::OnCanWrite() {
     }
   }
 
-  absl::InlinedVector<QuicStreamId, 8> last_writing_stream_ids;
+  absl::InlinedVector<QuicStreamId, 4> last_writing_stream_ids;
   for (size_t i = 0; i < num_writes; ++i) {
 #if DCHECK_FLAG
     if (!(write_blocked_streams_.HasWriteBlockedSpecialStream() ||
@@ -749,7 +749,7 @@ bool QuicSession::WillingAndAbleToWrite() const {
   // 3) If the crypto or headers streams are blocked, or
   // 4) connection is not flow control blocked and there are write blocked
   // streams.
-  if (QuicVersionUsesCryptoFrames(transport_version())) { //TODO3 disable it ?
+  if (false && QuicVersionUsesCryptoFrames(transport_version())) { //TODO3 disable it ?
     if (HasPendingHandshake()) {
       return true;
     }
@@ -930,9 +930,9 @@ bool QuicSession::WriteControlFrame(const QuicFrame& frame,
       return false;
     }
   }
-  SetTransmissionType(type);
-  QuicConnection::ScopedEncryptionLevelContext context(
-      connection_, GetEncryptionLevelToSendApplicationData());
+//  SetTransmissionType(type);
+//  QuicConnection::ScopedEncryptionLevelContext context(
+//      connection_, GetEncryptionLevelToSendApplicationData());
   return connection_->SendControlFrame(frame);
 }
 
@@ -1065,8 +1065,9 @@ void QuicSession::OnStreamClosed(QuicStreamId stream_id) {
     closed_streams_.push_back(it->second);
     stream_map_.erase(it);
     // Do not retransmit data of a closed stream.
+    if (!streams_with_pending_retransmission_.empty())
     streams_with_pending_retransmission_.erase(stream_id);
-    if (enable_stream_erase_alarm && !closed_streams_clean_up_alarm_->IsSet()) {
+    if constexpr (enable_stream_erase_alarm && !closed_streams_clean_up_alarm_->IsSet()) {
       closed_streams_clean_up_alarm_->Set(
           connection_->clock()->ApproximateNow());
     }
@@ -2252,10 +2253,11 @@ void QuicSession::MaybeCloseZombieStream(QuicStreamId id) {
   closed_streams_.push_back(std::move(it->second));
   stream_map_.erase(it);
 
-  if (enable_stream_erase_alarm && !closed_streams_clean_up_alarm_->IsSet()) {
+  if constexpr (enable_stream_erase_alarm && !closed_streams_clean_up_alarm_->IsSet()) {
     closed_streams_clean_up_alarm_->Set(connection_->clock()->ApproximateNow());
   }
   // Do not retransmit data of a closed stream.
+  if (!streams_with_pending_retransmission_.empty())
   streams_with_pending_retransmission_.erase(id);
   connection_->QuicBugIfHasPendingFrames(id);
 }
@@ -2556,7 +2558,7 @@ bool QuicSession::RetransmitLostData() {
 void QuicSession::NeuterUnencryptedData() {
   QuicCryptoStream* crypto_stream = GetMutableCryptoStream();
   crypto_stream->NeuterUnencryptedStreamData();
-  if (!crypto_stream->HasPendingRetransmission() &&
+  if (!streams_with_pending_retransmission_.empty() && !crypto_stream->HasPendingRetransmission() &&
       !QuicVersionUsesCryptoFrames(transport_version())) {
     streams_with_pending_retransmission_.erase(
         QuicUtils::GetCryptoStreamId(transport_version()));

@@ -61,7 +61,7 @@ class QUIC_EXPORT_PRIVATE CryptoHandshakeMessage {
   // SetVector sets an element with the given tag to the raw contents of an
   // array of elements in |v|.
   template <class T>
-  void SetVector(QuicTag tag, const absl::InlinedVector<T, 8>& v) {
+  void SetVector(QuicTag tag, const absl::InlinedVector<T, 10>& v) {
     tag_value_map_.try_emplace(tag, reinterpret_cast<const char*>(&v[0]), v.size() * sizeof(T));
   }
 

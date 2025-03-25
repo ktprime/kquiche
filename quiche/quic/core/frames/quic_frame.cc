@@ -46,7 +46,7 @@ constexpr int DEL_FRAME_TYPES =
     1 << MESSAGE_FRAME |
     1 << CRYPTO_FRAME
 #if QUIC_TLS_SESSION
-    | 1 << NEW_CONNECTION_ID_FRAME |
+  | 1 << NEW_CONNECTION_ID_FRAME |
     1 << RETIRE_CONNECTION_ID_FRAME |
     1 << NEW_TOKEN_FRAME |
     1 << ACK_FREQUENCY_FRAME
@@ -90,6 +90,10 @@ QuicFrame::QuicFrame(QuicWindowUpdateFrame frame)
 
 QuicFrame::QuicFrame(QuicBlockedFrame frame) : blocked_frame(frame) {}
 
+QuicFrame::QuicFrame(QuicMessageFrame* frame)
+  : type(MESSAGE_FRAME), message_frame(frame) {
+}
+
 #if QUIC_TLS_SESSION
 QuicFrame::QuicFrame(QuicNewConnectionIdFrame* frame)
     : type(NEW_CONNECTION_ID_FRAME), new_connection_id_frame(frame) {}
@@ -109,12 +113,7 @@ QuicFrame::QuicFrame(QuicPathChallengeFrame frame)
     : path_challenge_frame(frame) {}
 
 QuicFrame::QuicFrame(QuicStopSendingFrame frame) : stop_sending_frame(frame) {}
-#endif
 
-QuicFrame::QuicFrame(QuicMessageFrame* frame)
-    : type(MESSAGE_FRAME), message_frame(frame) {}
-
-#if QUIC_TLS_SESSION
 QuicFrame::QuicFrame(QuicNewTokenFrame* frame)
     : type(NEW_TOKEN_FRAME), new_token_frame(frame) {}
 

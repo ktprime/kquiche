@@ -173,12 +173,14 @@ QUIC_EXPORT_PRIVATE constexpr bool ParsedQuicVersionIsValid(
     QuicTransportVersion transport_version) {
   bool transport_version_is_valid = false;
   constexpr QuicTransportVersion valid_transport_versions[] = {
+#if 1
       QUIC_VERSION_IETF_2_DRAFT_08,
       QUIC_VERSION_IETF_RFC_V1,
       QUIC_VERSION_IETF_DRAFT_29,
-      QUIC_VERSION_50,
+#endif
       QUIC_VERSION_46,
       QUIC_VERSION_43,
+      QUIC_VERSION_50,
       QUIC_VERSION_RESERVED_FOR_NEGOTIATION,
       QUIC_VERSION_UNSUPPORTED,
   };
@@ -196,10 +198,13 @@ QUIC_EXPORT_PRIVATE constexpr bool ParsedQuicVersionIsValid(
       return transport_version == QUIC_VERSION_UNSUPPORTED;
     case PROTOCOL_QUIC_CRYPTO:
       return transport_version != QUIC_VERSION_UNSUPPORTED &&
-             transport_version != QUIC_VERSION_RESERVED_FOR_NEGOTIATION &&
-             transport_version != QUIC_VERSION_IETF_DRAFT_29 &&
+             transport_version != QUIC_VERSION_RESERVED_FOR_NEGOTIATION
+#if 1
+             && transport_version != QUIC_VERSION_IETF_DRAFT_29 &&
              transport_version != QUIC_VERSION_IETF_RFC_V1 &&
-             transport_version != QUIC_VERSION_IETF_2_DRAFT_08;
+             transport_version != QUIC_VERSION_IETF_2_DRAFT_08
+#endif
+        ;
     case PROTOCOL_TLS1_3:
       return transport_version != QUIC_VERSION_UNSUPPORTED &&
              transport_version != QUIC_VERSION_50 &&
@@ -398,7 +403,7 @@ QUIC_EXPORT_PRIVATE std::ostream& operator<<(
 // Representation of the on-the-wire QUIC version number. Will be written/read
 // to the wire in network-byte-order.
 using QuicVersionLabel = uint32_t;
-using QuicVersionLabelVector = absl::InlinedVector<QuicVersionLabel, 8>; //std::vector<QuicVersionLabel>;
+using QuicVersionLabelVector = absl::InlinedVector<QuicVersionLabel, 10>; //std::vector<QuicVersionLabel>;
 
 // Constructs a version label from the 4 bytes such that the on-the-wire
 // order will be: d, c, b, a.
@@ -568,7 +573,7 @@ QUIC_EXPORT_PRIVATE constexpr bool VersionHasIetfInvariantHeader(
 QUIC_EXPORT_PRIVATE constexpr bool VersionSupportsMessageFrames(
     QuicTransportVersion transport_version) {
   // MESSAGE frames were added in version 45.
-  return transport_version > QUIC_VERSION_43;
+  return transport_version >= QUIC_VERSION_46;
 }
 
 // If true, HTTP/3 instead of gQUIC will be used at the HTTP layer.

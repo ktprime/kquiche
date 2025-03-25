@@ -63,8 +63,8 @@ void QuicControlFrameManager::WriteOrBufferRstStream(
     QuicStreamId id, QuicResetStreamError error,
     QuicStreamOffset bytes_written) {
   QUIC_DVLOG(1) << "Writing RST_STREAM_FRAME";
-  WriteOrBufferQuicFrame((QuicFrame(new QuicRstStreamFrame(
-      ++last_control_frame_id_, id, error, bytes_written))));
+  WriteOrBufferQuicFrame(QuicFrame(new QuicRstStreamFrame(
+      ++last_control_frame_id_, id, error, bytes_written)));
 }
 
 void QuicControlFrameManager::WriteOrBufferGoAway(

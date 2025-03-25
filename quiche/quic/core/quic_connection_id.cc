@@ -105,7 +105,7 @@ std::ostream& operator<<(std::ostream& os, const QuicConnectionId& v) {
 }
 
 bool QuicConnectionId::operator==(const QuicConnectionId& v) const {
-  return data_short_ == v.data_short_ && length_ == v.length_;
+  return data_short_ == v.data_short_;// && length_ == v.length_;
 }
 
 bool QuicConnectionId::operator!=(const QuicConnectionId& v) const {

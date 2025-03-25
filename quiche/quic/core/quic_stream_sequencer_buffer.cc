@@ -62,11 +62,11 @@ QuicStreamSequencerBuffer::~QuicStreamSequencerBuffer() { Clear(); }
 void QuicStreamSequencerBuffer::Clear() {
   for (uint32_t i = 0; i < current_blocks_count_; ++i) {
     if (blocks_[i])
-    delete blocks_[i];
+    free (blocks_[i]);
     blocks_[i] = nullptr;
   }
   for (uint32_t i = 0; i < empty_blocks_count_; ++i) {
-    delete empty_blocks[i];
+    free (empty_blocks[i]);
   }
 
   empty_blocks_count_ = 0;
@@ -80,11 +80,9 @@ bool QuicStreamSequencerBuffer::RetireBlock(size_t index) {
   QUICHE_DCHECK(blocks_[index]);
   if (empty_blocks_count_ < kEmptyBlocks) {
     empty_blocks[empty_blocks_count_++] = blocks_[index];
-    blocks_[index] = nullptr;
-    return true;
+  } else {
+    free(blocks_[index]);
   }
-
-  delete (blocks_[index]);
   blocks_[index] = nullptr;
   return true;
 }
@@ -121,7 +119,7 @@ QuicErrorCode QuicStreamSequencerBuffer::OnStreamData(
   size_t size = data.size();
   QUICHE_DCHECK(*bytes_buffered == 0);
   //QUICHE_DCHECK(size && *bytes_buffered == 0);
-  if (false && size == 0) {
+  if (DCHECK_FLAG && size == 0) {
     *error_details = "Received empty stream frame without FIN.";
     return QUIC_EMPTY_STREAM_FRAME_NO_FIN;
   }
@@ -247,7 +245,7 @@ bool QuicStreamSequencerBuffer::CopyStreamData(QuicStreamOffset offset,
       if (empty_blocks_count_)
         blocks_[write_block_num] = empty_blocks[--empty_blocks_count_];
       else
-        blocks_[write_block_num] = new BufferBlock;
+        blocks_[write_block_num] = (BufferBlock*)malloc(sizeof(BufferBlock));
     }
 
     const size_t bytes_to_copy =

@@ -41,10 +41,10 @@
 //#include "quiche/spdy/core/spdy_protocol.h"
 
 #ifdef QUIC_SPDY_SESSION
-#define _virtua virtual
+  #define _virtua virtual
 #else
-#define STREAM_NO_FIN
-#define _virtua
+  #define STREAM_NO_FIN
+  #define _virtua
 #endif
 
 namespace quic {
@@ -399,7 +399,9 @@ class QUIC_EXPORT_PRIVATE QuicStream
   void OnStreamCreatedFromPendingStream();
 
   void DisableConnectionFlowControlForThisStream() {
+#if 0
     stream_contributes_to_connection_flow_control_ = false;
+#endif
   }
 
  protected:
@@ -484,8 +486,8 @@ class QUIC_EXPORT_PRIVATE QuicStream
   _virtua void OnWriteSideInDataRecvdState() {}
 
   // Return the current flow control send window in bytes.
-  absl::optional<QuicByteCount> GetSendWindow() const;
-  absl::optional<QuicByteCount> GetReceiveWindow() const;
+  QuicByteCount GetSendWindow() const;
+  QuicByteCount GetReceiveWindow() const;
 
  private:
   friend class test::QuicStreamPeer;
@@ -494,7 +496,7 @@ class QUIC_EXPORT_PRIVATE QuicStream
   QuicStream(QuicStreamId id, QuicSession* session,
              QuicStreamSequencer sequencer, bool is_static, StreamType type,
              uint64_t stream_bytes_read, bool fin_received,
-             absl::optional<QuicFlowController> flow_controller,
+//             QuicFlowController& flow_controller,
              QuicFlowController* connection_flow_controller);
 
   // Calls MaybeSendBlocked on the stream's flow controller and the connection
@@ -549,13 +551,16 @@ class QUIC_EXPORT_PRIVATE QuicStream
   static constexpr bool fin_buffered_ = false;
   // True if a FIN has been sent to the session.
   static constexpr bool fin_sent_ = false;
+  // True if a FIN is waiting to be acked.
+  static constexpr bool fin_outstanding_ = false;
 #else
+
   bool fin_buffered_;
   // True if a FIN has been sent to the session.
   bool fin_sent_;
-#endif
   // True if a FIN is waiting to be acked.
   bool fin_outstanding_;
+#endif
   // True if a FIN is lost.
   bool fin_lost_;
 
@@ -577,13 +582,13 @@ class QUIC_EXPORT_PRIVATE QuicStream
   // Special streams, such as the crypto and headers streams, do not respect
   // connection level flow control limits (but are stream level flow control
   // limited).
-  bool stream_contributes_to_connection_flow_control_;
+  static constexpr bool stream_contributes_to_connection_flow_control_ = true;
 
   // Indicates whether paddings will be added after the fin is consumed for this
   // stream.
   bool add_random_padding_after_fin_;
 
-  absl::optional<QuicFlowController> flow_controller_;
+  QuicFlowController flow_controller_;
 
   // The connection level flow controller. Not owned.
   QuicFlowController* connection_flow_controller_;

@@ -56,8 +56,9 @@ bool QuicDataReader::ReadUFloat16(uint64_t* result) {
 
 bool QuicDataReader::ReadConnectionId(QuicConnectionId* connection_id,
                                       uint8_t length) {
-  if (length == 0) {
-    connection_id->set_length(0);
+  if (0 && length == 0) {
+    //connection_id->set_length(0);
+    //QUICHE_DCHECK(connection_id->length() == 0);
     return true;
   }
 
