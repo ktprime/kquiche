@@ -20,7 +20,7 @@
 #include "quiche/common/platform/api/quiche_export.h"
 
 #ifdef _DEBUG
-  #define DCHECK_FLAG 1
+  #define DCHECK_FLAG 0
 #else
   #define DCHECK_FLAG 0
 #endif // DEBUG
