@@ -654,7 +654,7 @@ void QuicSession::OnCanWrite() {
   size_t num_writes = false && flow_controller_.IsBlocked()
                           ? write_blocked_streams_.NumBlockedSpecialStreams()
                           : write_blocked_streams_.NumBlockedStreams();
-  if (num_writes == 0 && !control_frame_manager_.WillingToWrite() && datagram_queue_.empty()  
+  if (num_writes == 0 && !control_frame_manager_.WillingToWrite() && datagram_queue_.empty()
 #if QUIC_TLS_SESSION
     &&
       (!QuicVersionUsesCryptoFrames(transport_version()) ||

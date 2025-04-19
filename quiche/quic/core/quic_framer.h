@@ -1094,7 +1094,7 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
   // Determine whether the given QuicAckFrame should be serialized with a
   // IETF_ACK_RECEIVE_TIMESTAMPS frame type.
   bool UseIetfAckWithReceiveTimestamp(const QuicAckFrame& frame) const {
-    return process_timestamps_ && VersionHasIetfQuicFrames(version_.transport_version) &&           
+    return process_timestamps_ && VersionHasIetfQuicFrames(version_.transport_version) &&
            std::min<uint64_t>(max_receive_timestamps_per_ack_,
                               frame.received_packet_times.size()) > 0;
   }

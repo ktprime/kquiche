@@ -343,7 +343,7 @@ void QuicSentPacketManager::PostProcessNewlyAckedPackets(
     }
     // Reset all retransmit counters any time a new packet is acked.
     if (rtt_updated)
-      consecutive_pto_count_ = 0; //TODO3. on fixed output bandwidth, it's easy closed by 5rto blackhole detected. 
+      consecutive_pto_count_ = 0; //TODO3. on fixed output bandwidth, it's easy closed by 5rto blackhole detected.
     else
       consecutive_pto_count_ -= 1;
     consecutive_crypto_retransmission_count_ = 0;

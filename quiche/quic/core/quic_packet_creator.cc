@@ -356,7 +356,7 @@ bool QuicPacketCreator::HasRoomForStreamFrame(QuicStreamId id,
       framer_->transport_version(), id, offset, /*last_frame_in_packet=*/true,
       data_size);
   return (BytesFree() > min_stream_frame_size);
-#if 0 
+#if 0
   {
     return true;
   }
@@ -468,7 +468,7 @@ void QuicPacketCreator::FlushCurrentPacket() {
   }
 
   QUICHE_DCHECK_EQ(nullptr, packet_.encrypted_buffer) ;//<< ENDPOINT;
-  if (!SerializePacket(std::move(external_buffer), kMaxOutgoingPacketSize,
+  if (!SerializePacket(std::move(external_buffer), sizeof(stack_buffer),
                        /*allow_padding=*/true)) {
     return;
   }
@@ -1734,7 +1734,7 @@ size_t QuicPacketCreator::GetSerializedFrameLength(const QuicFrame& frame) {
   size_t serialized_frame_length = framer_->GetSerializedFrameLength(
       frame, BytesFree(), queued_frames_.empty(),
       /* last_frame_in_packet= */ true, packet_number_length);
-  if (serialized_frame_length >= 8 - packet_number_length || !framer_->version().HasHeaderProtection()) {
+  if (serialized_frame_length + packet_number_length >= 8 || !framer_->version().HasHeaderProtection()) {
     return serialized_frame_length;
   }
   // Calculate frame bytes and bytes free with this frame added.

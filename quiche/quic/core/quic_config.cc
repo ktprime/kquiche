@@ -58,12 +58,8 @@ QuicConfigValue::QuicConfigValue(QuicTag tag, QuicConfigPresence presence)
 QuicConfigValue::~QuicConfigValue() {}
 
 QuicFixedUint32::QuicFixedUint32(QuicTag tag, QuicConfigPresence presence)
-    : QuicConfigValue(tag, presence),
-      has_send_value_(false),
-      has_receive_value_(false) {}
+    : QuicConfigValue(tag, presence) {}
 QuicFixedUint32::~QuicFixedUint32() {}
-
-bool QuicFixedUint32::HasSendValue() const { return has_send_value_; }
 
 uint32_t QuicFixedUint32::GetSendValue() const {
   QUIC_BUG_IF(quic_bug_12743_1, !has_send_value_)
@@ -75,8 +71,6 @@ void QuicFixedUint32::SetSendValue(uint32_t value) {
   has_send_value_ = true;
   send_value_ = value;
 }
-
-bool QuicFixedUint32::HasReceivedValue() const { return has_receive_value_; }
 
 uint32_t QuicFixedUint32::GetReceivedValue() const {
   QUIC_BUG_IF(quic_bug_12743_2, !has_receive_value_)
@@ -129,13 +123,9 @@ QuicErrorCode QuicFixedUint32::ProcessPeerHello(
 }
 
 QuicFixedUint62::QuicFixedUint62(QuicTag name, QuicConfigPresence presence)
-    : QuicConfigValue(name, presence),
-      has_send_value_(false),
-      has_receive_value_(false) {}
+    : QuicConfigValue(name, presence) {}
 
 QuicFixedUint62::~QuicFixedUint62() {}
-
-bool QuicFixedUint62::HasSendValue() const { return has_send_value_; }
 
 uint64_t QuicFixedUint62::GetSendValue() const {
   if (!has_send_value_) {
@@ -154,8 +144,6 @@ void QuicFixedUint62::SetSendValue(uint64_t value) {
   has_send_value_ = true;
   send_value_ = value;
 }
-
-bool QuicFixedUint62::HasReceivedValue() const { return has_receive_value_; }
 
 uint64_t QuicFixedUint62::GetReceivedValue() const {
   if (!has_receive_value_) {
@@ -213,14 +201,8 @@ QuicErrorCode QuicFixedUint62::ProcessPeerHello(
 
 QuicFixedStatelessResetToken::QuicFixedStatelessResetToken(
     QuicTag tag, QuicConfigPresence presence)
-    : QuicConfigValue(tag, presence),
-      has_send_value_(false),
-      has_receive_value_(false) {}
+    : QuicConfigValue(tag, presence) {}
 QuicFixedStatelessResetToken::~QuicFixedStatelessResetToken() {}
-
-bool QuicFixedStatelessResetToken::HasSendValue() const {
-  return has_send_value_;
-}
 
 const StatelessResetToken& QuicFixedStatelessResetToken::GetSendValue() const {
   QUIC_BUG_IF(quic_bug_12743_4, !has_send_value_)
@@ -232,10 +214,6 @@ void QuicFixedStatelessResetToken::SetSendValue(
     const StatelessResetToken& value) {
   has_send_value_ = true;
   send_value_ = value;
-}
-
-bool QuicFixedStatelessResetToken::HasReceivedValue() const {
-  return has_receive_value_;
 }
 
 const StatelessResetToken& QuicFixedStatelessResetToken::GetReceivedValue()
@@ -283,45 +261,37 @@ QuicErrorCode QuicFixedStatelessResetToken::ProcessPeerHello(
 
 QuicFixedTagVector::QuicFixedTagVector(QuicTag name,
                                        QuicConfigPresence presence)
-    : QuicConfigValue(name, presence),
-      has_send_values_(false),
-      has_receive_values_(false) {}
+    : QuicConfigValue(name, presence) {}
 
 QuicFixedTagVector::QuicFixedTagVector(const QuicFixedTagVector& other) =
     default;
 
 QuicFixedTagVector::~QuicFixedTagVector() {}
 
-bool QuicFixedTagVector::HasSendValues() const { return has_send_values_; }
-
 const QuicTagVector& QuicFixedTagVector::GetSendValues() const {
-  QUIC_BUG_IF(quic_bug_12743_6, !has_send_values_)
+  QUIC_BUG_IF(quic_bug_12743_6, !has_send_value_)
       << "No send values to get for tag:" << QuicTagToString(tag_);
   return send_values_;
 }
 
 void QuicFixedTagVector::SetSendValues(const QuicTagVector& values) {
-  has_send_values_ = true;
+  has_send_value_ = true;
   send_values_ = values;
 }
 
-bool QuicFixedTagVector::HasReceivedValues() const {
-  return has_receive_values_;
-}
-
 const QuicTagVector& QuicFixedTagVector::GetReceivedValues() const {
-  QUIC_BUG_IF(quic_bug_12743_7, !has_receive_values_)
+  QUIC_BUG_IF(quic_bug_12743_7, !has_receive_value_)
       << "No receive value to get for tag:" << QuicTagToString(tag_);
   return receive_values_;
 }
 
 void QuicFixedTagVector::SetReceivedValues(const QuicTagVector& values) {
-  has_receive_values_ = true;
+  has_receive_value_ = true;
   receive_values_ = values;
 }
 
 void QuicFixedTagVector::ToHandshakeMessage(CryptoHandshakeMessage* out) const {
-  if (has_send_values_) {
+  if (has_send_value_) {
     out->SetVector(tag_, send_values_);
   }
 }
@@ -341,7 +311,7 @@ QuicErrorCode QuicFixedTagVector::ProcessPeerHello(
       break;
     case QUIC_NO_ERROR:
       QUIC_DVLOG(1) << "Received Connection Option tags from receiver.";
-      has_receive_values_ = true;
+      has_receive_value_ = true;
       receive_values_.insert(receive_values_.end(), values.begin(),
                              values.end());
       break;
@@ -354,13 +324,9 @@ QuicErrorCode QuicFixedTagVector::ProcessPeerHello(
 
 QuicFixedSocketAddress::QuicFixedSocketAddress(QuicTag tag,
                                                QuicConfigPresence presence)
-    : QuicConfigValue(tag, presence),
-      has_send_value_(false),
-      has_receive_value_(false) {}
+    : QuicConfigValue(tag, presence) {}
 
 QuicFixedSocketAddress::~QuicFixedSocketAddress() {}
-
-bool QuicFixedSocketAddress::HasSendValue() const { return has_send_value_; }
 
 const QuicSocketAddress& QuicFixedSocketAddress::GetSendValue() const {
   QUIC_BUG_IF(quic_bug_12743_8, !has_send_value_)
@@ -376,10 +342,6 @@ void QuicFixedSocketAddress::SetSendValue(const QuicSocketAddress& value) {
 void QuicFixedSocketAddress::ClearSendValue() {
   has_send_value_ = false;
   send_value_ = QuicSocketAddress();
-}
-
-bool QuicFixedSocketAddress::HasReceivedValue() const {
-  return has_receive_value_;
 }
 
 const QuicSocketAddress& QuicFixedSocketAddress::GetReceivedValue() const {
@@ -478,7 +440,7 @@ QuicConfig::GetReceivedGoogleHandshakeMessage() const {
 }
 
 bool QuicConfig::HasReceivedConnectionOptions() const {
-  return connection_options_.HasReceivedValues();
+  return connection_options_.HasReceivedValue();
 }
 
 const QuicTagVector& QuicConfig::ReceivedConnectionOptions() const {
@@ -486,7 +448,7 @@ const QuicTagVector& QuicConfig::ReceivedConnectionOptions() const {
 }
 
 bool QuicConfig::HasSendConnectionOptions() const {
-  return connection_options_.HasSendValues();
+  return connection_options_.HasSendValue();
 }
 
 const QuicTagVector& QuicConfig::SendConnectionOptions() const {
@@ -519,7 +481,7 @@ bool QuicConfig::HasClientRequestedIndependentOption(
             ContainsQuicTag(ReceivedConnectionOptions(), tag));
   }
 
-  return (client_connection_options_.HasSendValues() &&
+  return (client_connection_options_.HasSendValue() &&
           ContainsQuicTag(client_connection_options_.GetSendValues(), tag));
 }
 
@@ -531,7 +493,7 @@ const QuicTagVector& QuicConfig::ClientRequestedIndependentOptions(
                                           : *no_options;
   }
 
-  return client_connection_options_.HasSendValues()
+  return client_connection_options_.HasSendValue()
              ? client_connection_options_.GetSendValues()
              : *no_options;
 }
@@ -1246,7 +1208,7 @@ bool QuicConfig::FillTransportParameters(TransportParameters* params) const {
     params->initial_round_trip_time_us.set_value(
         initial_round_trip_time_us_.GetSendValue());
   }
-  if (connection_options_.HasSendValues() &&
+  if (connection_options_.HasSendValue() &&
       !connection_options_.GetSendValues().empty()) {
     params->google_connection_options = connection_options_.GetSendValues();
   }

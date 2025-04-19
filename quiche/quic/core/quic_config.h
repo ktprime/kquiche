@@ -58,9 +58,14 @@ class QUIC_EXPORT_PRIVATE QuicConfigValue {
       const CryptoHandshakeMessage& peer_hello, HelloType hello_type,
       std::string* error_details) = 0;
 
+  bool HasSendValue() const { return has_send_value_; }
+  bool HasReceivedValue() const { return has_receive_value_; }
+
  protected:
-  const QuicTag tag_;
+  bool has_send_value_ = false;
+  bool has_receive_value_ = false;
   const QuicConfigPresence presence_;
+  const QuicTag tag_;
 };
 
 // Stores uint32_t from CHLO or SHLO messages that are not negotiated.
@@ -69,13 +74,9 @@ class QUIC_EXPORT_PRIVATE QuicFixedUint32 : public QuicConfigValue {
   QuicFixedUint32(QuicTag tag, QuicConfigPresence presence);
   ~QuicFixedUint32() override;
 
-  bool HasSendValue() const;
-
   uint32_t GetSendValue() const;
 
   void SetSendValue(uint32_t value);
-
-  bool HasReceivedValue() const;
 
   uint32_t GetReceivedValue() const;
 
@@ -90,8 +91,6 @@ class QUIC_EXPORT_PRIVATE QuicFixedUint32 : public QuicConfigValue {
                                  std::string* error_details) override;
 
  private:
-  bool has_send_value_;
-  bool has_receive_value_;
   uint32_t send_value_;
   uint32_t receive_value_;
 };
@@ -104,13 +103,9 @@ class QUIC_EXPORT_PRIVATE QuicFixedUint62 : public QuicConfigValue {
   QuicFixedUint62(QuicTag name, QuicConfigPresence presence);
   ~QuicFixedUint62() override;
 
-  bool HasSendValue() const;
-
   uint64_t GetSendValue() const;
 
   void SetSendValue(uint64_t value);
-
-  bool HasReceivedValue() const;
 
   uint64_t GetReceivedValue() const;
 
@@ -127,8 +122,6 @@ class QUIC_EXPORT_PRIVATE QuicFixedUint62 : public QuicConfigValue {
                                  std::string* error_details) override;
 
  private:
-  bool has_send_value_;
-  bool has_receive_value_;
   uint64_t send_value_;
   uint64_t receive_value_;
 };
@@ -141,13 +134,9 @@ class QUIC_EXPORT_PRIVATE QuicFixedStatelessResetToken
   QuicFixedStatelessResetToken(QuicTag tag, QuicConfigPresence presence);
   ~QuicFixedStatelessResetToken() override;
 
-  bool HasSendValue() const;
-
   const StatelessResetToken& GetSendValue() const;
 
   void SetSendValue(const StatelessResetToken& value);
-
-  bool HasReceivedValue() const;
 
   const StatelessResetToken& GetReceivedValue() const;
 
@@ -162,8 +151,6 @@ class QUIC_EXPORT_PRIVATE QuicFixedStatelessResetToken
                                  std::string* error_details) override;
 
  private:
-  bool has_send_value_;
-  bool has_receive_value_;
   StatelessResetToken send_value_;
   StatelessResetToken receive_value_;
 };
@@ -175,13 +162,9 @@ class QUIC_EXPORT_PRIVATE QuicFixedTagVector : public QuicConfigValue {
   QuicFixedTagVector(const QuicFixedTagVector& other);
   ~QuicFixedTagVector() override;
 
-  bool HasSendValues() const;
-
   const QuicTagVector& GetSendValues() const;
 
   void SetSendValues(const QuicTagVector& values);
-
-  bool HasReceivedValues() const;
 
   const QuicTagVector& GetReceivedValues() const;
 
@@ -198,8 +181,6 @@ class QUIC_EXPORT_PRIVATE QuicFixedTagVector : public QuicConfigValue {
                                  std::string* error_details) override;
 
  private:
-  bool has_send_values_;
-  bool has_receive_values_;
   QuicTagVector send_values_;
   QuicTagVector receive_values_;
 };
@@ -210,15 +191,11 @@ class QUIC_EXPORT_PRIVATE QuicFixedSocketAddress : public QuicConfigValue {
   QuicFixedSocketAddress(QuicTag tag, QuicConfigPresence presence);
   ~QuicFixedSocketAddress() override;
 
-  bool HasSendValue() const;
-
   const QuicSocketAddress& GetSendValue() const;
 
   void SetSendValue(const QuicSocketAddress& value);
 
   void ClearSendValue();
-
-  bool HasReceivedValue() const;
 
   const QuicSocketAddress& GetReceivedValue() const;
 
@@ -231,8 +208,6 @@ class QUIC_EXPORT_PRIVATE QuicFixedSocketAddress : public QuicConfigValue {
                                  std::string* error_details) override;
 
  private:
-  bool has_send_value_;
-  bool has_receive_value_;
   QuicSocketAddress send_value_;
   QuicSocketAddress receive_value_;
 };

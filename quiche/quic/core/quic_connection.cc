@@ -3495,7 +3495,7 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
       // be closed. By manually flush the writer here, the MTU probe is sent in
       // a normal(non-GSO) packet, so the kernel can return EMSGSIZE and we will
       // not close the connection.
-      packet_send_time = packet_send_time + result.send_time_offset;
+      // packet_send_time = packet_send_time + result.send_time_offset;
       if (DCHECK_FLAG && is_mtu_discovery && writer_->IsBatchMode()) {
         result = writer_->Flush();
       }
@@ -3684,9 +3684,8 @@ bool QuicConnection::WritePacket(SerializedPacket* packet) {
   stats_.stream_packets_sent += (packet->frame_types & (1 << STREAM_FRAME)) != 0;
 
   if (packet->transmission_type != NOT_RETRANSMISSION) {
-    QuicByteCount bytes_not_retransmitted =
-      packet->bytes_not_retransmitted.value_or(0);
-    if (DCHECK_FLAG && static_cast<uint64_t>(encrypted_length) < bytes_not_retransmitted) {
+    QuicByteCount bytes_not_retransmitted = packet->bytes_not_retransmitted;
+    if (static_cast<uint64_t>(encrypted_length) < bytes_not_retransmitted) {
       QUIC_BUG(quic_packet_bytes_written_lt_bytes_not_retransmitted)
           << "Total bytes written to the packet should be larger than the "
              "bytes in not-retransmitted frames. Bytes written: "
