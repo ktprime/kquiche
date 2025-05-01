@@ -736,14 +736,10 @@ size_t QuicFramer::GetRetransmittableControlFrameSize(
       QUICHE_DCHECK(false);
       return 0;
   }
-
-  // Not reachable, but some Chrome compilers can't figure that out.  *sigh*
-  QUICHE_DCHECK(false);
-  return 0;
 }
 
 // static
-size_t QuicFramer::GetStreamIdSize(QuicStreamId stream_id) {
+size_t constexpr QuicFramer::GetStreamIdSize(QuicStreamId stream_id) {
   QUICHE_DCHECK(stream_id < 256);
   return 1;// stream_id < 256 ? 1 : 2;
 #if 0
@@ -1924,7 +1920,7 @@ bool QuicFramer::ProcessIetfDataPacket(QuicDataReader* encrypted_reader,
 #endif
   {
     if (!ProcessFrameData(&reader, *header)) {
-#if _DEBUG
+#if _DEBUG0
       reader.AdvancePos(-reader.pos());
       ProcessFrameData(&reader, *header);
 #endif
@@ -2125,7 +2121,7 @@ bool QuicFramer::AppendPacketHeader(const QuicPacketHeader& header,
   QUIC_DVLOG(1) << ENDPOINT << "Appending header: " << header;
   uint8_t public_flags = 0;
   QUICHE_DCHECK(!header.reset_flag);
-  if (false && header.reset_flag) {
+  if (header.reset_flag) { //TODO3.
     public_flags |= PACKET_PUBLIC_FLAGS_RST;
   }
   if (header.version_flag) {
@@ -4555,7 +4551,7 @@ bool QuicFramer::ApplyHeaderProtection(EncryptionLevel level, char* buffer,
   uint8_t type_byte;
   buffer_reader.ReadUInt8(&type_byte);
 
-  QuicLongHeaderType header_type;
+  QuicLongHeaderType header_type = ZERO_RTT_PROTECTED;
   if (IsLongHeader(type_byte)) {
     bitmask = 0x0f;
     header_type = GetLongHeaderType(type_byte, version_);

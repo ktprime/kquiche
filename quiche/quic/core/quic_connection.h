@@ -442,7 +442,7 @@ class QUIC_EXPORT_PRIVATE QuicConnectionDebugVisitor final
 
 class QUIC_EXPORT_PRIVATE QuicConnectionHelperInterface {
  public:
-  ~QuicConnectionHelperInterface() = default;
+  virtual ~QuicConnectionHelperInterface() = default;
 
   // Returns a QuicClock to be used for all time related functions.
   virtual const QuicClock* GetClock() const = 0;
@@ -525,8 +525,6 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
   // information.
   void AdjustNetworkParameters(
       const SendAlgorithmInterface::NetworkParams& params);
-  void AdjustNetworkParameters(QuicBandwidth bandwidth, QuicTime::Delta rtt,
-                               bool allow_cwnd_to_decrease);
 
   // Install a loss detection tuner. Must be called before OnConfigNegotiated.
   void SetLossDetectionTuner(
@@ -1349,7 +1347,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
                                          const std::string& details);
 
   // Returns true if the packet should be discarded and not sent.
-  bool ShouldDiscardPacket(EncryptionLevel encryption_level);
+  bool ShouldDiscardPacket(EncryptionLevel encryption_level) const;
 
   // Notify various components(Session etc.) that this connection has been
   // migrated.
@@ -1414,7 +1412,7 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
 
     PathState(PathState&& other) noexcept;
 
-    PathState& operator=(PathState&& other);
+    PathState& operator=(PathState&& other) noexcept;
 
     // Reset all the members.
     void Clear();
@@ -1777,9 +1775,6 @@ class QUIC_EXPORT_PRIVATE QuicConnection final
 
   // Returns largest received packet number which contains an ACK frame.
   QuicPacketNumber GetLargestReceivedPacketWithAck() const;
-
-  // Returns the largest packet number that has been sent.
-  QuicPacketNumber GetLargestSentPacket() const;
 
   // Returns the largest sent packet number that has been ACKed by peer.
   QuicPacketNumber GetLargestAckedPacket() const;

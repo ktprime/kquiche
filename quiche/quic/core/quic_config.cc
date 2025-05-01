@@ -54,8 +54,7 @@ QuicErrorCode ReadUint32(const CryptoHandshakeMessage& msg, QuicTag tag,
 }
 
 QuicConfigValue::QuicConfigValue(QuicTag tag, QuicConfigPresence presence)
-    : tag_(tag), presence_(presence) {}
-QuicConfigValue::~QuicConfigValue() {}
+    : presence_(presence), tag_(tag) {}
 
 QuicFixedUint32::QuicFixedUint32(QuicTag tag, QuicConfigPresence presence)
     : QuicConfigValue(tag, presence) {}

@@ -275,7 +275,7 @@ void QuicStreamSendBuffer::OnStreamDataRetransmitted(
 }
 
 bool QuicStreamSendBuffer::HasPendingRetransmission() const {
-  const auto pending = pending_retransmissions_.begin();
+  //const auto pending = pending_retransmissions_.begin();
   return !pending_retransmissions_.Empty();//&& pending->max() > pending->min();
 }
 
@@ -287,10 +287,6 @@ StreamPendingRetransmission QuicStreamSendBuffer::NextPendingRetransmission()
     QUICHE_DCHECK(pending->max() > pending->min());
     return {pending->min(), pending->max() - pending->min()};
   }
-  QUIC_BUG(quic_bug_10853_3)
-      << "NextPendingRetransmission is called unexpected with no "
-         "pending retransmissions.";
-  return {0, 0};
 }
 
 bool QuicStreamSendBuffer::FreeMemSlices() {

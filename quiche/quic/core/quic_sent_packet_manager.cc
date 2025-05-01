@@ -727,7 +727,6 @@ QuicSentPacketManager::OnRetransmissionTimeout() {
     pending_timer_transmission_count_ = 1;
     return PTO_MODE;
   }
-  return PTO_MODE;
 }
 
 void QuicSentPacketManager::RetransmitCryptoPackets() {
@@ -793,7 +792,7 @@ void QuicSentPacketManager::MaybeSendProbePacket() {
   if (pending_timer_transmission_count_ == 0 || unacked_packets_.empty()) {
     return;
   }
-  PacketNumberSpace packet_number_space;
+  PacketNumberSpace packet_number_space = INITIAL_DATA;
   if (supports_multiple_packet_number_spaces()) {
     // Find out the packet number space to send probe packets.
     if (!GetEarliestPacketSentTimeForPto(&packet_number_space)
@@ -1177,7 +1176,7 @@ void QuicSentPacketManager::OnAckFrameStart(QuicPacketNumber largest_acked,
   // Ignore peer_max_ack_delay and use received ack_delay during
   // handshake when supporting multiple packet number spaces.
   if (!supports_multiple_packet_number_spaces() || handshake_finished_) {
-    if (ack_delay_time > peer_max_ack_delay()) {
+    if (DCHECK_FLAG && ack_delay_time > peer_max_ack_delay()) {
       ack_delay_time = peer_max_ack_delay();
     }
     if (DCHECK_FLAG && ignore_ack_delay_) {

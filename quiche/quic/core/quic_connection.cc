@@ -202,7 +202,7 @@ class ScopedCoalescedPacketClearer {
 };
 
 // Whether this incoming packet is allowed to replace our connection ID.
-bool PacketCanReplaceServerConnectionId(const QuicPacketHeader& header,
+static bool PacketCanReplaceServerConnectionId(const QuicPacketHeader& header,
                                         Perspective perspective) {
   return header.form == IETF_QUIC_LONG_HEADER_PACKET &&
          perspective == Perspective::IS_CLIENT &&
@@ -213,7 +213,7 @@ bool PacketCanReplaceServerConnectionId(const QuicPacketHeader& header,
 // Due to a lost Initial packet, a Handshake packet might use a new connection
 // ID we haven't seen before. We shouldn't update the connection ID based on
 // this, but should buffer the packet in case it works out.
-bool NewServerConnectionIdMightBeValid(const QuicPacketHeader& header,
+static bool NewServerConnectionIdMightBeValid(const QuicPacketHeader& header,
                                        Perspective perspective,
                                        bool connection_id_already_replaced) {
   return header.form == IETF_QUIC_LONG_HEADER_PACKET &&
@@ -224,7 +224,7 @@ bool NewServerConnectionIdMightBeValid(const QuicPacketHeader& header,
          !connection_id_already_replaced;
 }
 
-CongestionControlType GetDefaultCongestionControlType() {
+static CongestionControlType GetDefaultCongestionControlType() {
   if (GetQuicReloadableFlag(quic_default_to_bbr_v2)) {
     return kBBRv2;
   }
@@ -236,7 +236,7 @@ CongestionControlType GetDefaultCongestionControlType() {
   return kCubicBytes;
 }
 
-bool ContainsNonProbingFrame(const SerializedPacket& packet) {
+static bool ContainsNonProbingFrame(const SerializedPacket& packet) {
   for (const QuicFrame& frame : packet.nonretransmittable_frames) {
     if (!QuicUtils::IsProbingFrame(frame.type)) {
       return true;
@@ -3335,7 +3335,7 @@ bool QuicConnection::CanWrite(HasRetransmittableData retransmittable) {
     return false;
   }
 
-  const float loss_rate = 0.25f * 4;// 1.0f - (float)(stats_.packets_retransmitted) / (stats_.stream_packets_sent + 1);
+//  const float loss_rate = 0.25f * 4;// 1.0f - (float)(stats_.packets_retransmitted) / (stats_.stream_packets_sent + 1);
 // Scheduler requires a delay.
   // Cannot send packet now because delay is too far in the future.
   send_alarm_->Update(now + delay * (1 + 0), kAlarmGranularity);
@@ -3853,7 +3853,7 @@ bool QuicConnection::IsMsgTooBig(const QuicPacketWriter* writer,
           result.error_code == *writer_error_code);
 }
 
-bool QuicConnection::ShouldDiscardPacket(EncryptionLevel encryption_level) {
+bool QuicConnection::ShouldDiscardPacket(EncryptionLevel encryption_level) const {
   if (false && !connected_) {
     QUIC_DLOG(INFO) << ENDPOINT
                     << "Not sending packet as connection is disconnected.";
@@ -7049,7 +7049,7 @@ QuicConnection::PathState::PathState(PathState&& other) noexcept {
 }
 
 QuicConnection::PathState& QuicConnection::PathState::operator=(
-    QuicConnection::PathState&& other) {
+    QuicConnection::PathState&& other) noexcept {
   if (this != &other) {
     self_address = other.self_address;
     peer_address = other.peer_address;

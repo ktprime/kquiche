@@ -32,7 +32,7 @@ class QUICHE_EXPORT QuicheReferenceCountedImpl {
   }
 
  private:
-  std::atomic<int> ref_count_ = 1;
+   std::atomic<int> ref_count_ { 1 };
 };
 
 template <class T>

@@ -632,13 +632,13 @@ class QUIC_EXPORT_PRIVATE QuicPacketCreator {
   // If true, then |diversification_nonce_| will be included in the header of
   // all packets created at the initial encryption level.
   bool have_diversification_nonce_;
+  // Whether the server_connection_id is sent over the wire.
+  QuicConnectionIdIncluded server_connection_id_included_;
+
   DiversificationNonce diversification_nonce_;
   // Maximum length including headers and encryption (UDP payload length.)
   QuicByteCount max_packet_length_;
   size_t max_plaintext_size_;
-  // Whether the server_connection_id is sent over the wire.
-  QuicConnectionIdIncluded server_connection_id_included_;
-
   // Frames to be added to the next SerializedPacket
   QuicFrames queued_frames_;
 
@@ -683,7 +683,7 @@ class QUIC_EXPORT_PRIVATE QuicPacketCreator {
   // If not 0, this latches the actual max_packet_length when
   // SetSoftMaxPacketLength is called and max_packet_length_ gets
   // set to a soft value.
-  QuicByteCount latched_hard_max_packet_length_;
+  static constexpr QuicByteCount latched_hard_max_packet_length_ = 0;
 
   // The maximum length of a MESSAGE/DATAGRAM frame that our peer is willing to
   // accept. There is no limit for QUIC_CRYPTO connections, but QUIC+TLS

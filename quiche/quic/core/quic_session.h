@@ -925,6 +925,7 @@ class QUIC_EXPORT_PRIVATE QuicSession
   QuicConnection* connection_;
 
   QuicConfig& config_;
+
   // Store perspective on QuicSession during the constructor as it may be needed
   // during our destructor when connection_ may have already been destroyed.
 #if QUIC_SERVER_SESSION == 0

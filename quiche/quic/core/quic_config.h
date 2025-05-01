@@ -47,7 +47,7 @@ enum HelloType {
 class QUIC_EXPORT_PRIVATE QuicConfigValue {
  public:
   QuicConfigValue(QuicTag tag, QuicConfigPresence presence);
-  virtual ~QuicConfigValue();
+  virtual ~QuicConfigValue() = default;
 
   // Serialises tag name and value(s) to |out|.
   virtual void ToHandshakeMessage(CryptoHandshakeMessage* out) const = 0;

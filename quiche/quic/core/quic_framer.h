@@ -390,7 +390,7 @@ class QUIC_EXPORT_PRIVATE QuicFramer {
   // Size in bytes of PathResponse frame.
   static size_t GetPathResponseFrameSize(const QuicPathResponseFrame& frame);
   // Size in bytes required to serialize the stream id.
-  static size_t GetStreamIdSize(QuicStreamId stream_id);
+  static constexpr size_t GetStreamIdSize(QuicStreamId stream_id);
   // Size in bytes required to serialize the stream offset.
   static size_t GetStreamOffsetSize(QuicStreamOffset offset);
   // Size in bytes for a serialized new connection id frame
