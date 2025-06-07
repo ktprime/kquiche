@@ -160,8 +160,7 @@ size_t GetStartOfEncryptedData(
       retry_token_length_length, retry_token_length, length_length);
 }
 
-QuicPacketHeader::QuicPacketHeader()
-  :
+QuicPacketHeader::QuicPacketHeader():
 #if 0
     destination_connection_id(EmptyQuicConnectionId()),
     source_connection_id(EmptyQuicConnectionId()),

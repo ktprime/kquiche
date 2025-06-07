@@ -1815,8 +1815,8 @@ bool QuicFramer::ProcessIetfDataPacket(QuicDataReader* encrypted_reader,
     }
 
     header->nonce = &last_nonce_;
-  } else {
-    header->nonce = nullptr;
+  //} else {
+  //  header->nonce = nullptr;
   }
 
   if (!visitor_->OnUnauthenticatedHeader(*header)) {
@@ -2121,7 +2121,7 @@ bool QuicFramer::AppendPacketHeader(const QuicPacketHeader& header,
   QUIC_DVLOG(1) << ENDPOINT << "Appending header: " << header;
   uint8_t public_flags = 0;
   QUICHE_DCHECK(!header.reset_flag);
-  if (header.reset_flag) { //TODO3.
+  if (DCHECK_FLAG && header.reset_flag) { //TODO3.
     public_flags |= PACKET_PUBLIC_FLAGS_RST;
   }
   if (header.version_flag) {

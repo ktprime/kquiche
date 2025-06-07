@@ -479,7 +479,7 @@ void QuicPacketCreator::OnSerializedPacket() {
   if (packet_.transmission_type == NOT_RETRANSMISSION) {
     packet_.bytes_not_retransmitted = 0;
   }
-  assert(packet_.frame_types);
+  assert(packet_.frame_types || packet_.encrypted_length == 0);
 
   SerializedPacket packet(std::move(packet_));
   ClearPacket();
